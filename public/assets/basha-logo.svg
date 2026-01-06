@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <!-- Top Bracket -->
+  <path d="M 100 80 Q 100 60, 120 60 L 680 60 Q 700 60, 700 80" stroke="#F59E0B" stroke-width="8" fill="none"/>
+  
+  <!-- Text: ESTD. 2023 -->
+  <text x="400" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#6B7280">ESTD. 2023</text>
+  <line x1="375" y1="135" x2="425" y2="135" stroke="#6B7280" stroke-width="2"/>
+  
+  <!-- Main Text: BASHA -->
+  <text x="400" y="300" text-anchor="middle" font-family="Arial Black, sans-serif" font-size="120" font-weight="bold" fill="none" stroke="#000" stroke-width="6">BASHA</text>
+  
+  <!-- Decorative Line -->
+  <line x1="375" y1="330" x2="425" y2="330" stroke="#6B7280" stroke-width="2"/>
+  
+  <!-- Telugu Text Placeholder -->
+  <text x="400" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" fill="#9CA3AF">పాషా</text>
+  
+  <!-- Bottom Bracket -->
+  <path d="M 100 520 Q 100 540, 120 540 L 680 540 Q 700 540, 700 520" stroke="#F59E0B" stroke-width="8" fill="none"/>
+</svg>
