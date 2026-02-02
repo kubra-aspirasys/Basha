@@ -29,13 +29,19 @@ self.addEventListener('install', (event) => {
 
 // Fetch event - serve from cache when offline
 self.addEventListener('fetch', (event) => {
+  // Only handle http/https requests
+  if (!event.request.url.startsWith('http')) {
+    return;
+  }
+
   const url = new URL(event.request.url);
   
   // Skip caching for Vite internal modules and development HMR
   if (url.pathname.startsWith('/@') || 
       url.pathname.includes('__vite') || 
       url.hostname === 'localhost' || 
-      url.hostname === '127.0.0.1') {
+      url.hostname === '127.0.0.1' ||
+      url.port === '5173') {
     return;
   }
 
