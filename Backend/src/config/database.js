@@ -6,7 +6,7 @@ dotenv.config();
 module.exports = {
   development: {
     username: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'password',
+    password: process.env.DB_PASSWORD || 'Kubra222',
     database: process.env.DB_NAME || 'basha_biryani_db',
     host: process.env.DB_HOST || '127.0.0.1',
     dialect: 'mysql',
@@ -14,7 +14,7 @@ module.exports = {
   },
   test: {
     username: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'password',
+    password: process.env.DB_PASSWORD || 'Kubra222',
     database: process.env.DB_NAME_TEST || 'basha_biryani_test',
     host: process.env.DB_HOST || '127.0.0.1',
     dialect: 'mysql',
@@ -22,7 +22,7 @@ module.exports = {
   },
   production: {
     username: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || 'password',
+    password: process.env.DB_PASSWORD || 'Kubra222',
     database: process.env.DB_NAME || 'basha_biryani_prod',
     host: process.env.DB_HOST || '127.0.0.1',
     dialect: 'mysql',
