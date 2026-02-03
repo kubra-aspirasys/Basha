@@ -31,16 +31,18 @@ app.get('/', (req, res) => {
 // Routes Placeholder
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/menu', require('./routes/menuRoutes'));
-// app.use('/api/orders', require('./routes/orderRoutes'));
+app.use('/api/admin/orders', require('./routes/adminOrderRoutes'));
+app.use('/api/customer/orders', require('./routes/customerOrderRoutes'));
 // app.use('/api/customers', require('./routes/customerRoutes'));
 // app.use('/api/inquiries', require('./routes/inquiryRoutes'));
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
     console.error(err.stack);
-    res.status(500).json({
-        message: 'Internal Server Error',
-        error: process.env.NODE_ENV === 'development' ? err.message : {}
+    const statusCode = res.statusCode === 200 ? 500 : res.statusCode;
+    res.status(statusCode).json({
+        message: err.message,
+        stack: process.env.NODE_ENV === 'production' ? null : err.stack,
     });
 });
 

@@ -64,6 +64,9 @@ export interface Order {
   delivery_address: string;
   items: OrderItem[];
   created_at: string;
+  createdAt?: string; // Backend might return this
+  updated_at?: string;
+  updatedAt?: string;
 }
 
 export interface OrderItem {
@@ -104,6 +107,9 @@ export interface Payment {
   payment_mode: 'cash' | 'upi';
   status: 'pending' | 'completed' | 'failed';
   created_at: string;
+  createdAt?: string;
+  updated_at?: string;
+  updatedAt?: string;
 }
 
 export interface Inquiry {
@@ -121,5 +127,7 @@ export interface Inquiry {
   notes?: string;
   quote_amount?: number;
   created_at: string;
+  createdAt?: string;
   updated_at: string;
+  updatedAt?: string;
 }

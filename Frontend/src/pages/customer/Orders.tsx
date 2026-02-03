@@ -101,7 +101,7 @@ export default function Orders() {
                                         <div className="flex items-center text-gray-400 text-sm gap-4">
                                             <div className="flex items-center gap-1">
                                                 <Clock className="w-4 h-4" />
-                                                {new Date(order.created_at).toLocaleDateString()} at {new Date(order.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                {new Date(order.created_at || order.createdAt || Date.now()).toLocaleDateString()} at {new Date(order.created_at || order.createdAt || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                             </div>
                                             <div className="flex items-center gap-1">
                                                 <MapPin className="w-4 h-4" />

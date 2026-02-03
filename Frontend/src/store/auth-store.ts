@@ -34,7 +34,7 @@ export const useAuthStore = create<AuthState>()(persist(
     user: null,
     role: null,
     isAuthenticated: false,
-    
+
     login: async (email: string, password: string, role: UserRole) => {
       // Admin login
       if (role === 'admin' && email === 'admin@bashabiryani.com' && password === 'admin123') {
@@ -49,7 +49,7 @@ export const useAuthStore = create<AuthState>()(persist(
         set({ user: admin, role: 'admin', isAuthenticated: true });
         return true;
       }
-      
+
       // Customer login
       if (role === 'customer') {
         const customer = mockCustomers.find(
@@ -61,17 +61,17 @@ export const useAuthStore = create<AuthState>()(persist(
           return true;
         }
       }
-      
+
       return false;
     },
-    
+
     signup: async (data) => {
       // Check if email already exists
       const exists = mockCustomers.find((c) => c.email === data.email);
       if (exists) {
         return false;
       }
-      
+
       const newCustomer: Customer = {
         id: `customer-${Date.now()}`,
         name: data.name,
@@ -85,17 +85,17 @@ export const useAuthStore = create<AuthState>()(persist(
         created_at: new Date().toISOString(),
         role: 'customer',
       };
-      
+
       mockCustomers.push(newCustomer);
-      
+
       // Auto login after signup
       const { password: _, ...customerWithoutPassword } = newCustomer;
       set({ user: { ...customerWithoutPassword, role: 'customer' }, role: 'customer', isAuthenticated: true });
       return true;
     },
-    
+
     logout: () => set({ user: null, role: null, isAuthenticated: false }),
-    
+
     updateProfile: (data) =>
       set((state) => ({
         user: state.user ? { ...state.user, ...data } : null,
