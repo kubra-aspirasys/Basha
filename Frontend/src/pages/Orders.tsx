@@ -124,9 +124,14 @@ export default function Orders() {
     if (dateFilter !== 'all') {
       const dateRange = getDateRange(dateFilter);
       if (dateRange) {
-        const orderDate = new Date(order.created_at);
-        if (dateRange.from && orderDate < dateRange.from) matchesDate = false;
-        if (dateRange.to && orderDate >= dateRange.to) matchesDate = false;
+        const dateStr = order.created_at || order.createdAt;
+        if (dateStr) {
+          const orderDate = new Date(dateStr);
+          if (dateRange.from && orderDate < dateRange.from) matchesDate = false;
+          if (dateRange.to && orderDate >= dateRange.to) matchesDate = false;
+        } else {
+          matchesDate = false;
+        }
       }
     }
 
@@ -208,8 +213,8 @@ export default function Orders() {
     const isDelivery = orderType === 'delivery';
     return (
       <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${isDelivery
-          ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-          : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800'
+        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
+        : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800'
         }`}>
         {isDelivery ? <MapPin className="w-3 h-3" /> : <Store className="w-3 h-3" />}
         <span className="capitalize">{orderType}</span>
@@ -504,7 +509,7 @@ export default function Orders() {
                         )}
                       </td>
                       <td className="px-6 py-4 text-sm text-slate-600 dark:text-slate-400">
-                        {new Date(order.created_at).toLocaleDateString()}
+                        {new Date(order.created_at || order.createdAt || Date.now()).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-2">
@@ -522,137 +527,137 @@ export default function Orders() {
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
-                      <button
-                        onClick={() => handleDelete(order.id, order.order_number)}
-                        className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-sm"
-                        title="Delete Order"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Mobile Card View */}
-        <div className="lg:hidden space-y-4 p-4">
-          {paginatedOrders.map((order) => (
-            <div
-              key={order.id}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow"
-            >
-              <div className="space-y-4">
-                {/* Header with Order Number and Type */}
-                <div className="flex items-start justify-between">
-                  <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white text-lg">{order.order_number}</h3>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">{order.customer_name}</p>
-                  </div>
-                  <OrderTypeBadge orderType={order.order_type} />
-                </div>
-
-                {/* Items List */}
-                <div>
-                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Items:</h4>
-                  <div className="space-y-1">
-                    {order.items.map((item, idx) => {
-                      const menuItem = getMenuItemDetails(item.menu_item_id);
-                      return (
-                        <div key={idx} className="text-sm text-slate-600 dark:text-slate-400">
-                          {item.quantity} {menuItem?.unit_type || 'x'} {item.menu_item_name}
+                          <button
+                            onClick={() => handleDelete(order.id, order.order_number)}
+                            className="p-2 text-red-600 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-all duration-200 hover:scale-105 hover:shadow-sm"
+                            title="Delete Order"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                      );
-                    })}
-                  </div>
-                </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-                {/* Amount and Date */}
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-lg font-bold text-slate-900 dark:text-white">₹{order.total_amount.toLocaleString()}</p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      {new Date(order.created_at).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
+            {/* Mobile Card View */}
+            <div className="lg:hidden space-y-4 p-4">
+              {paginatedOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+                >
+                  <div className="space-y-4">
+                    {/* Header with Order Number and Type */}
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <h3 className="font-semibold text-slate-900 dark:text-white text-lg">{order.order_number}</h3>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">{order.customer_name}</p>
+                      </div>
+                      <OrderTypeBadge orderType={order.order_type} />
+                    </div>
 
-                {/* Status Section */}
-                <div>
-                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Status:</h4>
-                  {editingStatus === order.id ? (
-                    <div className="space-y-3">
-                      <select
-                        value={tempStatus}
-                        onChange={(e) => setTempStatus(e.target.value as Order['status'])}
-                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
-                      >
-                        <option value="pending">Pending</option>
-                        <option value="confirmed">Confirmed</option>
-                        <option value="preparing">Preparing</option>
-                        <option value="out_for_delivery">Out for Delivery</option>
-                        <option value="delivered">Delivered</option>
-                        <option value="cancelled">Cancelled</option>
-                      </select>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => handleInlineStatusSave(order.id)}
-                          className="flex-1 px-3 py-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center justify-center gap-1"
-                        >
-                          <Check className="w-4 h-4" />
-                          Save
-                        </button>
-                        <button
-                          onClick={handleInlineStatusCancel}
-                          className="flex-1 px-3 py-2 text-white bg-slate-600 hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1"
-                        >
-                          <X className="w-4 h-4" />
-                          Cancel
-                        </button>
+                    {/* Items List */}
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Items:</h4>
+                      <div className="space-y-1">
+                        {order.items.map((item, idx) => {
+                          const menuItem = getMenuItemDetails(item.menu_item_id);
+                          return (
+                            <div key={idx} className="text-sm text-slate-600 dark:text-slate-400">
+                              {item.quantity} {menuItem?.unit_type || 'x'} {item.menu_item_name}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
-                  ) : (
-                    <div
-                      onClick={() => handleInlineStatusEdit(order)}
-                      className="cursor-pointer"
-                    >
-                      <StatusBadge status={order.status} isEditable={true} />
+
+                    {/* Amount and Date */}
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-lg font-bold text-slate-900 dark:text-white">₹{order.total_amount.toLocaleString()}</p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                          {new Date(order.created_at || order.createdAt || Date.now()).toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
-                  )}
-                </div>
 
-                {/* Actions */}
-                <div className="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                  <button
-                    onClick={() => handleView(order)}
-                    className="flex-1 px-3 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Eye className="w-4 h-4" />
-                    View
-                  </button>
-                  <button
-                    onClick={() => handleEdit(order)}
-                    className="flex-1 px-3 py-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Pencil className="w-4 h-4" />
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(order.id, order.order_number)}
-                    className="flex-1 px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center justify-center gap-1"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Delete
-                  </button>
+                    {/* Status Section */}
+                    <div>
+                      <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Status:</h4>
+                      {editingStatus === order.id ? (
+                        <div className="space-y-3">
+                          <select
+                            value={tempStatus}
+                            onChange={(e) => setTempStatus(e.target.value as Order['status'])}
+                            className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="out_for_delivery">Out for Delivery</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleInlineStatusSave(order.id)}
+                              className="flex-1 px-3 py-2 text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors flex items-center justify-center gap-1"
+                            >
+                              <Check className="w-4 h-4" />
+                              Save
+                            </button>
+                            <button
+                              onClick={handleInlineStatusCancel}
+                              className="flex-1 px-3 py-2 text-white bg-slate-600 hover:bg-slate-700 rounded-lg transition-colors flex items-center justify-center gap-1"
+                            >
+                              <X className="w-4 h-4" />
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          onClick={() => handleInlineStatusEdit(order)}
+                          className="cursor-pointer"
+                        >
+                          <StatusBadge status={order.status} isEditable={true} />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <button
+                        onClick={() => handleView(order)}
+                        className="flex-1 px-3 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Eye className="w-4 h-4" />
+                        View
+                      </button>
+                      <button
+                        onClick={() => handleEdit(order)}
+                        className="flex-1 px-3 py-2 text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Pencil className="w-4 h-4" />
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDelete(order.id, order.order_number)}
+                        className="flex-1 px-3 py-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors flex items-center justify-center gap-1"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                        Delete
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          ))}
-        </div>
 
-        </>
+          </>
         )}
 
         {filteredOrders.length > 0 && (

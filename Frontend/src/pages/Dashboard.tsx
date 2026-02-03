@@ -56,7 +56,7 @@ export default function Dashboard() {
   const recentOrders = useMemo(() =>
     orders
       .slice()
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime())
       .slice(0, 5),
     [orders]
   );
@@ -64,7 +64,7 @@ export default function Dashboard() {
   const recentInquiries = useMemo(() =>
     inquiries
       .slice()
-      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime())
       .slice(0, 5),
     [inquiries]
   );
@@ -78,7 +78,9 @@ export default function Dashboard() {
 
     return last7Days.map((date) => {
       const dayOrders = orders.filter((o) => {
-        const orderDate = o.created_at.split('T')[0];
+        const dateStr = o.created_at || o.createdAt;
+        if (!dateStr) return false;
+        const orderDate = dateStr.split('T')[0];
         return orderDate === date;
       });
       const dayRevenue = dayOrders.reduce((sum, o) => sum + o.total_amount, 0);
@@ -108,7 +110,7 @@ export default function Dashboard() {
 
   // Today's metrics - Using 2025-10-01 for demo purposes
   const today = '2025-10-01';
-  const todayOrders = orders.filter(order => order.created_at.startsWith(today));
+  const todayOrders = orders.filter(order => (order.created_at || order.createdAt || '').startsWith(today));
   const todayRevenue = todayOrders.reduce((sum, order) => sum + order.total_amount, 0);
   const pendingOrders = orders.filter(order => order.status === 'pending').length;
   const newCustomersToday = customers.filter(customer =>
@@ -588,7 +590,7 @@ export default function Dashboard() {
                     ₹{order.total_amount.toLocaleString()}
                   </div>
                   <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {new Date(order.created_at).toLocaleDateString()}
+                    {new Date(order.created_at || order.createdAt || Date.now()).toLocaleDateString()}
                   </div>
                   <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                     Click to view
@@ -680,7 +682,7 @@ export default function Dashboard() {
                       </div>
                     )}
                     <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {new Date(inquiry.created_at).toLocaleDateString()}
+                      {new Date(inquiry.created_at || inquiry.createdAt || Date.now()).toLocaleDateString()}
                     </div>
                     <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">
                       Click to view

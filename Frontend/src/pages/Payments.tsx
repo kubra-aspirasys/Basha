@@ -233,9 +233,14 @@ export default function Payments() {
     if (dateFilter !== 'all') {
       const dateRange = getDateRange(dateFilter);
       if (dateRange) {
-        const paymentDate = new Date(payment.created_at);
-        if (dateRange.from && paymentDate < dateRange.from) matchesDate = false;
-        if (dateRange.to && paymentDate >= dateRange.to) matchesDate = false;
+        const dateStr = payment.created_at || payment.createdAt;
+        if (dateStr) {
+          const paymentDate = new Date(dateStr);
+          if (dateRange.from && paymentDate < dateRange.from) matchesDate = false;
+          if (dateRange.to && paymentDate >= dateRange.to) matchesDate = false;
+        } else {
+          matchesDate = false;
+        }
       }
     }
 
@@ -259,7 +264,7 @@ export default function Payments() {
       payment.amount,
       payment.payment_mode,
       payment.status,
-      new Date(payment.created_at).toLocaleString(),
+      new Date(payment.created_at || payment.createdAt || Date.now()).toLocaleString(),
     ]);
 
     const csvContent = [
@@ -546,7 +551,7 @@ export default function Payments() {
                       </Badge>
                     </TableCell>
                     <TableCell>
-                      {new Date(payment.created_at).toLocaleString()}
+                      {new Date(payment.created_at || payment.createdAt || Date.now()).toLocaleString()}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -587,7 +592,7 @@ export default function Payments() {
 
                   {/* Date */}
                   <div className="text-sm text-slate-600 dark:text-slate-400">
-                    {new Date(payment.created_at).toLocaleString()}
+                    {new Date(payment.created_at || payment.createdAt || Date.now()).toLocaleString()}
                   </div>
                 </div>
               </div>
