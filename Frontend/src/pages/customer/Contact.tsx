@@ -1,10 +1,11 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useInquiryStore } from '@/store/inquiry-store';
+import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
 import { MapPin, Phone, Mail, Send, CheckCircle, Clock } from 'lucide-react';
 
 export default function Contact() {
     const { addInquiry } = useInquiryStore();
+    const { siteSettings, fetchSiteSettings } = useCMSEnhancedStore();
 
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -19,6 +20,18 @@ export default function Contact() {
         guestCount: ''
     });
 
+    useEffect(() => {
+        if (!siteSettings.length) {
+            fetchSiteSettings();
+        }
+    }, [fetchSiteSettings, siteSettings.length]);
+
+    // Helper to get setting value
+    const getSetting = (key: string, defaultVal: string) => {
+        const setting = siteSettings.find(s => s.key === key);
+        return setting ? setting.value : defaultVal;
+    };
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
@@ -28,11 +41,8 @@ export default function Contact() {
         e.preventDefault();
         setLoading(true);
 
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-
         try {
-            addInquiry({
+            await addInquiry({
                 full_name: formData.name,
                 email: formData.email,
                 phone: formData.phone,
@@ -67,12 +77,11 @@ export default function Contact() {
             <div className="container mx-auto max-w-6xl">
                 <div className="text-center mb-16">
                     <h1 className="text-4xl md:text-5xl font-display font-extrabold text-white uppercase tracking-wider mb-4">
-                        Get in Touch
+                        {getSetting('contact_title', 'Get in Touch')}
                     </h1>
                     <div className="w-24 h-1 bg-[#F2A900] mx-auto mb-6"></div>
                     <p className="text-gray-400 max-w-2xl mx-auto text-lg leading-relaxed">
-                        Have a question, feedback, or want to place a bulk order? We'd love to hear from you.
-                        Fill out the form below or reach out to us directly.
+                        {getSetting('contact_description', "Have a question, feedback, or want to place a bulk order? We'd love to hear from you. Fill out the form below or reach out to us directly.")}
                     </p>
                 </div>
 
@@ -88,11 +97,8 @@ export default function Contact() {
                                 </div>
                                 <div>
                                     <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-1">Address</p>
-                                    <p className="text-white leading-relaxed">
-                                        Next Street to Ambur Court,<br />
-                                        Near Old State Bank,<br />
-                                        Kaka Chandamiyan Street,<br />
-                                        Ambur 635 802
+                                    <p className="text-white leading-relaxed whitespace-pre-line">
+                                        {getSetting('contact_address', 'Next Street to Ambur Court,\nNear Old State Bank,\nKaka Chandamiyan Street,\nAmbur 635 802')}
                                     </p>
                                 </div>
                             </div>
@@ -103,8 +109,8 @@ export default function Contact() {
                                 </div>
                                 <div>
                                     <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-1">Phone</p>
-                                    <a href="tel:7010933658" className="text-white hover:text-[#F2A900] transition-colors text-lg font-mono">
-                                        70109 33658
+                                    <a href={`tel:${getSetting('contact_phone', '70109 33658').replace(/\s+/g, '')}`} className="text-white hover:text-[#F2A900] transition-colors text-lg font-mono">
+                                        {getSetting('contact_phone', '70109 33658')}
                                     </a>
                                 </div>
                             </div>
@@ -115,8 +121,8 @@ export default function Contact() {
                                 </div>
                                 <div>
                                     <p className="text-gray-400 text-sm font-semibold uppercase tracking-wider mb-1">Email</p>
-                                    <a href="mailto:info@bashabiryani.com" className="text-white hover:text-[#F2A900] transition-colors">
-                                        info@bashabiryani.com
+                                    <a href={`mailto:${getSetting('contact_email', 'info@bashabiryani.com')}`} className="text-white hover:text-[#F2A900] transition-colors">
+                                        {getSetting('contact_email', 'info@bashabiryani.com')}
                                     </a>
                                 </div>
                             </div>
@@ -130,7 +136,7 @@ export default function Contact() {
                                         <Clock className="w-5 h-5 text-[#F2A900]" />
                                         <span>Monday - Sunday</span>
                                     </div>
-                                    <span className="text-[#F2A900] font-mono">11:00 AM - 10:00 PM</span>
+                                    <span className="text-[#F2A900] font-mono">{getSetting('contact_opening_hours', '11:00 AM - 10:00 PM')}</span>
                                 </div>
                                 <div className="flex items-center gap-2 text-green-400 bg-green-900/10 p-3 rounded-lg border border-green-900/30">
                                     <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
@@ -143,7 +149,7 @@ export default function Contact() {
                     {/* Contact Form */}
                     <div className="bg-[#1a1a1a] border border-[#F2A900]/30 rounded-2xl p-8 lg:p-10 shadow-xl">
                         {submitted ? (
-                            <div className="h-full flex flex-col items-center justify-center text-center py-20">
+                            <div className="h-full flex flex-col items-center justify-center text-center py-20" >
                                 <div className="w-24 h-24 bg-green-500/10 rounded-full flex items-center justify-center mb-6">
                                     <CheckCircle className="w-12 h-12 text-green-500" />
                                 </div>

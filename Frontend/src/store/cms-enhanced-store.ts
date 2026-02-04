@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { supabase } from '@/lib/supabase';
+import api from '@/lib/api';
 import { GalleryImage, ContentPage, FAQ, BlogPost, SiteSetting, ProductCategory, ProductType } from '@/types/cms';
 
 interface CMSEnhancedState {
@@ -10,6 +10,7 @@ interface CMSEnhancedState {
   siteSettings: SiteSetting[];
   productCategories: ProductCategory[];
   productTypes: ProductType[];
+  homepageHero: any | null;
   loading: boolean;
   error: string | null;
 
@@ -44,7 +45,11 @@ interface CMSEnhancedState {
   updateProductType: (id: string, type: Partial<ProductType>) => Promise<void>;
   deleteProductType: (id: string) => Promise<void>;
 
+  fetchHomepageHero: () => Promise<void>;
+  updateHomepageHero: (data: any) => Promise<void>;
+
   uploadImage: (file: File, bucket: string) => Promise<string>;
+  getSiteSettingByKey: (key: string) => SiteSetting | undefined;
 }
 
 export const useCMSEnhancedStore = create<CMSEnhancedState>((set) => ({
@@ -55,488 +60,346 @@ export const useCMSEnhancedStore = create<CMSEnhancedState>((set) => ({
   siteSettings: [],
   productCategories: [],
   productTypes: [],
+  homepageHero: null,
   loading: false,
   error: null,
 
   fetchGalleryImages: async () => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('gallery_images')
-        .select('*')
-        .order('display_order', { ascending: true });
-
-      if (error) throw error;
-      set({ galleryImages: data || [], loading: false });
+      const response = await api.get('/cms/gallery-images');
+      set({ galleryImages: response.data.data || [], loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   addGalleryImage: async (image) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('gallery_images')
-        .insert([image])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.post('/cms/gallery-images', image);
       set((state) => ({
-        galleryImages: [...state.galleryImages, data],
+        galleryImages: [...state.galleryImages, response.data.data],
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   updateGalleryImage: async (id, image) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('gallery_images')
-        .update(image)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.put(`/cms/gallery-images/${id}`, image);
       set((state) => ({
         galleryImages: state.galleryImages.map((img) =>
-          img.id === id ? data : img
+          img.id === id ? response.data.data : img
         ),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   deleteGalleryImage: async (id) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { error } = await supabase
-        .from('gallery_images')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await api.delete(`/cms/gallery-images/${id}`);
       set((state) => ({
         galleryImages: state.galleryImages.filter((img) => img.id !== id),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   fetchContentPages: async () => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('content_pages')
-        .select('*')
-        .order('page_key', { ascending: true });
-
-      if (error) throw error;
-      set({ contentPages: data || [], loading: false });
+      const response = await api.get('/cms/content-pages');
+      set({ contentPages: response.data.data || [], loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   updateContentPage: async (id, page) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('content_pages')
-        .update(page)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.put(`/cms/content-pages/${id}`, page);
       set((state) => ({
-        contentPages: state.contentPages.map((p) => p.id === id ? data : p),
+        contentPages: state.contentPages.map((p) => p.id === id ? response.data.data : p),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   fetchFAQs: async () => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('faqs')
-        .select('*')
-        .order('display_order', { ascending: true });
-
-      if (error) throw error;
-      set({ faqs: data || [], loading: false });
+      const response = await api.get('/cms/faqs');
+      set({ faqs: response.data.data || [], loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   addFAQ: async (faq) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('faqs')
-        .insert([faq])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.post('/cms/faqs', faq);
       set((state) => ({
-        faqs: [...state.faqs, data],
+        faqs: [...state.faqs, response.data.data],
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   updateFAQ: async (id, faq) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('faqs')
-        .update(faq)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.put(`/cms/faqs/${id}`, faq);
       set((state) => ({
-        faqs: state.faqs.map((f) => f.id === id ? data : f),
+        faqs: state.faqs.map((f) => f.id === id ? response.data.data : f),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   deleteFAQ: async (id) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { error } = await supabase
-        .from('faqs')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await api.delete(`/cms/faqs/${id}`);
       set((state) => ({
         faqs: state.faqs.filter((f) => f.id !== id),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   fetchBlogPosts: async () => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      set({ blogPosts: data || [], loading: false });
+      const response = await api.get('/cms/blog-posts');
+      set({ blogPosts: response.data.data || [], loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   addBlogPost: async (post) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .insert([post])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.post('/cms/blog-posts', post);
       set((state) => ({
-        blogPosts: [data, ...state.blogPosts],
+        blogPosts: [response.data.data, ...state.blogPosts],
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   updateBlogPost: async (id, post) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .update(post)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.put(`/cms/blog-posts/${id}`, post);
       set((state) => ({
-        blogPosts: state.blogPosts.map((p) => p.id === id ? data : p),
+        blogPosts: state.blogPosts.map((p) => p.id === id ? response.data.data : p),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   deleteBlogPost: async (id) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { error } = await supabase
-        .from('blog_posts')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await api.delete(`/cms/blog-posts/${id}`);
       set((state) => ({
         blogPosts: state.blogPosts.filter((p) => p.id !== id),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   uploadImage: async (file, bucket) => {
-    if (!supabase) throw new Error("Supabase is not configured");
     set({ loading: true, error: null });
     try {
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2)}_${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const formData = new FormData();
+      formData.append('image', file);
+      formData.append('bucket', bucket);
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(filePath);
+      const response = await api.post('/cms/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
 
       set({ loading: false });
-      return data.publicUrl;
+      return response.data.data.url;
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
       throw error;
     }
   },
 
   fetchSiteSettings: async () => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .select('*')
-        .order('category', { ascending: true });
-
-      if (error) throw error;
-      set({ siteSettings: data || [], loading: false });
+      const response = await api.get('/cms/site-settings');
+      set({ siteSettings: response.data.data || [], loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   updateSiteSetting: async (id, value) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('site_settings')
-        .update({ value })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.put(`/cms/site-settings/${id}`, { value });
       set((state) => ({
-        siteSettings: state.siteSettings.map((s) => s.id === id ? data : s),
+        siteSettings: state.siteSettings.map((s) => s.id === id ? response.data.data : s),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   fetchProductCategories: async () => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('product_categories')
-        .select('*')
-        .order('display_order', { ascending: true });
-
-      if (error) throw error;
-      set({ productCategories: data || [], loading: false });
+      const response = await api.get('/cms/product-categories');
+      set({ productCategories: response.data.data || [], loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   addProductCategory: async (category) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('product_categories')
-        .insert([category])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.post('/cms/product-categories', category);
       set((state) => ({
-        productCategories: [...state.productCategories, data],
+        productCategories: [...state.productCategories, response.data.data],
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   updateProductCategory: async (id, category) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('product_categories')
-        .update(category)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.put(`/cms/product-categories/${id}`, category);
       set((state) => ({
-        productCategories: state.productCategories.map((c) => c.id === id ? data : c),
+        productCategories: state.productCategories.map((c) => c.id === id ? response.data.data : c),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   deleteProductCategory: async (id) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { error } = await supabase
-        .from('product_categories')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await api.delete(`/cms/product-categories/${id}`);
       set((state) => ({
         productCategories: state.productCategories.filter((c) => c.id !== id),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   fetchProductTypes: async () => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('product_types')
-        .select('*')
-        .order('display_order', { ascending: true });
-
-      if (error) throw error;
-      set({ productTypes: data || [], loading: false });
+      const response = await api.get('/cms/product-types');
+      set({ productTypes: response.data.data || [], loading: false });
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   addProductType: async (type) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('product_types')
-        .insert([type])
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.post('/cms/product-types', type);
       set((state) => ({
-        productTypes: [...state.productTypes, data],
+        productTypes: [...state.productTypes, response.data.data],
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   updateProductType: async (id, type) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { data, error } = await supabase
-        .from('product_types')
-        .update(type)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
+      const response = await api.put(`/cms/product-types/${id}`, type);
       set((state) => ({
-        productTypes: state.productTypes.map((t) => t.id === id ? data : t),
+        productTypes: state.productTypes.map((t) => t.id === id ? response.data.data : t),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
   },
 
   deleteProductType: async (id) => {
-    if (!supabase) return;
     set({ loading: true, error: null });
     try {
-      const { error } = await supabase
-        .from('product_types')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      await api.delete(`/cms/product-types/${id}`);
       set((state) => ({
         productTypes: state.productTypes.filter((t) => t.id !== id),
         loading: false
       }));
     } catch (error: any) {
-      set({ error: error.message, loading: false });
+      set({ error: error.response?.data?.message || error.message, loading: false });
     }
+  },
+
+  fetchHomepageHero: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.get('/cms/homepage-hero');
+      set({ homepageHero: response.data.data, loading: false });
+    } catch (error: any) {
+      set({ error: error.response?.data?.message || error.message, loading: false });
+    }
+  },
+
+  updateHomepageHero: async (data) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.put('/cms/homepage-hero', data);
+      set({ homepageHero: response.data.data, loading: false });
+    } catch (error: any) {
+      set({ error: error.response?.data?.message || error.message, loading: false });
+    }
+  },
+
+  getSiteSettingByKey: (key: string) => {
+    const { siteSettings } = useCMSEnhancedStore.getState();
+    return siteSettings.find(s => s.key === key);
   },
 }));

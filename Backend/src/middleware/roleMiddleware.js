@@ -1,16 +1,18 @@
 'use strict';
+const { errorResponse } = require('../utils/apiResponse');
 
 /**
- * Role-based access control middleware
- * @param {...string} roles - Allowed roles
+ * Middleware to check if user has required role
+ * @param {string|string[]} roles - Allowed role or roles
  */
-const authorize = (...roles) => {
+const authorize = (roles = []) => {
+    if (typeof roles === 'string') {
+        roles = [roles];
+    }
+
     return (req, res, next) => {
-        if (!req.user || !roles.includes(req.user.role)) {
-            return res.status(403).json({
-                success: false,
-                message: 'Access denied. You do not have permission for this action.'
-            });
+        if (!req.user || (roles.length && !roles.includes(req.user.role))) {
+            return errorResponse(res, 'Access denied: Unauthorized role', 403);
         }
         next();
     };

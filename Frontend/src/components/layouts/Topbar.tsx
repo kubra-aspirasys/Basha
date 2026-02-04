@@ -5,18 +5,23 @@ import { useNavigate } from 'react-router-dom';
 import { useTheme } from 'next-themes';
 import { useToast } from '@/hooks/use-toast';
 import GlobalSearch from '../GlobalSearch';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface TopbarProps {
   onMenuClick?: () => void;
 }
 
 export default function Topbar({ onMenuClick }: TopbarProps) {
-  const { user, logout } = useAuthStore();
+  const { user, logout, fetchProfile } = useAuthStore();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const { toast } = useToast();
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const admin = user && user.role === 'admin' ? user : null;
 
@@ -156,9 +161,12 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         >
           <div className="relative">
             <div className="absolute inset-0 gradient-primary rounded-full blur-md opacity-40 group-hover:opacity-60 transition-opacity" />
-            <div className="relative w-8 lg:w-10 h-8 lg:h-10 rounded-full gradient-primary flex items-center justify-center text-white font-bold text-xs lg:text-sm premium-shadow">
-              {admin?.name?.charAt(0) || 'A'}
-            </div>
+            <Avatar className="relative w-8 lg:w-10 h-8 lg:h-10 rounded-full premium-shadow border-2 border-white dark:border-slate-800">
+              <AvatarImage src={admin?.avatar_url} alt={admin?.name} />
+              <AvatarFallback className="gradient-primary text-white font-bold text-xs lg:text-sm">
+                {admin?.name?.charAt(0) || 'A'}
+              </AvatarFallback>
+            </Avatar>
             <div className="absolute -bottom-0.5 -right-0.5 w-3 lg:w-3.5 h-3 lg:h-3.5 bg-success rounded-full border-2 border-white dark:border-slate-800" />
           </div>
           <div className="hidden lg:block">

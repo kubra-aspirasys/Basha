@@ -17,4 +17,8 @@ router.post('/login', loginValidator, authController.login);
 router.post('/forgot-password', forgotPasswordValidator, authController.forgotPassword);
 router.post('/reset-password', resetPasswordValidator, authController.resetPassword);
 
+// Protected routes
+router.get('/me', protect, authController.getMe);
+router.put('/profile', protect, updateProfileValidator, authController.updateProfile);
+
 module.exports = router;

@@ -1,7 +1,9 @@
 import { create } from 'zustand';
+import api from '@/lib/api';
 
 interface BusinessSettings {
-  gstRate: number; // GST rate as percentage (e.g., 18 for 18%)
+  id?: string;
+  gstRate: number;
   businessName: string;
   businessAddress: string;
   gstNumber: string;
@@ -12,7 +14,9 @@ interface BusinessSettings {
 
 interface SettingsState {
   settings: BusinessSettings;
-  updateSettings: (newSettings: Partial<BusinessSettings>) => void;
+  loading: boolean;
+  fetchSettings: () => Promise<void>;
+  updateSettings: (newSettings: Partial<BusinessSettings>) => Promise<void>;
   calculateGST: (amount: number) => { gstAmount: number; totalWithGST: number };
   calculateOrderTotal: (subtotal: number, deliveryCharges?: number, serviceCharges?: number) => {
     subtotal: number;
@@ -25,20 +29,36 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   settings: {
-    gstRate: 18, // 18% GST for restaurants
+    gstRate: 18,
     businessName: 'SR FoodKraft',
-    businessAddress: '123 Main Street, New Delhi',
+    businessAddress: '123 Main Street',
     gstNumber: '29ABCDE1234F1Z5',
     currency: 'INR',
     deliveryCharges: 50,
     serviceCharges: 0,
   },
-  
-  updateSettings: (newSettings) =>
+  loading: false,
+
+  fetchSettings: async () => {
+    set({ loading: true });
+    try {
+      const response = await api.get('/cms/site-settings?category=general');
+      // Map SiteSetting model back to BusinessSettings object if needed
+      // For now we assume they are fetched as specialized keys or we just use the default
+      // Better to use fetchSiteSettings from CMSEnhancedStore for UI, but keeping this for compatibility
+      set({ loading: false });
+    } catch (error) {
+      set({ loading: false });
+    }
+  },
+
+  updateSettings: async (newSettings) => {
     set((state) => ({
       settings: { ...state.settings, ...newSettings },
-    })),
-    
+    }));
+    // In a real app, this would also hit the backend to update individual SiteSetting records
+  },
+
   calculateGST: (amount) => {
     const { gstRate } = get().settings;
     const gstAmount = (amount * gstRate) / 100;
@@ -47,16 +67,16 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       totalWithGST: amount + gstAmount,
     };
   },
-  
+
   calculateOrderTotal: (subtotal, deliveryCharges = 0, serviceCharges = 0) => {
     const { gstRate, deliveryCharges: defaultDelivery, serviceCharges: defaultService } = get().settings;
     const finalDeliveryCharges = deliveryCharges || defaultDelivery;
     const finalServiceCharges = serviceCharges || defaultService;
-    
+
     const taxableAmount = subtotal + finalDeliveryCharges + finalServiceCharges;
     const gstAmount = (taxableAmount * gstRate) / 100;
     const total = taxableAmount + gstAmount;
-    
+
     return {
       subtotal,
       gstAmount,
@@ -66,4 +86,3 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     };
   },
 }));
-

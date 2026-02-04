@@ -6,64 +6,95 @@ const { v4: uuidv4 } = require('uuid');
 const { Op } = require('sequelize');
 
 class AuthService {
+    /**
+     * Get user profile by token data
+     */
+    async getMe(userId, role) {
+        const Model = role === 'admin' ? User : Customer;
+        const user = await Model.findByPk(userId);
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const userData = user.toJSON();
+        delete userData.password_hash;
+        delete userData.reset_password_token;
+        delete userData.reset_password_expires;
+
+        return { ...userData, role };
+    }
+
+    /**
+     * Update user profile with safety checks
+     */
+    async updateProfile(userId, role, updateData) {
+        const Model = role === 'admin' ? User : Customer;
+        const user = await Model.findByPk(userId);
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        // Define safe fields for update
+        const safeFields = ['name', 'phone', 'address', 'avatar_url'];
+        const filteredData = {};
+
+        safeFields.forEach(field => {
+            if (updateData[field] !== undefined) {
+                filteredData[field] = updateData[field];
+            }
+        });
+
+        // Prevention of sensitive fields is handled by choosing ONLY safeFields
+        await user.update(filteredData);
+
+        const userData = user.toJSON();
+        delete userData.password_hash;
+        delete userData.reset_password_token;
+        delete userData.reset_password_expires;
+
+        return { ...userData, role };
+    }
+
     async login(emailOrPhone, password, requestedRole) {
         let user;
         let role = requestedRole;
 
-        // Try to find user based on role if provided, otherwise search both
         if (role === 'admin') {
             user = await User.findOne({
-                where: {
-                    [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }]
-                }
+                where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
             });
         } else if (role === 'customer') {
             user = await Customer.findOne({
-                where: {
-                    [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }]
-                }
+                where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
             });
         } else {
-            // No role provided, search both
             user = await User.findOne({
-                where: {
-                    [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }]
-                }
+                where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
             });
             if (user) {
                 role = 'admin';
             } else {
                 user = await Customer.findOne({
-                    where: {
-                        [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }]
-                    }
+                    where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
                 });
                 if (user) role = 'customer';
             }
         }
 
-        if (!user) {
-            throw new Error('Invalid credentials');
-        }
+        if (!user) throw new Error('Invalid credentials');
+        if (role === 'customer' && user.is_blocked) throw new Error('Account is blocked');
 
-        if (role === 'customer' && user.is_blocked) {
-            throw new Error('Account is blocked');
-        }
-
-        // Support for demo users if password hashing is not yet in place or for testing
-        // But the prompt says "Hash password with bcrypt"
         const isMatch = await bcrypt.compare(password, user.password_hash);
-        if (!isMatch) {
-            throw new Error('Invalid credentials');
-        }
+        if (!isMatch) throw new Error('Invalid credentials');
 
         const token = jwt.sign(
-            { userId: user.id, role: role || (user.role === 'admin' ? 'admin' : 'customer') },
+            { userId: user.id, role },
             process.env.JWT_SECRET || 'basha_biryani_secret_key_2024',
             { expiresIn: '24h' }
         );
 
-        // Update last activity for customers
         if (role === 'customer') {
             await user.update({ last_activity: new Date() });
         }
@@ -75,14 +106,13 @@ class AuthService {
 
         return {
             token,
-            user: { ...userData, role: role || (user.role === 'admin' ? 'admin' : 'customer') }
+            user: { ...userData, role }
         };
     }
 
     async register(userData) {
         const { email, phone, password, name, address } = userData;
 
-        // Check if exists in either table to be safe
         const existingInUser = await User.findOne({ where: { [Op.or]: [{ email }, { phone }] } });
         const existingInCustomer = await Customer.findOne({ where: { [Op.or]: [{ email }, { phone }] } });
 
@@ -126,19 +156,16 @@ class AuthService {
             role = 'customer';
         }
 
-        if (!user) {
-            throw new Error('User not found with this email');
-        }
+        if (!user) throw new Error('User not found with this email');
 
         const token = uuidv4();
-        const expires = new Date(Date.now() + 3600000); // 1 hour
+        const expires = new Date(Date.now() + 3600000);
 
         await user.update({
             reset_password_token: token,
             reset_password_expires: expires
         });
 
-        // Mock mail service as requested
         console.log(`[MOCK MAIL] Reset password link for ${role} (${email}): http://localhost:5173/reset-password?token=${token}`);
 
         return { message: 'Reset link generated successfully' };
@@ -161,9 +188,7 @@ class AuthService {
             });
         }
 
-        if (!user) {
-            throw new Error('Invalid or expired reset token');
-        }
+        if (!user) throw new Error('Invalid or expired reset token');
 
         const password_hash = await bcrypt.hash(newPassword, 10);
 

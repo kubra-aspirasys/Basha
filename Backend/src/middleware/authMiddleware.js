@@ -1,5 +1,6 @@
 'use strict';
 const jwt = require('jsonwebtoken');
+const { errorResponse } = require('../utils/apiResponse');
 
 /**
  * Protect middleware to verify JWT token
@@ -7,10 +8,7 @@ const jwt = require('jsonwebtoken');
 const protect = (req, res, next) => {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({
-            success: false,
-            message: 'Authorization token required'
-        });
+        return errorResponse(res, 'Authorization token required', 401);
     }
 
     const token = authHeader.split(' ')[1];
@@ -19,21 +17,18 @@ const protect = (req, res, next) => {
         req.user = decoded; // Contains { userId, role }
         next();
     } catch (error) {
-        return res.status(401).json({
-            success: false,
-            message: 'Invalid or expired token'
-        });
+        return errorResponse(res, 'Invalid or expired token', 401);
     }
 };
 
 /**
- * Shorthand for admin role check (Compatibility with existing routes)
+ * Admin middleware shorthand
  */
 const admin = (req, res, next) => {
     if (req.user && req.user.role === 'admin') {
         next();
     } else {
-        res.status(403).json({ success: false, message: 'Access denied: Admin role required' });
+        return errorResponse(res, 'Access denied: Admin only', 403);
     }
 };
 

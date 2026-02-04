@@ -5,7 +5,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { CircleAlert as AlertCircle, User, Shield, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -47,37 +46,46 @@ export default function Login() {
 
   return (
     <div className="w-full max-w-md mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Login</CardTitle>
-          <CardDescription>
+      <Card className="border-none shadow-2xl shadow-slate-200/50 dark:shadow-black/50 overflow-hidden">
+        <div className="h-2 gradient-primary w-full" />
+        <CardHeader className="space-y-1 pb-6 text-center sm:text-left">
+          <CardTitle className="text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+            Login
+          </CardTitle>
+          <CardDescription className="text-slate-500 dark:text-slate-400 text-base">
             Sign in to your account
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <Tabs value={activeRole} onValueChange={(value) => setActiveRole(value as UserRole)} className="mb-6">
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="customer" className="flex items-center gap-2">
+        <CardContent className="space-y-6">
+          <Tabs value={activeRole} onValueChange={(value) => setActiveRole(value as UserRole)}>
+            <TabsList className="grid w-full grid-cols-2 h-12 p-1 bg-slate-100/80 dark:bg-slate-800/80 rounded-xl">
+              <TabsTrigger
+                value="customer"
+                className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm flex items-center gap-2 font-semibold transition-all"
+              >
                 <User className="w-4 h-4" />
                 Customer
               </TabsTrigger>
-              <TabsTrigger value="admin" className="flex items-center gap-2">
+              <TabsTrigger
+                value="admin"
+                className="rounded-lg data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-sm flex items-center gap-2 font-semibold transition-all"
+              >
                 <Shield className="w-4 h-4" />
                 Admin
               </TabsTrigger>
             </TabsList>
           </Tabs>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
+              <div className="flex items-center gap-3 p-4 text-sm text-red-600 bg-red-50 border border-red-100 rounded-xl dark:bg-red-900/20 dark:border-red-900/30 dark:text-red-400 animate-in fade-in slide-in-from-top-2 duration-300">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <span className="font-medium">{error}</span>
+              </div>
             )}
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Email</Label>
               <Input
                 id="email"
                 type="email"
@@ -85,11 +93,12 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="h-12 bg-slate-50 border-slate-200 focus:bg-white focus:ring-amber-500/20 transition-all rounded-xl dark:bg-slate-800/50 dark:border-slate-700"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password" className="text-sm font-bold text-slate-700 dark:text-slate-300 ml-1">Password</Label>
               <div className="relative">
                 <Input
                   id="password"
@@ -97,65 +106,68 @@ export default function Login() {
                   placeholder="Enter your password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="pr-10"
+                  className="h-12 bg-slate-50 border-slate-200 focus:bg-white focus:ring-amber-500/20 transition-all pr-12 rounded-xl dark:bg-slate-800/50 dark:border-slate-700"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 transition-colors"
                 >
                   {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
+                    <EyeOff className="w-5 h-5" />
                   ) : (
-                    <Eye className="h-4 w-4" />
+                    <Eye className="w-5 h-5" />
                   )}
                 </button>
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <Button
+            <div className="flex items-center justify-end">
+              <button
                 type="button"
-                variant="link"
-                className="px-0 text-amber-600 hover:text-amber-700 dark:text-amber-500"
+                className="text-sm font-bold text-amber-600 hover:text-amber-700 dark:text-amber-500 transition-colors"
                 onClick={() => navigate(`/${activeRole === 'admin' ? 'admin/' : ''}forgot-password`)}
               >
                 Forgot password?
-              </Button>
+              </button>
             </div>
 
             <Button
               type="submit"
-              className="w-full bg-amber-600 hover:bg-amber-700 text-white"
+              className="w-full h-12 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-amber-500/20 hover:shadow-amber-500/40 transition-all active:scale-[0.98] disabled:opacity-70 disabled:grayscale"
               disabled={loading}
             >
-              {loading ? 'Logging in...' : 'Login'}
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Logging in...
+                </div>
+              ) : 'Login'}
             </Button>
 
-            {activeRole === 'customer' && (
-              <>
+            <div className="pt-2">
+              {activeRole === 'customer' && (
                 <div className="text-center text-sm text-slate-600 dark:text-slate-400">
                   Don't have an account?{' '}
-                  <Link to="/signup" className="text-amber-600 hover:text-amber-700 font-medium">
+                  <Link to="/signup" className="text-amber-600 hover:text-amber-700 font-bold transition-colors">
                     Sign up
                   </Link>
                 </div>
-                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-xs text-blue-800 dark:text-blue-200 text-center">
-                    <strong>Demo Customer:</strong> customer@bashabiryani.com / customer123
+              )}
+
+              <div className="mt-8 flex flex-col gap-3">
+                <div className={`p-4 rounded-2xl border transition-all duration-300 ${activeRole === 'customer' ? 'bg-blue-50 border-blue-100 dark:bg-blue-900/10 dark:border-blue-900/30' : 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/30'}`}>
+                  <p className={`text-xs text-center font-medium ${activeRole === 'customer' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                    {activeRole === 'customer' ? (
+                      <><strong>Demo Customer:</strong> customer@bashabiryani.com / customer123</>
+                    ) : (
+                      <><strong>Demo Admin:</strong> admin@bashabiryani.com / admin123</>
+                    )}
                   </p>
                 </div>
-              </>
-            )}
-
-            {activeRole === 'admin' && (
-              <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800">
-                <p className="text-xs text-amber-800 dark:text-amber-200 text-center">
-                  <strong>Demo Admin:</strong> admin@bashabiryani.com / admin123
-                </p>
               </div>
-            )}
+            </div>
           </form>
         </CardContent>
       </Card>
