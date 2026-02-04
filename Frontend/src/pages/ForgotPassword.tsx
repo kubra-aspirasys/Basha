@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,18 +16,36 @@ export default function ForgotPassword() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
+  const forgotPassword = useAuthStore((state) => state.forgotPassword);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    setTimeout(() => {
-      setSent(true);
-      setLoading(false);
+    try {
+      const success = await forgotPassword(email);
+      if (success) {
+        setSent(true);
+        toast({
+          title: 'Reset link sent',
+          description: 'Check your email for password reset instructions',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Failed to send reset link. Please verify your email.',
+        });
+      }
+    } catch (err) {
       toast({
-        title: 'Reset link sent',
-        description: 'Check your email for password reset instructions',
+        variant: 'destructive',
+        title: 'Error',
+        description: 'An unexpected error occurred.',
       });
-    }, 1000);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (sent) {

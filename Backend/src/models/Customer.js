@@ -21,7 +21,9 @@ module.exports = (sequelize, DataTypes) => {
         is_blocked: DataTypes.BOOLEAN,
         is_active: DataTypes.BOOLEAN,
         last_activity: DataTypes.DATE,
-        avatar_url: DataTypes.STRING
+        avatar_url: DataTypes.TEXT('long'),
+        reset_password_token: DataTypes.STRING,
+        reset_password_expires: DataTypes.DATE
     }, {
         sequelize,
         modelName: 'Customer',

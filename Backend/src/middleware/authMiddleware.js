@@ -1,47 +1,39 @@
+'use strict';
 const jwt = require('jsonwebtoken');
-const { User, Customer } = require('../models');
 
-const protect = async (req, res, next) => {
-    let token;
+/**
+ * Protect middleware to verify JWT token
+ */
+const protect = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({
+            success: false,
+            message: 'Authorization token required'
+        });
+    }
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
-        try {
-            token = req.headers.authorization.split(' ')[1];
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-            // Check if user is admin
-            let user = await User.findByPk(decoded.id, { attributes: { exclude: ['password_hash'] } });
-
-            // If not admin, check if customer
-            if (!user) {
-                user = await Customer.findByPk(decoded.id, { attributes: { exclude: ['password_hash'] } });
-            }
-
-            if (!user) {
-                res.status(401);
-                throw new Error('Not authorized, user not found');
-            }
-
-            req.user = user;
-            next();
-        } catch (error) {
-            console.error(error);
-            res.status(401);
-            const message = error.message === 'jwt expired' ? 'Not authorized, token failed' : 'Not authorized, no token';
-            next(new Error(message));
-        }
-    } else {
-        res.status(401);
-        next(new Error('Not authorized, no token'));
+    const token = authHeader.split(' ')[1];
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'basha_biryani_secret_key_2024');
+        req.user = decoded; // Contains { userId, role }
+        next();
+    } catch (error) {
+        return res.status(401).json({
+            success: false,
+            message: 'Invalid or expired token'
+        });
     }
 };
 
+/**
+ * Shorthand for admin role check (Compatibility with existing routes)
+ */
 const admin = (req, res, next) => {
     if (req.user && req.user.role === 'admin') {
         next();
     } else {
-        res.status(401);
-        next(new Error('Not authorized as an admin'));
+        res.status(403).json({ success: false, message: 'Access denied: Admin role required' });
     }
 };
 

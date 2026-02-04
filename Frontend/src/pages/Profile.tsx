@@ -39,7 +39,9 @@ export default function Profile() {
     });
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const changePassword = useAuthStore((state) => state.changePassword);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast({
@@ -49,15 +51,30 @@ export default function Profile() {
       });
       return;
     }
-    toast({
-      title: 'Password changed',
-      description: 'Your password has been changed successfully',
+
+    const success = await changePassword({
+      currentPassword: passwordData.currentPassword,
+      newPassword: passwordData.newPassword,
+      confirmPassword: passwordData.confirmPassword,
     });
-    setPasswordData({
-      currentPassword: '',
-      newPassword: '',
-      confirmPassword: '',
-    });
+
+    if (success) {
+      toast({
+        title: 'Password changed',
+        description: 'Your password has been changed successfully',
+      });
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } else {
+      toast({
+        title: 'Error',
+        description: 'Failed to change password. Please check your current password.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleImageUpload = (file: File) => {

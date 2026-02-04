@@ -20,8 +20,8 @@ app.use(cors({
     credentials: true
 }));
 app.use(morgan('dev'));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Test Route
 app.get('/', (req, res) => {
@@ -30,6 +30,7 @@ app.get('/', (req, res) => {
 
 // Routes Placeholder
 app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/profile', require('./routes/profileRoutes'));
 app.use('/api/menu', require('./routes/menuRoutes'));
 app.use('/api/admin/orders', require('./routes/adminOrderRoutes'));
 app.use('/api/customer/orders', require('./routes/customerOrderRoutes'));

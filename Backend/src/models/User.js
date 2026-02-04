@@ -17,11 +17,13 @@ module.exports = (sequelize, DataTypes) => {
         email: DataTypes.STRING,
         password_hash: DataTypes.STRING,
         phone: DataTypes.STRING,
-        avatar_url: DataTypes.STRING,
+        avatar_url: DataTypes.TEXT('long'),
         role: {
             type: DataTypes.ENUM('admin'),
             defaultValue: 'admin'
-        }
+        },
+        reset_password_token: DataTypes.STRING,
+        reset_password_expires: DataTypes.DATE
     }, {
         sequelize,
         modelName: 'User',
