@@ -5,6 +5,10 @@ module.exports = (sequelize, DataTypes) => {
     class Inquiry extends Model {
         static associate(models) {
             // define associations here if any (e.g. assigned_to -> User)
+            Inquiry.hasMany(models.Quote, {
+                foreignKey: 'inquiry_id',
+                as: 'quotes'
+            });
         }
     }
     Inquiry.init({

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Order, OrderItem } from '@/types';
+import { Order } from '@/types';
 import api from '@/lib/api';
 // We need to access auth store state to determine which fetch endpoint to use (admin vs customer)
 // But to avoid circular dependency issues during initialization, we can import the store hook 

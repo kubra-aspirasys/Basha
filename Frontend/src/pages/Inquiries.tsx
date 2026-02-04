@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useInquiryStore } from '@/store/inquiry-store';
+import { inquiryService } from '@/lib/inquiry-service';
 import { Search, Eye, MessageSquare, Phone, Mail, Calendar, Users, DollarSign, Star, Clock, CheckCircle, XCircle, AlertCircle, Download, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -391,7 +392,7 @@ function InquiryDetailModal({ inquiry }: { inquiry: Inquiry }) {
                   <div className="flex items-center gap-2">
                     <Calendar className="w-4 h-4 text-purple-500" />
                     <span className="font-medium">
-                      {inquiry.created_at ? new Date(inquiry.created_at).toLocaleDateString() : 'N/A'}
+                      {(inquiry.created_at || inquiry.createdAt) ? new Date(inquiry.created_at || inquiry.createdAt!).toLocaleDateString() : 'N/A'}
                     </span>
                   </div>
                 </CardContent>
@@ -635,7 +636,16 @@ function InquiryDetailModal({ inquiry }: { inquiry: Inquiry }) {
 }
 
 export default function Inquiries() {
-  const { inquiries, updateInquiryStatus, updateInquiryPriority, deleteInquiry } = useInquiryStore();
+  const {
+    inquiries,
+    stats,
+    isLoading,
+    fetchInquiries,
+    fetchStats,
+    updateInquiryStatus,
+    updateInquiryPriority,
+    deleteInquiry
+  } = useInquiryStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -648,10 +658,23 @@ export default function Inquiries() {
   const [editingPriority, setEditingPriority] = useState<string | null>(null);
   const [selectedInquiry, setSelectedInquiry] = useState<Inquiry | null>(null);
 
+  // Fetch inquiries and stats on mount and filter changes
+  useEffect(() => {
+    fetchInquiries({
+      search: searchTerm,
+      status: statusFilter,
+      priority: priorityFilter,
+      sort: sortBy === 'created_at' ? (sortOrder === 'asc' ? 'created_at_asc' : 'created_at_desc') : sortBy,
+      page: currentPage,
+      limit: itemsPerPage
+    });
+    fetchStats();
+  }, [searchTerm, statusFilter, priorityFilter, sortBy, sortOrder, currentPage, itemsPerPage, fetchInquiries, fetchStats]);
+
   // Handle URL parameter to open specific inquiry
   useEffect(() => {
     const openInquiryId = searchParams.get('openInquiry');
-    if (openInquiryId) {
+    if (openInquiryId && inquiries.length > 0) {
       const inquiry = inquiries.find(i => i.id === openInquiryId);
       if (inquiry) {
         setSelectedInquiry(inquiry);
@@ -661,68 +684,17 @@ export default function Inquiries() {
     }
   }, [searchParams, inquiries, setSearchParams]);
 
-  const filteredInquiries = useMemo(() => {
-    let filtered = inquiries.filter((inquiry) => {
-      const matchesSearch =
-        inquiry.full_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inquiry.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        inquiry.phone.includes(searchTerm);
+  // Backend handles filtering and sorting, so we just use the store data
+  const filteredInquiries = inquiries;
 
-      const matchesStatus = statusFilter === 'all' || inquiry.status === statusFilter;
-      const matchesPriority = priorityFilter === 'all' || inquiry.priority === priorityFilter;
-
-      return matchesSearch && matchesStatus && matchesPriority;
-    });
-
-    // Sort inquiries
-    filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
-
-      switch (sortBy) {
-        case 'created_at':
-          aValue = new Date(a.created_at).getTime();
-          bValue = new Date(b.created_at).getTime();
-          break;
-        case 'full_name':
-          aValue = a.full_name.toLowerCase();
-          bValue = b.full_name.toLowerCase();
-          break;
-        case 'status':
-          aValue = a.status;
-          bValue = b.status;
-          break;
-        case 'priority':
-          const priorityOrder = { high: 3, medium: 2, low: 1 };
-          aValue = priorityOrder[a.priority];
-          bValue = priorityOrder[b.priority];
-          break;
-        default:
-          aValue = new Date(a.created_at).getTime();
-          bValue = new Date(b.created_at).getTime();
-      }
-
-      if (sortOrder === 'asc') {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-      }
-    });
-
-    return filtered;
-  }, [inquiries, searchTerm, statusFilter, priorityFilter, sortBy, sortOrder]);
-
-  const totalPages = Math.ceil(filteredInquiries.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedInquiries = filteredInquiries.slice(startIndex, endIndex);
+  const { totalPages } = useInquiryStore();
+  const paginatedInquiries = filteredInquiries;
 
   const handleStatusChange = (id: string, status: Inquiry['status']) => {
     updateInquiryStatus(id, status);
   };
 
-  // const handlePriorityChange = (id: string, priority: Inquiry['priority']) => {
-  //   updateInquiryPriority(id, priority);
-  // };
+  // ... (inline edit handlers remain same)
 
   const handleInlineStatusEdit = (inquiryId: string) => {
     setEditingStatus(inquiryId);
@@ -761,22 +733,30 @@ export default function Inquiries() {
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page when changing items per page
+    setCurrentPage(1);
   };
 
-  // Statistics
-  const stats = useMemo(() => {
-    const total = inquiries.length;
-    const newCount = inquiries.filter(i => i.status === 'new').length;
-    const contactedCount = inquiries.filter(i => i.status === 'contacted').length;
-    const quotedCount = inquiries.filter(i => i.status === 'quoted').length;
-    const convertedCount = inquiries.filter(i => i.status === 'converted').length;
-    const totalQuoteValue = inquiries
-      .filter(i => i.quote_amount)
-      .reduce((sum, i) => sum + (i.quote_amount || 0), 0);
+  const handleExport = async () => {
+    try {
+      const blob = await inquiryService.export({
+        search: searchTerm,
+        status: statusFilter,
+        priority: priorityFilter,
+        sort: sortBy === 'created_at' ? (sortOrder === 'asc' ? 'created_at_asc' : 'created_at_desc') : sortBy
+      });
+      const url = window.URL.createObjectURL(new Blob([blob]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'inquiries.csv');
+      document.body.appendChild(link);
+      link.click();
+      link.parentNode?.removeChild(link);
+    } catch (error) {
+      console.error('Failed to export inquiries:', error);
+    }
+  };
 
-    return { total, newCount, contactedCount, quotedCount, convertedCount, totalQuoteValue };
-  }, [inquiries]);
+  // NOTE: stats are now fetched from the store, so no useMemo needed for them locally
 
   return (
     <div className="space-y-6">
@@ -866,7 +846,7 @@ export default function Inquiries() {
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Inquiry Management</h3>
             <div className="flex flex-col sm:flex-row gap-2">
               <AddInquiryModal />
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={handleExport}>
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export</span>
               </Button>
@@ -1084,7 +1064,7 @@ export default function Inquiries() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400">
-                      {new Date(inquiry.created_at).toLocaleDateString()}
+                      {(inquiry.created_at || inquiry.createdAt) ? new Date(inquiry.created_at || inquiry.createdAt!).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
