@@ -6,7 +6,7 @@ const orderService = require('../services/orderService');
 const createOrder = async (req, res, next) => {
     try {
         // Only use req.user.id for customers, admins create orders with null customer_id
-        const customerId = req.user.role === 'admin' ? null : req.user.id;
+        const customerId = req.user.role === 'admin' ? null : req.user.userId;
         const orderData = req.body;
 
         const order = await orderService.createOrder(customerId, orderData);
@@ -44,7 +44,7 @@ const getAllOrders = async (req, res, next) => {
 // @access  Private (Customer)
 const getMyOrders = async (req, res, next) => {
     try {
-        const customerId = req.user.id;
+        const customerId = req.user.userId;
         const orders = await orderService.getCustomerOrders(customerId);
 
         res.status(200).json({
@@ -66,7 +66,7 @@ const getOrderDetails = async (req, res, next) => {
         // If admin, can see any. If customer, only own.
         // Identify role from req.user
         const isCustomer = !req.user.role || req.user.role !== 'admin';
-        const customerId = isCustomer ? req.user.id : null;
+        const customerId = isCustomer ? req.user.userId : null;
 
         const order = await orderService.getOrderDetails(orderId, customerId);
 
@@ -106,7 +106,7 @@ const updateOrderStatus = async (req, res, next) => {
 const cancelOrder = async (req, res, next) => {
     try {
         const orderId = req.params.id;
-        const customerId = req.user.id;
+        const customerId = req.user.userId;
 
         const order = await orderService.cancelOrder(orderId, customerId);
 

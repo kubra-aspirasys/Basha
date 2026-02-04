@@ -9,21 +9,15 @@ import { ShoppingBag, Clock, MapPin, Package } from 'lucide-react';
 export default function Orders() {
     const navigate = useNavigate();
     const { orders, fetchOrders, loading } = useOrderStore();
-    const { user, isAuthenticated } = useAuthStore();
+    const { isAuthenticated } = useAuthStore();
 
     useEffect(() => {
         fetchOrders();
     }, [fetchOrders]);
 
-    const myOrders = orders.filter(order => {
-        // If user is authenticated, filter by user ID
-        // If order has no customer_id (guest), we currently don't track it here properly for guests
-        // unless we save order IDs in localStorage. For now, strictly match user ID.
-        if (isAuthenticated && user?.id) {
-            return order.customer_id === user.id;
-        }
-        return false;
-    });
+    // Orders are already filtered by the API based on the authenticated customer
+    // No need to filter again on the client side
+    const myOrders = orders;
 
     if (!isAuthenticated) {
         return (

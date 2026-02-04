@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useMenuStore } from '@/store/menu-store';
 import { useOfferStore } from '@/store/offer-store';
-import { Plus, Pencil, Trash2, Search, Upload, Link as LinkIcon, X, Star, Tag, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Upload, Link as LinkIcon, X, Star, Tag, CheckCircle, AlertCircle, FileText, Clock } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 import { categoryNames, typeNames } from '@/lib/menu-mock-data';
 
@@ -756,498 +757,493 @@ export default function Menu() {
         )}
       </div>
 
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
-            <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
-                {editingItem ? 'Edit Menu Item' : 'Add Menu Item'}
-              </h2>
-              <button onClick={() => setIsOpen(false)} className="text-slate-500 hover:text-slate-700">
-                <X className="w-5 h-5" />
+      {isOpen && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[10001] p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5">
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-800 z-10">
+              <div>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  {editingItem ? <Pencil className="w-5 h-5 text-blue-500" /> : <Plus className="w-5 h-5 text-green-500" />}
+                  {editingItem ? 'Edit Menu Item' : 'Add New Item'}
+                </h2>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  {editingItem ? 'Update the details of your delicious offering' : 'Expand your menu with a new delight'}
+                </p>
+              </div>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+                title="Close Modal"
+              >
+                <X className="w-6 h-6" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Item Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Price *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={formData.price}
-                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  />
-                </div>
-              </div>
 
-              {/* Offer Code Section */}
-              <div className="space-y-3">
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Offer Code (Optional)
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={formData.offer_code}
-                    onChange={(e) => setFormData({ ...formData, offer_code: e.target.value.toUpperCase() })}
-                    placeholder="Enter offer code (e.g., WELCOME50)"
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white pr-10"
-                  />
-                  <Tag className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                </div>
+            <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+              <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Basic Details Section */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Tag className="w-4 h-4" /> Basic Information
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div className="sm:col-span-2">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Item Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="e.g. Chicken Biryani Family Pack"
+                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all font-medium"
+                      />
+                    </div>
 
-                {/* Offer Validation Message */}
-                {formData.offer_code && (
-                  <div className={`flex items-center gap-2 p-3 rounded-lg text-sm ${offerValidation.isValid
-                    ? 'bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800'
-                    : offerValidation.message
-                      ? 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700'
-                    }`}>
-                    {offerValidation.isValid ? (
-                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                    ) : offerValidation.message ? (
-                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                    ) : (
-                      <Tag className="w-4 h-4 flex-shrink-0" />
-                    )}
-                    <span className="flex-1">
-                      {offerValidation.message || 'Enter a valid offer code to see discount'}
-                    </span>
-                  </div>
-                )}
-
-                {/* Discounted Price Display */}
-                {offerValidation.isValid && offerValidation.discountedPrice > 0 && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm text-blue-700 dark:text-blue-300 font-medium">Discounted Price</p>
-                        <p className="text-xs text-blue-600 dark:text-blue-400">
-                          Original: ₹{formData.price} → Final: ₹{offerValidation.discountedPrice}
-                        </p>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Price (₹) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 font-semibold">₹</span>
+                        <input
+                          type="number"
+                          step="0.01"
+                          required
+                          value={formData.price}
+                          onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                          placeholder="0.00"
+                          className="w-full pl-8 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all font-medium"
+                        />
                       </div>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-blue-800 dark:text-blue-200">
-                          ₹{offerValidation.discountedPrice}
-                        </p>
-                        <p className="text-xs text-blue-600 dark:text-blue-400">
-                          Save ₹{(parseFloat(formData.price) - offerValidation.discountedPrice).toFixed(2)}
-                        </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Category
+                      </label>
+                      <select
+                        value={formData.category_id}
+                        onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all"
+                      >
+                        <option value="">Select Category</option>
+                        {Object.entries(categoryNames).map(([key, name]) => (
+                          <option key={key} value={key}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Type (Veg/Non-Veg)
+                      </label>
+                      <select
+                        value={formData.type_id}
+                        onChange={(e) => setFormData({ ...formData, type_id: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all"
+                      >
+                        <option value="">Select Type</option>
+                        {Object.entries(typeNames).map(([key, { name }]) => (
+                          <option key={key} value={key}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Description
+                      </label>
+                      <textarea
+                        rows={3}
+                        value={formData.description}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Describe the dish..."
+                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all resize-none"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ordering Details Section */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-100 dark:border-slate-700">
+                  <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4" /> Ordering Details
+                  </h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Unit Type <span className="text-red-500">*</span>
+                      </label>
+                      <select
+                        value={formData.unit_type}
+                        onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all"
+                      >
+                        {UNIT_TYPES.map((unit) => (
+                          <option key={unit} value={unit}>{unit}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Min Order Qty <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        value={formData.min_order_qty}
+                        onChange={(e) => setFormData({ ...formData, min_order_qty: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Max Order Qty
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={formData.max_order_qty}
+                        onChange={(e) => setFormData({ ...formData, max_order_qty: e.target.value })}
+                        placeholder="Optional"
+                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-3">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Pre-order Time (hours)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.5"
+                        placeholder="e.g., 2.5 (Leave empty if instant)"
+                        value={formData.pre_order_time}
+                        onChange={(e) => setFormData({ ...formData, pre_order_time: e.target.value })}
+                        className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Image & Offers Section */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Image Upload */}
+                  <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <Upload className="w-4 h-4" /> Item Image
+                    </h3>
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        type="button"
+                        onClick={() => setImageMode('url')}
+                        className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${imageMode === 'url'
+                          ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-slate-500'
+                          : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                          }`}
+                      >
+                        URL Link
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setImageMode('upload')}
+                        className={`flex-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${imageMode === 'upload'
+                          ? 'bg-white dark:bg-slate-600 shadow-sm text-slate-900 dark:text-white ring-1 ring-slate-200 dark:ring-slate-500'
+                          : 'text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700'
+                          }`}
+                      >
+                        Upload File
+                      </button>
+                    </div>
+                    {imageMode === 'url' ? (
+                      <div className="space-y-3">
+                        <input
+                          type="url"
+                          placeholder="https://example.com/image.jpg"
+                          value={formData.image_url}
+                          onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                          className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 text-sm"
+                        />
+                        {formData.image_url && (
+                          <div className="relative aspect-video rounded-lg overflow-hidden border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-900">
+                            <img src={formData.image_url} alt="Preview" className="w-full h-full object-cover" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-8 h-8 text-slate-400 mb-2" />
+                          <p className="text-xs text-slate-500 dark:text-slate-400">Click to upload (Demo Mode)</p>
+                        </div>
+                      </label>
+                    )}
+                  </div>
+
+                  {/* Offers & Visibility */}
+                  <div className="space-y-4">
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-100 dark:border-slate-700">
+                      <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <Tag className="w-4 h-4" /> Promotions
+                      </h3>
+                      <div className="space-y-3">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">
+                          Offer Code
+                        </label>
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={formData.offer_code}
+                            onChange={(e) => setFormData({ ...formData, offer_code: e.target.value.toUpperCase() })}
+                            placeholder="e.g., SUMMER25"
+                            className="w-full pl-4 pr-10 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 uppercase font-mono text-sm"
+                          />
+                          <Tag className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                        </div>
+                        {formData.offer_code && (
+                          <div className={`p-3 rounded-lg text-xs flex items-start gap-2 ${offerValidation.isValid
+                            ? 'bg-green-50 text-green-700 dark:bg-green-900/20 dark:text-green-300'
+                            : 'bg-red-50 text-red-700 dark:bg-red-900/20 dark:text-red-300'
+                            }`}>
+                            {offerValidation.isValid ? <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" /> : <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />}
+                            <span>{offerValidation.message || 'Validating...'}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-800/50 p-5 rounded-xl border border-slate-100 dark:border-slate-700">
+                      <div className="flex items-center justify-between mb-3">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Available to Order</label>
+                        <button type="button" onClick={() => setFormData({ ...formData, is_available: !formData.is_available })} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.is_available ? 'bg-green-500' : 'bg-slate-300'}`}>
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_available ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Featured Item</label>
+                        <button type="button" onClick={() => setFormData({ ...formData, is_featured: !formData.is_featured })} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${formData.is_featured ? 'bg-gold-500' : 'bg-slate-300'}`}>
+                          <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${formData.is_featured ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
                       </div>
                     </div>
                   </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Category
-                  </label>
-                  <select
-                    value={formData.category_id}
-                    onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  >
-                    <option value="">Select Category</option>
-                    {Object.entries(categoryNames).map(([key, name]) => (
-                      <option key={key} value={key}>{name}</option>
-                    ))}
-                  </select>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Type (Veg/Non-Veg)
-                  </label>
-                  <select
-                    value={formData.type_id}
-                    onChange={(e) => setFormData({ ...formData, type_id: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  >
-                    <option value="">Select Type</option>
-                    {Object.entries(typeNames).map(([key, { name }]) => (
-                      <option key={key} value={key}>{name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Unit Type *
-                  </label>
-                  <select
-                    value={formData.unit_type}
-                    onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  >
-                    {UNIT_TYPES.map((unit) => (
-                      <option key={unit} value={unit}>{unit}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Min Order Qty *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={formData.min_order_qty}
-                    onChange={(e) => setFormData({ ...formData, min_order_qty: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Max Order Qty
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={formData.max_order_qty}
-                    onChange={(e) => setFormData({ ...formData, max_order_qty: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Pre-order Time (hrs)
-                </label>
-                <input
-                  type="number"
-                  step="0.5"
-                  placeholder="e.g., 2"
-                  value={formData.pre_order_time}
-                  onChange={(e) => setFormData({ ...formData, pre_order_time: e.target.value })}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Image
-                </label>
-                <div className="flex gap-2 mb-2">
+                {/* Footer / Actions */}
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row gap-3">
                   <button
-                    type="button"
-                    onClick={() => setImageMode('url')}
-                    className={`px-3 py-1.5 rounded-lg text-sm ${imageMode === 'url'
-                      ? 'bg-gold-500 text-white'
-                      : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}
+                    type="submit"
+                    disabled={loading}
+                    className="flex-1 px-6 py-3 bg-gradient-to-r from-gold-500 to-gold-600 text-white font-semibold rounded-xl hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    <LinkIcon className="w-4 h-4 inline mr-1" />
-                    URL
+                    {loading ? (
+                      <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <CheckCircle className="w-5 h-5" />
+                        {editingItem ? 'Update Menu Item' : 'Create Menu Item'}
+                      </>
+                    )}
                   </button>
                   <button
                     type="button"
-                    onClick={() => setImageMode('upload')}
-                    className={`px-3 py-1.5 rounded-lg text-sm ${imageMode === 'upload'
-                      ? 'bg-gold-500 text-white'
-                      : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
-                      }`}
+                    onClick={() => setIsOpen(false)}
+                    className="px-6 py-3 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-700 dark:text-slate-300 font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-600 transition-all"
                   >
-                    <Upload className="w-4 h-4 inline mr-1" />
-                    Upload
+                    Cancel
                   </button>
                 </div>
-                {imageMode === 'url' ? (
-                  <input
-                    type="url"
-                    placeholder="https://example.com/image.jpg"
-                    value={formData.image_url}
-                    onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  />
-                ) : (
-                  <div className="border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-8 text-center">
-                    <Upload className="w-8 h-8 text-slate-400 mx-auto mb-2" />
-                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                      Image upload coming soon. Please use URL for now.
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-6">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_available}
-                    onChange={(e) => setFormData({ ...formData, is_available: e.target.checked })}
-                    className="w-4 h-4"
-                  />
-                  <label className="text-sm text-slate-700 dark:text-slate-300">Available for ordering</label>
-                </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.is_featured}
-                    onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
-                    className="w-4 h-4"
-                  />
-                  <label className="text-sm text-slate-700 dark:text-slate-300 flex items-center gap-1">
-                    <Star className="w-4 h-4" />
-                    Featured item
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-lg hover:shadow-lg transition-all disabled:opacity-50"
-                >
-                  {editingItem ? 'Update' : 'Add'} Menu Item
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
+              </form>
+            </div>
           </div>
         </div>
-      )}
+        , document.body)}
 
       {/* List View Modal */}
-      {isListViewOpen && selectedItem && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
-            <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
-                Menu Item Details
-              </h2>
+      {isListViewOpen && selectedItem && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[10001] p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between bg-white dark:bg-slate-800 sticky top-0 z-10">
+              <div>
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Tag className="w-5 h-5 text-gold-500" />
+                  Item Details
+                </h2>
+              </div>
               <button
                 onClick={() => setIsListViewOpen(false)}
-                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-6 h-6" />
               </button>
             </div>
 
-            <div className="p-4 sm:p-6 space-y-6">
+            <div className="overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
               {/* Header Section */}
-              <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6">
-                <div className="flex-shrink-0 mx-auto sm:mx-0">
+              <div className="flex flex-col md:flex-row gap-6 mb-8">
+                <div className="flex-shrink-0 mx-auto md:mx-0">
                   {selectedItem.image_url ? (
-                    <img
-                      src={selectedItem.image_url}
-                      alt={selectedItem.name}
-                      className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl object-cover"
-                    />
+                    <div className="relative group">
+                      <div className="absolute inset-0 bg-black/20 group-hover:bg-black/0 transition-colors rounded-2xl"></div>
+                      <img
+                        src={selectedItem.image_url}
+                        alt={selectedItem.name}
+                        className="w-40 h-40 sm:w-48 sm:h-48 rounded-2xl object-cover shadow-lg ring-4 ring-white dark:ring-slate-700"
+                      />
+                    </div>
                   ) : (
-                    <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-xl bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
-                      <span className="text-slate-500 dark:text-slate-400 text-sm">No image</span>
+                    <div className="w-40 h-40 sm:w-48 sm:h-48 rounded-2xl bg-slate-100 dark:bg-slate-700 flex flex-col items-center justify-center text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-600">
+                      <Upload className="w-8 h-8 mb-2 opacity-50" />
+                      <span className="text-sm font-medium">No Image</span>
                     </div>
                   )}
                 </div>
 
-                <div className="flex-1">
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2">
-                    <h3 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white text-center sm:text-left">
+                <div className="flex-1 text-center md:text-left">
+                  <div className="flex flex-col md:flex-row md:items-center gap-3 mb-3 justify-center md:justify-start">
+                    <h3 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
                       {selectedItem.name}
                     </h3>
-                    <div className="flex flex-wrap justify-center sm:justify-start gap-2">
-                      {selectedItem.is_featured && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gold-100 text-gold-800 dark:bg-gold-900/30 dark:text-gold-300">
-                          <Star className="w-4 h-4" />
-                          Featured
-                        </span>
-                      )}
-                      {selectedItem.offer_code && (
-                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
-                          <Tag className="w-4 h-4" />
-                          {selectedItem.offer_code}
-                        </span>
-                      )}
-                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2 mb-4 justify-center md:justify-start">
+                    {selectedItem.is_featured && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 border border-amber-200 dark:border-amber-800">
+                        <Star className="w-3.5 h-3.5 fill-current" /> Featured
+                      </span>
+                    )}
+                    {selectedItem.offer_code && (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-800">
+                        <Tag className="w-3.5 h-3.5" /> {selectedItem.offer_code}
+                      </span>
+                    )}
+                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${selectedItem.is_available
+                      ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
+                      : 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/20 dark:text-red-300 dark:border-red-800'
+                      }`}>
+                      <div className={`w-2 h-2 rounded-full ${selectedItem.is_available ? 'bg-blue-500' : 'bg-red-500'}`}></div>
+                      {selectedItem.is_available ? 'Available' : 'Unavailable'}
+                    </span>
                   </div>
 
                   {selectedItem.description && (
-                    <p className="text-slate-600 dark:text-slate-400 mb-4 text-center sm:text-left">
+                    <p className="text-slate-600 dark:text-slate-300 mb-6 text-sm leading-relaxed max-w-2xl mx-auto md:mx-0 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-100 dark:border-slate-700">
                       {selectedItem.description}
                     </p>
                   )}
 
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                    <div className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white text-center sm:text-left">
+                  <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
+                    <div className="flex items-baseline gap-2">
                       {selectedItem.offer_code && selectedItem.discounted_price ? (
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                          <div className="flex items-center justify-center sm:justify-start gap-2">
-                            <span className="text-slate-500 dark:text-slate-400 line-through text-lg sm:text-xl">₹{selectedItem.price}</span>
-                            <span className="text-green-600 dark:text-green-400 text-xl sm:text-2xl">₹{selectedItem.discounted_price}</span>
-                          </div>
-                          <div className="text-sm text-green-600 dark:text-green-400 font-medium text-center sm:text-left">
-                            Save ₹{(selectedItem.price - selectedItem.discounted_price).toFixed(2)}
-                          </div>
-                        </div>
+                        <>
+                          <span className="text-3xl font-bold text-slate-900 dark:text-white">₹{selectedItem.discounted_price}</span>
+                          <span className="text-lg text-slate-400 line-through decoration-2">₹{selectedItem.price}</span>
+                        </>
                       ) : (
-                        <span>₹{selectedItem.price}</span>
+                        <span className="text-3xl font-bold text-slate-900 dark:text-white">₹{selectedItem.price}</span>
                       )}
+                      <span className="text-sm text-slate-500 font-medium ml-1">per {selectedItem.unit_type}</span>
                     </div>
+
+                    {selectedItem.offer_code && selectedItem.discounted_price && (
+                      <div className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold rounded-lg">
+                        Save ₹{(selectedItem.price - selectedItem.discounted_price).toFixed(2)}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
 
               {/* Details Grid */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Basic Information</h4>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Category:</span>
-                      <span className="font-medium text-slate-900 dark:text-white">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                {/* Basic Info Card */}
+                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-2">
+                    <FileText className="w-4 h-4" /> Attributes
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center group">
+                      <span className="text-slate-500 text-sm group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Category</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 bg-slate-100 dark:bg-slate-700 px-3 py-1 rounded-lg text-sm">
                         {getCategoryName(selectedItem.category_id)}
                       </span>
                     </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Type:</span>
-                      <span className="font-medium text-slate-900 dark:text-white">
+                    <div className="flex justify-between items-center group">
+                      <span className="text-slate-500 text-sm group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Type</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200">
                         {selectedItem.type_id ? (
-                          <span
-                            className="inline-block px-2 py-1 rounded-full text-xs font-medium text-white"
-                            style={{ backgroundColor: getTypeColor(selectedItem.type_id) }}
-                          >
+                          <span className="inline-block px-3 py-1 rounded-lg text-xs font-bold text-white shadow-sm" style={{ backgroundColor: getTypeColor(selectedItem.type_id) }}>
                             {getTypeName(selectedItem.type_id)}
                           </span>
-                        ) : (
-                          'Not specified'
-                        )}
+                        ) : <span className="text-slate-400 italic">Not set</span>}
                       </span>
                     </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Unit Type:</span>
-                      <span className="font-medium text-slate-900 dark:text-white">
-                        {selectedItem.unit_type}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Min Order Qty:</span>
-                      <span className="font-medium text-slate-900 dark:text-white">
+                    <div className="flex justify-between items-center group">
+                      <span className="text-slate-500 text-sm group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Min Order</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
                         {selectedItem.min_order_qty} {selectedItem.unit_type}
                       </span>
                     </div>
-
-                    {selectedItem.max_order_qty && (
-                      <div className="flex justify-between">
-                        <span className="text-slate-600 dark:text-slate-400">Max Order Qty:</span>
-                        <span className="font-medium text-slate-900 dark:text-white">
-                          {selectedItem.max_order_qty} {selectedItem.unit_type}
-                        </span>
-                      </div>
-                    )}
                   </div>
                 </div>
 
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Status & Timing</h4>
-
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Availability:</span>
-                      <span className={`font-medium ${selectedItem.is_available ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {selectedItem.is_available ? 'Available' : 'Unavailable'}
+                {/* Logistics Card */}
+                <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-xl p-5 shadow-sm hover:shadow-md transition-shadow">
+                  <h4 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center gap-2 border-b border-slate-100 dark:border-slate-700 pb-2">
+                    <Clock className="w-4 h-4" /> Logistics
+                  </h4>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center group">
+                      <span className="text-slate-500 text-sm group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Pre-order Time</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+                        {selectedItem.pre_order_time ? `${selectedItem.pre_order_time} Hours` : 'Instant'}
                       </span>
                     </div>
-
-                    {selectedItem.pre_order_time && (
-                      <div className="flex justify-between">
-                        <span className="text-slate-600 dark:text-slate-400">Pre-order Time:</span>
-                        <span className="font-medium text-slate-900 dark:text-white">
-                          {selectedItem.pre_order_time} hours
-                        </span>
+                    <div className="flex justify-between items-center group">
+                      <span className="text-slate-500 text-sm group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Max Order</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-200 text-sm">
+                        {selectedItem.max_order_qty ? `${selectedItem.max_order_qty} ${selectedItem.unit_type}` : 'Unlimited'}
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center group">
+                      <span className="text-slate-500 text-sm group-hover:text-slate-700 dark:group-hover:text-slate-300 transition-colors">Added On</span>
+                      <div className="text-right">
+                        <div className="font-semibold text-slate-800 dark:text-slate-200 text-sm">{new Date(selectedItem.created_at).toLocaleDateString()}</div>
+                        <div className="text-xs text-slate-400 font-mono">{new Date(selectedItem.created_at).toLocaleTimeString()}</div>
                       </div>
-                    )}
-
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Created:</span>
-                      <span className="font-medium text-slate-900 dark:text-white">
-                        {new Date(selectedItem.created_at).toLocaleDateString()}
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-slate-600 dark:text-slate-400">Last Updated:</span>
-                      <span className="font-medium text-slate-900 dark:text-white">
-                        {new Date(selectedItem.updated_at).toLocaleDateString()}
-                      </span>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Offer Details */}
+              {/* Offer Details Panel */}
               {selectedItem.offer_code && (
-                <div className="space-y-4">
-                  <h4 className="text-lg font-semibold text-slate-900 dark:text-white">Offer Details</h4>
-
-                  <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      <div>
-                        <span className="text-sm text-green-700 dark:text-green-300 font-medium">Offer Code:</span>
-                        <p className="text-lg font-bold text-green-800 dark:text-green-200">
-                          {selectedItem.offer_code}
-                        </p>
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-100 dark:border-green-800 rounded-xl p-5 mb-8">
+                  <h4 className="text-sm font-bold text-green-700 dark:text-green-400 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Tag className="w-4 h-4 fill-current" /> Active Promotion
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                    <div className="bg-white/60 dark:bg-slate-800/60 p-3 rounded-lg backdrop-blur-sm">
+                      <div className="text-xs text-slate-500 uppercase font-semibold mb-1">Code</div>
+                      <div className="text-lg font-mono font-bold text-green-700 dark:text-green-400">{selectedItem.offer_code}</div>
+                    </div>
+                    <div className="bg-white/60 dark:bg-slate-800/60 p-3 rounded-lg backdrop-blur-sm">
+                      <div className="text-xs text-slate-500 uppercase font-semibold mb-1">Type</div>
+                      <div className="text-lg font-bold text-slate-800 dark:text-slate-200">
+                        {selectedItem.offer_discount_type === 'percentage' ? 'Percent Off' : 'Flat Off'}
                       </div>
-
-                      <div>
-                        <span className="text-sm text-green-700 dark:text-green-300 font-medium">Discount Type:</span>
-                        <p className="text-lg font-bold text-green-800 dark:text-green-200">
-                          {selectedItem.offer_discount_type === 'percentage' ? 'Percentage' : 'Fixed Amount'}
-                        </p>
-                      </div>
-
-                      <div>
-                        <span className="text-sm text-green-700 dark:text-green-300 font-medium">Discount Value:</span>
-                        <p className="text-lg font-bold text-green-800 dark:text-green-200">
-                          {selectedItem.offer_discount_type === 'percentage'
-                            ? `${selectedItem.offer_discount_value}%`
-                            : `₹${selectedItem.offer_discount_value}`
-                          }
-                        </p>
+                    </div>
+                    <div className="bg-white/60 dark:bg-slate-800/60 p-3 rounded-lg backdrop-blur-sm">
+                      <div className="text-xs text-slate-500 uppercase font-semibold mb-1">Value</div>
+                      <div className="text-lg font-bold text-green-700 dark:text-green-400">
+                        {selectedItem.offer_discount_type === 'percentage'
+                          ? `${selectedItem.offer_discount_value}%`
+                          : `₹${selectedItem.offer_discount_value}`
+                        }
                       </div>
                     </div>
                   </div>
@@ -1255,28 +1251,28 @@ export default function Menu() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
+              <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-slate-100 dark:border-slate-700 sticky bottom-0 bg-white dark:bg-slate-800 z-10 p-2 -mx-2 -mb-2">
+                <button
+                  onClick={() => setIsListViewOpen(false)}
+                  className="px-5 py-2.5 rounded-xl text-slate-600 dark:text-slate-300 font-medium hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors w-full sm:w-auto"
+                >
+                  Close
+                </button>
                 <button
                   onClick={() => {
                     setIsListViewOpen(false);
                     handleEdit(selectedItem);
                   }}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
                   <Pencil className="w-4 h-4" />
                   Edit Item
-                </button>
-                <button
-                  onClick={() => setIsListViewOpen(false)}
-                  className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-                >
-                  Close
                 </button>
               </div>
             </div>
           </div>
         </div>
-      )}
+        , document.body)}
     </div>
   );
 }

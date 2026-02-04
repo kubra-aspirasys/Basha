@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   const totalRevenue = payments
     .filter((p) => p.status === 'completed')
-    .reduce((sum, p) => sum + p.amount, 0);
+    .reduce((sum, p) => sum + Number(p.amount), 0);
 
   const recentOrders = useMemo(() =>
     orders
@@ -83,7 +83,7 @@ export default function Dashboard() {
         const orderDate = dateStr.split('T')[0];
         return orderDate === date;
       });
-      const dayRevenue = dayOrders.reduce((sum, o) => sum + o.total_amount, 0);
+      const dayRevenue = dayOrders.reduce((sum, o) => sum + Number(o.total_amount), 0);
       return {
         date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         revenue: dayRevenue,
@@ -111,7 +111,7 @@ export default function Dashboard() {
   // Today's metrics - Using 2025-10-01 for demo purposes
   const today = '2025-10-01';
   const todayOrders = orders.filter(order => (order.created_at || order.createdAt || '').startsWith(today));
-  const todayRevenue = todayOrders.reduce((sum, order) => sum + order.total_amount, 0);
+  const todayRevenue = todayOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
   const pendingOrders = orders.filter(order => order.status === 'pending').length;
   const newCustomersToday = customers.filter(customer =>
     (customer.created_at || '').startsWith(today)

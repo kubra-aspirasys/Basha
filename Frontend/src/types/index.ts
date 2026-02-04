@@ -104,8 +104,10 @@ export interface Payment {
   customer_id: string;
   customer_name: string;
   amount: number;
-  payment_mode: 'cash' | 'upi';
-  status: 'pending' | 'completed' | 'failed';
+  payment_mode: 'cash' | 'upi' | 'card' | 'netbanking';
+  status: 'pending' | 'completed' | 'failed' | 'refunded';
+  notes?: string;
+  payment_reference?: string;
   created_at: string;
   createdAt?: string;
   updated_at?: string;

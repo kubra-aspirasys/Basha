@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useOrderStore } from '@/store/order-store';
 import { useMenuStore } from '@/store/menu-store';
 import { useCustomerStore } from '@/store/customer-store';
-import { Search, Eye, Pencil, Trash2, X, Check, Clock, CheckCircle, Truck, Package, AlertCircle, MapPin, Store, Phone, Mail } from 'lucide-react';
+import { Search, Eye, Pencil, Trash2, X, Check, Clock, CheckCircle, Truck, Package, AlertCircle, MapPin, Store, Phone, Mail, User, Calendar, FileText, Activity } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 import { Order } from '@/types';
 
@@ -451,7 +452,7 @@ export default function Orders() {
                         <OrderTypeBadge orderType={order.order_type} />
                       </td>
                       <td className="px-6 py-4 text-slate-600 dark:text-slate-400">
-                        {order.items.map((item, idx) => {
+                        {(order.items || []).map((item, idx) => {
                           const menuItem = getMenuItemDetails(item.menu_item_id);
                           return (
                             <div key={idx} className="text-sm">
@@ -563,7 +564,7 @@ export default function Orders() {
                     <div>
                       <h4 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Items:</h4>
                       <div className="space-y-1">
-                        {order.items.map((item, idx) => {
+                        {(order.items || []).map((item, idx) => {
                           const menuItem = getMenuItemDetails(item.menu_item_id);
                           return (
                             <div key={idx} className="text-sm text-slate-600 dark:text-slate-400">
@@ -673,193 +674,284 @@ export default function Orders() {
         )}
       </div>
 
-      {selectedOrder && viewMode && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto mx-4 sm:mx-0">
-            <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 dark:text-white">
-                {viewMode === 'view' ? 'Order Details' : 'Edit Order'}
-              </h2>
-              <button onClick={closeModal} className="text-slate-500 hover:text-slate-700">
-                <X className="w-5 h-5" />
+      {selectedOrder && viewMode && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[10001] p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5">
+
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-white dark:bg-slate-800 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between sticky top-0 z-10">
+              <div>
+                <div className="flex items-center gap-3">
+                  <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                    {viewMode === 'view' ? 'Order Details' : 'Edit Order'}
+                  </h2>
+                  <span className="px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-600 dark:text-slate-300">
+                    {selectedOrder.order_number}
+                  </span>
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  Placed on {new Date(selectedOrder.created_at || selectedOrder.createdAt || Date.now()).toLocaleString()}
+                </p>
+              </div>
+              <button
+                onClick={closeModal}
+                className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
               </button>
             </div>
-            <div className="p-4 sm:p-6 space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Order Number
-                  </label>
-                  <p className="text-slate-900 dark:text-white font-medium">{selectedOrder.order_number}</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Customer
-                  </label>
-                  <p className="text-slate-900 dark:text-white">{selectedOrder.customer_name}</p>
-                  {(() => {
-                    const customer = customers.find(c => c.id === selectedOrder.customer_id);
-                    return customer ? (
-                      <div className="mt-2 space-y-1">
-                        {customer.phone && (
-                          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                            <Phone className="w-4 h-4" />
-                            <span>{customer.phone}</span>
-                          </div>
-                        )}
-                        {customer.email && (
-                          <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
-                            <Mail className="w-4 h-4" />
-                            <span>{customer.email}</span>
-                          </div>
-                        )}
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+                {/* Customer Info */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-100 dark:border-slate-700 hover:border-blue-200 dark:hover:border-blue-900/50 transition-colors">
+                  <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <User className="w-4 h-4" /> Customer Details
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xl shadow-sm">
+                        {selectedOrder.customer_name.charAt(0).toUpperCase()}
                       </div>
-                    ) : null;
-                  })()}
-                </div>
-              </div>
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white text-lg">{selectedOrder.customer_name}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">ID: {selectedOrder.customer_id ? selectedOrder.customer_id.substring(0, 8) : 'N/A'}</p>
+                      </div>
+                    </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Order Type
-                </label>
-                <OrderTypeBadge orderType={selectedOrder.order_type} />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  {selectedOrder.order_type === 'delivery' ? 'Delivery Address' : 'Pickup Address'}
-                </label>
-                <p className="text-slate-900 dark:text-white">{selectedOrder.delivery_address}</p>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                  Order Items
-                </label>
-                <div className="space-y-2">
-                  {selectedOrder.items.map((item, idx) => {
-                    const menuItem = getMenuItemDetails(item.menu_item_id);
-                    return (
-                      <div key={idx} className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-900 rounded-lg">
-                        <div>
-                          <p className="font-medium text-slate-900 dark:text-white">{item.menu_item_name}</p>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">
-                            {item.quantity} {menuItem?.unit_type || 'x'} @ ₹{item.price}
-                          </p>
+                    {(() => {
+                      const customer = customers.find(c => c.id === selectedOrder.customer_id);
+                      return customer ? (
+                        <div className="pt-4 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                          {customer.phone && (
+                            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                              <div className="p-1.5 bg-white dark:bg-slate-700 rounded-lg shadow-sm">
+                                <Phone className="w-3.5 h-3.5 text-slate-400" />
+                              </div>
+                              <span className="font-medium">{customer.phone}</span>
+                            </div>
+                          )}
+                          {customer.email && (
+                            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                              <div className="p-1.5 bg-white dark:bg-slate-700 rounded-lg shadow-sm">
+                                <Mail className="w-3.5 h-3.5 text-slate-400" />
+                              </div>
+                              <span className="truncate">{customer.email}</span>
+                            </div>
+                          )}
                         </div>
-                        <p className="font-medium text-slate-900 dark:text-white">
-                          ₹{(item.quantity * item.price).toLocaleString()}
-                        </p>
+                      ) : null;
+                    })()}
+                  </div>
+                </div>
+
+                {/* Delivery Info */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-100 dark:border-slate-700 hover:border-green-200 dark:hover:border-green-900/50 transition-colors">
+                  <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <MapPin className="w-4 h-4" /> {selectedOrder.order_type === 'delivery' ? 'Delivery Information' : 'Pickup Information'}
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <OrderTypeBadge orderType={selectedOrder.order_type} />
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="p-1.5 bg-white dark:bg-slate-700 rounded-lg shadow-sm mt-0.5">
+                        {selectedOrder.order_type === 'delivery' ? (
+                          <Truck className="w-3.5 h-3.5 text-slate-400" />
+                        ) : (
+                          <Store className="w-3.5 h-3.5 text-slate-400" />
+                        )}
                       </div>
-                    );
-                  })}
+                      <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                        {selectedOrder.delivery_address}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Info */}
+                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-5 border border-slate-100 dark:border-slate-700 flex flex-col hover:border-amber-200 dark:hover:border-amber-900/50 transition-colors">
+                  <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Activity className="w-4 h-4" /> Order Status
+                  </h3>
+                  <div className="flex-1 flex flex-col justify-center items-center gap-6">
+                    <div className="scale-125">
+                      <StatusBadge status={selectedOrder.status} />
+                    </div>
+                    {viewMode !== 'edit' && (
+                      <div className="text-center">
+                        <p className="text-xs text-slate-400 dark:text-slate-500 mb-1">Last Updated</p>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                          {new Date(selectedOrder.updated_at || selectedOrder.updatedAt || Date.now()).toLocaleString()}
+                        </p>
+                        <button onClick={() => setViewMode('edit')} className="mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 mx-auto">
+                          <Pencil className="w-3 h-3" /> Change Status
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
 
-              <div className="border-t border-slate-200 dark:border-slate-700 pt-4">
-                <div className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-slate-600 dark:text-slate-400">Subtotal</span>
-                    <span className="text-slate-900 dark:text-white">
-                      ₹{selectedOrder.subtotal?.toLocaleString() || '0'}
-                    </span>
-                  </div>
+              {/* Order Items Table */}
+              <div className="mb-8">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4 flex items-center gap-2">
+                  <Package className="w-5 h-5 text-slate-400" /> Order Items
+                </h3>
+                <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-sm">
+                  <table className="w-full">
+                    <thead className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+                      <tr>
+                        <th className="px-6 py-4 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Item Details</th>
+                        <th className="px-6 py-4 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Quantity</th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Price</th>
+                        <th className="px-6 py-4 text-right text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                      {(selectedOrder.items || []).map((item, idx) => {
+                        const menuItem = getMenuItemDetails(item.menu_item_id);
+                        return (
+                          <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td className="px-6 py-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-orange-100 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                                  <Store className="w-5 h-5" />
+                                </div>
+                                <div>
+                                  <p className="font-medium text-slate-900 dark:text-white">{item.menu_item_name}</p>
+                                  <p className="text-xs text-slate-500 dark:text-slate-400">{menuItem?.category_id || 'Main Course'}</p>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 text-center">
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                                {item.quantity} {menuItem?.unit_type || 'units'}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right text-slate-600 dark:text-slate-300 tabular-nums">
+                              ₹{item.price.toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 text-right font-bold text-slate-900 dark:text-white tabular-nums">
+                              ₹{(item.quantity * item.price).toLocaleString()}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
 
-                  {selectedOrder.delivery_charges > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600 dark:text-slate-400">Delivery Charges</span>
-                      <span className="text-slate-900 dark:text-white">
-                        ₹{selectedOrder.delivery_charges.toLocaleString()}
-                      </span>
+              {/* Footer Section */}
+              <div className="flex flex-col lg:flex-row gap-8 items-start">
+
+                {/* Status Update (Left side) */}
+                <div className="w-full lg:flex-1">
+                  {viewMode === 'edit' ? (
+                    <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-6 border border-blue-100 dark:border-blue-800">
+                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Update Order Status</h4>
+                      <p className="text-sm text-blue-700 dark:text-blue-300 mb-6 opacity-80 max-w-md">
+                        Change the status of this order to keep the customer informed. Notification will be sent automatically.
+                      </p>
+
+                      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+                        <div className="flex-1 relative w-full sm:w-auto">
+                          <select
+                            value={editStatus}
+                            onChange={(e) => setEditStatus(e.target.value as Order['status'])}
+                            className="w-full appearance-none pl-4 pr-10 py-3 border border-blue-200 dark:border-blue-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all text-sm font-medium"
+                          >
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="preparing">Preparing</option>
+                            <option value="out_for_delivery">Out for Delivery</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                          </select>
+                          <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 dark:text-slate-400">
+                            <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
+                          </div>
+                        </div>
+                        <div className="flex gap-3 w-full sm:w-auto">
+                          <button
+                            onClick={() => handleStatusChange(selectedOrder.id, editStatus)}
+                            className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
+                          >
+                            Update Status
+                          </button>
+                          <button
+                            onClick={closeModal}
+                            className="sm:hidden flex-1 px-4 py-3 bg-white border border-blue-200 text-blue-900 hover:bg-blue-50 rounded-xl transition-colors font-medium"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex justify-start sm:justify-end">
+                        <button onClick={closeModal} className="hidden sm:block text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline">
+                          Cancel changes
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-50 dark:bg-slate-800/30 rounded-xl p-6 border border-slate-100 dark:border-slate-700 h-full flex items-center justify-center">
+                      <p className="text-sm text-slate-500 dark:text-slate-400 italic text-center">
+                        "Customer satisfaction is our priority. Ensure timely delivery."
+                      </p>
                     </div>
                   )}
+                </div>
 
-                  {selectedOrder.service_charges > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-slate-600 dark:text-slate-400">Service Charges</span>
-                      <span className="text-slate-900 dark:text-white">
-                        ₹{selectedOrder.service_charges.toLocaleString()}
-                      </span>
+                {/* Bill Summary (Right side) */}
+                <div className="w-full lg:w-96 bg-slate-50 dark:bg-slate-800/50 rounded-xl p-6 border border-slate-100 dark:border-slate-700">
+                  <h4 className="font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-3">
+                    <FileText className="w-5 h-5 text-slate-400" /> Bill Summary
+                  </h4>
+                  <div className="space-y-3">
+                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                      <span>Subtotal</span>
+                      <span className="font-medium">₹{(selectedOrder.subtotal || 0).toLocaleString()}</span>
                     </div>
-                  )}
-
-                  {selectedOrder.gst_amount > 0 && (
+                    {selectedOrder.delivery_charges > 0 && (
+                      <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>Delivery Charges</span>
+                        <span className="font-medium">₹{selectedOrder.delivery_charges.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {selectedOrder.gst_amount > 0 && (
+                      <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>GST (18%)</span>
+                        <span className="font-medium">₹{selectedOrder.gst_amount.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {selectedOrder.service_charges > 0 && (
+                      <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                        <span>Service Charges</span>
+                        <span className="font-medium">₹{selectedOrder.service_charges.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="border-t-2 border-slate-200 dark:border-slate-700 my-2 pt-2"></div>
                     <div className="flex justify-between items-center">
-                      <span className="text-slate-600 dark:text-slate-400">GST (18%)</span>
-                      <span className="text-slate-900 dark:text-white">
-                        ₹{selectedOrder.gst_amount.toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-
-                  <div className="border-t border-slate-200 dark:border-slate-700 pt-2">
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-semibold text-slate-900 dark:text-white">Total Amount</span>
-                      <span className="text-lg font-bold text-slate-900 dark:text-white">
+                      <span className="text-lg font-bold text-slate-900 dark:text-white">Total Amount</span>
+                      <span className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                         ₹{selectedOrder.total_amount.toLocaleString()}
                       </span>
                     </div>
+                    <div className="mt-2 text-right">
+                      <span className="text-xs text-slate-400">Including all taxes</span>
+                    </div>
                   </div>
                 </div>
+
               </div>
-
-              {viewMode === 'edit' ? (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    Order Status
-                  </label>
-                  <select
-                    value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value as Order['status'])}
-                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="preparing">Preparing</option>
-                    <option value="out_for_delivery">Out for Delivery</option>
-                    <option value="delivered">Delivered</option>
-                    <option value="cancelled">Cancelled</option>
-                  </select>
-                </div>
-              ) : (
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Status
-                  </label>
-                  <StatusBadge status={selectedOrder.status} />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Order Date
-                </label>
-                <p className="text-slate-900 dark:text-white">
-                  {new Date(selectedOrder.created_at).toLocaleString()}
-                </p>
-              </div>
-
-              {viewMode === 'edit' && (
-                <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                  <button
-                    onClick={() => handleStatusChange(selectedOrder.id, editStatus)}
-                    className="flex-1 px-4 py-2 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-lg hover:shadow-lg transition-all"
-                  >
-                    Update Status
-                  </button>
-                  <button
-                    onClick={closeModal}
-                    className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-all"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              )}
             </div>
           </div>
         </div>
-      )}
+        , document.body)}
     </div>
   );
 }
