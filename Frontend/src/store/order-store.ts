@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Order, OrderItem } from '@/types';
+import { Order } from '@/types';
 import api from '@/lib/api';
 // We need to access auth store state to determine which fetch endpoint to use (admin vs customer)
 // But to avoid circular dependency issues during initialization, we can import the store hook 
@@ -47,7 +47,7 @@ export const useOrderStore = create<OrderState>((set) => ({
     set({ loading: true, error: null });
     try {
       // Determine if we should call admin or customer endpoint
-      const role = useAuthStore.getState().role;
+      const role = useAuthStore.getState().user?.role;
       const endpoint = role === 'admin' ? '/admin/orders' : '/customer/orders';
 
       const response = await api.get(endpoint);

@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useCustomerStore } from '@/store/customer-store';
 import { useOrderStore } from '@/store/order-store';
 import { Search, Ban, Check, Eye, MessageSquare, Download, Star, TrendingUp, Clock, DollarSign, Plus, Users as UsersIcon, Send, Mail, Smartphone, Upload, FileText, Eye as PreviewIcon, X } from 'lucide-react';
@@ -28,16 +28,18 @@ function AddUserModal() {
     is_blocked: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name && formData.email) {
-      addCustomer({
+      const success = await addCustomer({
         ...formData,
         is_active: true,
         last_activity: new Date().toISOString()
       });
-      setFormData({ name: '', email: '', phone: '', address: '', is_blocked: false });
-      setIsOpen(false);
+      if (success) {
+        setFormData({ name: '', email: '', phone: '', address: '', is_blocked: false });
+        setIsOpen(false);
+      }
     }
   };
 
@@ -280,6 +282,7 @@ function CustomerDetailModal({ customer, orders }: { customer: Customer; orders:
 
 // Send Message Modal Component
 function SendMessageModal({ customers, orders }: { customers: Customer[]; orders: Order[] }) {
+  const { sendNotification } = useCustomerStore();
   const [isOpen, setIsOpen] = useState(false);
   const [messageType, setMessageType] = useState<'whatsapp' | 'email'>('whatsapp');
   const [selectedCustomers, setSelectedCustomers] = useState<Set<string>>(new Set());
@@ -287,7 +290,6 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
 
   // WhatsApp message state
   const [whatsappMessage, setWhatsappMessage] = useState('');
-  const [whatsappImage, setWhatsappImage] = useState<File | null>(null);
   const [whatsappImagePreview, setWhatsappImagePreview] = useState<string | null>(null);
 
   // Email message state
@@ -323,7 +325,6 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setWhatsappImage(file);
       const reader = new FileReader();
       reader.onload = (e) => {
         setWhatsappImagePreview(e.target?.result as string);
@@ -340,7 +341,6 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
   };
 
   const removeImage = () => {
-    setWhatsappImage(null);
     setWhatsappImagePreview(null);
     if (imageInputRef.current) {
       imageInputRef.current.value = '';
@@ -359,11 +359,15 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
 
     if (messageType === 'whatsapp') {
       // Handle WhatsApp sending logic
-      console.log('Sending WhatsApp message:', {
-        customers: selectedCustomersData,
+      // Call Backend to log
+      sendNotification({
+        type: 'whatsapp',
+        customers: selectedCustomersData.map(c => c.id),
         message: whatsappMessage,
-        image: whatsappImage
+        image_url: whatsappImagePreview // Simplified for now as full file upload might need FormData
       });
+
+      // Generate WhatsApp URLs for each customer
 
       // Generate WhatsApp URLs for each customer
       selectedCustomersData.forEach(customer => {
@@ -375,12 +379,15 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
       });
     } else {
       // Handle Email sending logic
-      console.log('Sending Email:', {
-        customers: selectedCustomersData,
+      sendNotification({
+        type: 'email',
+        customers: selectedCustomersData.map(c => c.id),
         subject: emailSubject,
         message: emailMessage,
-        attachment: emailAttachment
+        // attachment: emailAttachment 
       });
+
+      // Generate mailto URLs for each customer
 
       // Generate mailto URLs for each customer
       selectedCustomersData.forEach(customer => {
@@ -399,7 +406,6 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
     setSelectedCustomers(new Set());
     setSelectAll(false);
     setWhatsappMessage('');
-    setWhatsappImage(null);
     setWhatsappImagePreview(null);
     setEmailSubject('');
     setEmailMessage('');
@@ -705,8 +711,8 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
 }
 
 export default function Users() {
-  const { customers, updateCustomerStatus } = useCustomerStore();
-  const { orders } = useOrderStore();
+  const { customers, fetchCustomers, fetchStats, updateCustomerStatus, exportCustomers, totalPages, totalCount, stats } = useCustomerStore();
+  const { orders } = useOrderStore(); // Still keep this if needed for order history deep dive or replace with API
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -715,65 +721,25 @@ export default function Users() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-  const filteredCustomers = useMemo(() => {
-    let filtered = customers.filter((customer) => {
-      const matchesSearch =
-        customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        customer.phone?.includes(searchTerm);
+  // Fetch data on mount and when dependencies change
+  useEffect(() => {
+    fetchStats();
+  }, []);
 
-      const matchesStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'active' && !customer.is_blocked) ||
-        (statusFilter === 'blocked' && customer.is_blocked);
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      fetchCustomers({
+        page: currentPage,
+        limit: itemsPerPage,
+        search: searchTerm,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+        sort: sortBy,
+        order: sortOrder
+      });
+    }, 500); // Debounce search
 
-      return matchesSearch && matchesStatus;
-    });
-
-    // Sort customers
-    filtered.sort((a, b) => {
-      let aValue: any, bValue: any;
-
-      switch (sortBy) {
-        case 'name':
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-          break;
-        case 'email':
-          aValue = a.email.toLowerCase();
-          bValue = b.email.toLowerCase();
-          break;
-        case 'created_at':
-          aValue = new Date(a.created_at ?? 0).getTime();
-          bValue = new Date(b.created_at ?? 0).getTime();
-          break;
-        case 'orders':
-          aValue = orders.filter(order => order.customer_id === a.id).length;
-          bValue = orders.filter(order => order.customer_id === b.id).length;
-          break;
-        case 'spending':
-          aValue = orders.filter(order => order.customer_id === a.id).reduce((sum, order) => sum + order.total_amount, 0);
-          bValue = orders.filter(order => order.customer_id === b.id).reduce((sum, order) => sum + order.total_amount, 0);
-          break;
-        default:
-          aValue = a.name.toLowerCase();
-          bValue = b.name.toLowerCase();
-      }
-
-      if (sortOrder === 'asc') {
-        return aValue < bValue ? -1 : aValue > bValue ? 1 : 0;
-      } else {
-        return aValue > bValue ? -1 : aValue < bValue ? 1 : 0;
-      }
-    });
-
-    return filtered;
-  }, [customers, searchTerm, statusFilter, sortBy, sortOrder, orders]);
-
-  const totalPages = Math.ceil(filteredCustomers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const paginatedCustomers = filteredCustomers.slice(startIndex, endIndex);
+    return () => clearTimeout(delayDebounceFn);
+  }, [currentPage, itemsPerPage, searchTerm, statusFilter, sortBy, sortOrder]);
 
   const handleToggleBlock = (id: string, currentStatus: boolean) => {
     updateCustomerStatus(id, !currentStatus);
@@ -785,8 +751,26 @@ export default function Users() {
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
-    setCurrentPage(1); // Reset to first page when changing items per page
+    setCurrentPage(1);
   };
+
+  const handleExport = async () => {
+    const blob = await exportCustomers({
+      search: searchTerm,
+      status: statusFilter === 'all' ? undefined : statusFilter,
+      sort: sortBy,
+      order: sortOrder
+    });
+    if (blob) {
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `customers_export_${new Date().toISOString()}.csv`;
+      a.click();
+    }
+  };
+
+  const paginatedCustomers = customers; // Backend already paginates
 
   return (
     <div className="space-y-6">
@@ -807,7 +791,7 @@ export default function Users() {
               </div>
               <div>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Total Customers</p>
-                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{customers.length}</p>
+                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{stats?.totalCustomers || 0}</p>
               </div>
             </div>
           </CardContent>
@@ -822,7 +806,7 @@ export default function Users() {
               <div>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Active Customers</p>
                 <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                  {customers.filter(c => !c.is_blocked).length}
+                  {stats?.activeCustomers || 0}
                 </p>
               </div>
             </div>
@@ -838,7 +822,7 @@ export default function Users() {
               <div>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Blocked Customers</p>
                 <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                  {customers.filter(c => c.is_blocked).length}
+                  {stats?.blockedCustomers || 0}
                 </p>
               </div>
             </div>
@@ -854,7 +838,7 @@ export default function Users() {
               <div>
                 <p className="text-sm text-slate-600 dark:text-slate-400">Total Revenue</p>
                 <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                  ₹{orders.reduce((sum, order) => sum + order.total_amount, 0).toLocaleString()}
+                  ₹{(stats?.totalRevenue || 0).toLocaleString()}
                 </p>
               </div>
             </div>
@@ -868,7 +852,7 @@ export default function Users() {
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Customer Management</h3>
             <div className="flex flex-col sm:flex-row gap-2">
               <AddUserModal />
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
+              <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={handleExport}>
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export</span>
               </Button>
@@ -1155,11 +1139,11 @@ export default function Users() {
           })}
         </div>
 
-        {filteredCustomers.length > 0 && (
+        {totalCount > 0 && (
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredCustomers.length}
+            totalItems={totalCount}
             itemsPerPage={itemsPerPage}
             onPageChange={handlePageChange}
             onItemsPerPageChange={handleItemsPerPageChange}
