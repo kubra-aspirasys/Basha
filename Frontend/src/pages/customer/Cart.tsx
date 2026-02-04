@@ -10,10 +10,16 @@ import { Pencil, Plus, Minus, ShoppingBag } from 'lucide-react';
 
 export default function Cart() {
   const navigate = useNavigate();
-  const { items, updateQuantity, removeItem, clearCart } = useCartStore();
+  const { items, updateQuantity, removeItem, clearCart, fetchCart, isLoading } = useCartStore();
   const { createOrder } = useOrderStore();
   const { user } = useAuthStore();
   const { settings } = useSettingsStore();
+
+  useEffect(() => {
+    if (user) {
+      fetchCart();
+    }
+  }, [user, fetchCart]);
 
   const [orderType, setOrderType] = useState<'pickup' | 'delivery'>('delivery');
   const [isPlacing, setIsPlacing] = useState(false);
