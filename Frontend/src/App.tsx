@@ -34,13 +34,14 @@ function App() {
           {/* Public routes */}
           <Route element={<AuthLayout />}>
             <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/admin/login" element={<Login />} />
             <Route path="/admin/forgot-password" element={<ForgotPassword />} />
             <Route path="/admin/reset-password" element={<ResetPassword />} />
           </Route>
+
+          <Route path="/signup" element={<Signup />} />
 
           {/* Customer routes */}
           <Route element={<CustomerLayout />}>

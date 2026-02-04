@@ -8,11 +8,13 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { isAuthenticated, role } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+
+  const role = user?.role;
 
   if (requiredRole && role !== requiredRole) {
     // If admin tries to access customer route or vice versa
