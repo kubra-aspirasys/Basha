@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useSettingsStore } from '@/store/settings-store';
 
 import { calculateOrderTotal, formatCurrency } from '@/utils/orderCalculations';
-import { Pencil, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { Pencil, Plus, Minus, ShoppingBag, CheckCircle } from 'lucide-react';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -24,6 +24,7 @@ export default function Cart() {
   const [orderType, setOrderType] = useState<'pickup' | 'delivery'>('delivery');
   const [isPlacing, setIsPlacing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [orderPlaced, setOrderPlaced] = useState<{ id: string, number: string } | null>(null);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [form, setForm] = useState({
     name: '',
@@ -113,10 +114,11 @@ export default function Cart() {
       }
 
       clearCart();
+      setOrderPlaced({ id: newOrder.id, number: newOrder.order_number });
       setMessage({ type: 'success', text: `Order ${newOrder.order_number} placed! We will contact you soon.` });
       // Keep saved customer info, only clear notes
       setForm(prev => ({ ...prev, notes: '' }));
-      navigate('/');
+      // navigate('/'); // Removed immediate navigation
     } catch (error) {
       console.error('Order creation error:', error);
       setIsPlacing(false);
@@ -126,6 +128,43 @@ export default function Cart() {
       });
     }
   };
+
+  if (orderPlaced) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div className="bg-[#1a1a1a] border border-[#F2A900]/30 rounded-2xl p-8 max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in duration-300">
+          <div className="w-20 h-20 bg-[#F2A900]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle className="w-10 h-10 text-[#F2A900]" />
+          </div>
+
+          <div className="space-y-2">
+            <h2 className="text-2xl font-bold text-white">Order Placed Successfully!</h2>
+            <p className="text-gray-400">
+              Your order <span className="text-[#F2A900] font-mono font-bold">#{orderPlaced.number}</span> has been received.
+            </p>
+            <p className="text-sm text-gray-500">
+              We'll contact you shortly to confirm your order details.
+            </p>
+          </div>
+
+          <div className="pt-4 space-y-3">
+            <button
+              onClick={() => navigate('/orders')}
+              className="w-full py-3 bg-[#F2A900] text-black font-bold rounded-lg hover:bg-[#D99700] transition-colors"
+            >
+              View My Orders
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full py-3 bg-transparent border border-[#F2A900]/30 text-[#F2A900] font-semibold rounded-lg hover:bg-[#F2A900]/10 transition-colors"
+            >
+              Back to Home
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-20">
