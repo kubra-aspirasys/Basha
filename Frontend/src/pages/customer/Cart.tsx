@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useSettingsStore } from '@/store/settings-store';
 
 import { calculateOrderTotal, formatCurrency } from '@/utils/orderCalculations';
-import { Pencil, Plus, Minus, ShoppingBag, CheckCircle } from 'lucide-react';
+import { Pencil, Plus, Minus, ShoppingBag, CheckCircle, QrCode } from 'lucide-react';
 
 export default function Cart() {
   const navigate = useNavigate();
@@ -22,6 +22,7 @@ export default function Cart() {
   }, [user, fetchCart]);
 
   const [orderType, setOrderType] = useState<'pickup' | 'delivery'>('delivery');
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
   const [isPlacing, setIsPlacing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState<{ id: string, number: string } | null>(null);
@@ -86,6 +87,7 @@ export default function Cart() {
       customer_phone: form.phone,
       delivery_address: orderType === 'delivery' ? form.address : 'Pickup at store',
       order_type: orderType,
+      payment_method: paymentMethod,
       status: 'pending' as const,
       totals: {
         subtotal: totals.subtotal || 0,
@@ -357,6 +359,30 @@ export default function Cart() {
               ))}
             </div>
 
+            <div className="space-y-2">
+              <p className="text-gray-400 text-sm">Payment Method</p>
+              <div className="flex gap-3 text-sm">
+                <button
+                  onClick={() => setPaymentMethod('cod')}
+                  className={`flex-1 px-3 py-2 rounded border transition-colors ${paymentMethod === 'cod'
+                    ? 'border-[#F2A900] bg-[#F2A900]/10 text-[#F2A900]'
+                    : 'border-[#F2A900]/20 text-gray-300 hover:border-[#F2A900]/40'
+                    }`}
+                >
+                  Cash on Delivery
+                </button>
+                <button
+                  onClick={() => setPaymentMethod('online')}
+                  className={`flex-1 px-3 py-2 rounded border transition-colors ${paymentMethod === 'online'
+                    ? 'border-[#F2A900] bg-[#F2A900]/10 text-[#F2A900]'
+                    : 'border-[#F2A900]/20 text-gray-300 hover:border-[#F2A900]/40'
+                    }`}
+                >
+                  Online Payment
+                </button>
+              </div>
+            </div>
+
             <div className="border-t border-[#F2A900]/20 pt-4 space-y-2 text-sm text-gray-300">
               <div className="flex justify-between">
                 <span>Subtotal</span>
@@ -395,6 +421,26 @@ export default function Cart() {
               </div>
             )}
 
+            {paymentMethod === 'online' && (
+              <div className="bg-[#0f0f0f] border border-[#F2A900]/20 rounded-lg p-4 mt-2 mb-2 animate-in fade-in slide-in-from-top-2">
+                <div className="flex items-start gap-4">
+                  <div className="bg-white p-2 rounded-lg shrink-0">
+                    {/* Placeholder for QR Code - In a real app, generate a real QR or use an image */}
+                    <div className="w-24 h-24 bg-gray-100 flex items-center justify-center rounded">
+                      <QrCode className="w-12 h-12 text-gray-800" />
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-[#F2A900] font-semibold text-sm">Scan to Pay</p>
+                    <p className="text-white font-mono text-sm">UPI ID: basha@okicici</p>
+                    <p className="text-gray-400 text-xs mt-1">
+                      Please complete the payment and place the order. We will verify the transaction upon receipt.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <button
               onClick={handlePlaceOrder}
               disabled={isPlacing || !items.length}
@@ -402,6 +448,11 @@ export default function Cart() {
             >
               {isPlacing ? 'Placing order...' : `Place Order (${formatCurrency(totals.total)})`}
             </button>
+            {paymentMethod === 'online' && (
+              <p className="text-xs text-center text-gray-500 mt-2">
+                * You will be redirected to payment gateway after placing order.
+              </p>
+            )}
           </div>
         </div>
       </div>

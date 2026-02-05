@@ -1,4 +1,4 @@
-const { Order, OrderItem, MenuItem, sequelize } = require('../models');
+const { Order, OrderItem, MenuItem, Payment, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 class OrderService {
@@ -14,7 +14,8 @@ class OrderService {
                 delivery_address,
                 customer_name,
                 customer_phone,
-                order_type
+                order_type,
+                payment_method
             } = orderData;
 
             // 1. Calculate totals and validate items
@@ -65,7 +66,8 @@ class OrderService {
                 service_charges: serviceCharges,
                 total_amount: totalAmount,
                 status: 'pending',
-                order_type
+                order_type,
+                payment_method: payment_method || 'cod'
             }, { transaction });
 
             // 4. Create Order Items
@@ -75,6 +77,23 @@ class OrderService {
             }));
 
             await OrderItem.bulkCreate(itemsWithOrderId, { transaction });
+
+            // 5. Create Payment Record (Pending)
+            const paymentModeMap = {
+                'cod': 'cash',
+                'online': 'upi' // Defaulting online to UPI for now, or could vary
+            };
+
+            await Payment.create({
+                transaction_id: `TXN-${order.order_number}`, // Temporary transaction ID
+                order_id: order.id,
+                customer_id: customerId || null,
+                customer_name: customer_name,
+                amount: totalAmount,
+                payment_mode: paymentModeMap[payment_method] || 'cash',
+                status: 'pending',
+                notes: 'Payment initialized with order creation'
+            }, { transaction });
 
             await transaction.commit();
             return await this.getOrderDetails(order.id);

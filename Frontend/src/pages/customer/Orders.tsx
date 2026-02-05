@@ -112,7 +112,7 @@ export default function Orders() {
                                 {/* Items */}
                                 <div className="p-6">
                                     <div className="space-y-3">
-                                        {order.items.map((item, idx) => (
+                                        {(order.items || []).map((item, idx) => (
                                             <div key={idx} className="flex justify-between items-center text-sm border-b border-[#2a2a2a] last:border-0 pb-3 last:pb-0">
                                                 <div className="flex items-center gap-3">
                                                     <span className="w-6 h-6 flex items-center justify-center bg-[#2a2a2a] text-[#F2A900] rounded font-bold text-xs">

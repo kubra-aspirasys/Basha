@@ -8,7 +8,7 @@ const navItems = [
   { to: '/admin/menu', icon: UtensilsCrossed, label: 'Menu' },
   { to: '/admin/orders', icon: ShoppingBag, label: 'Orders' },
   { to: '/admin/payments', icon: CreditCard, label: 'Payments' },
-  { to: '/admin/offers', icon: Tag, label: 'Offers' },
+  // { to: '/admin/offers', icon: Tag, label: 'Offers' },
   { to: '/admin/cms', icon: FileText, label: 'CMS' },
   { to: '/admin/profile', icon: UserCircle, label: 'Profile' },
 ];

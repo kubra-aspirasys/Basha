@@ -31,6 +31,10 @@ module.exports = (sequelize, DataTypes) => {
         order_type: {
             type: DataTypes.ENUM('pickup', 'delivery'),
             defaultValue: 'delivery'
+        },
+        payment_method: {
+            type: DataTypes.ENUM('cod', 'online'),
+            defaultValue: 'cod'
         }
     }, {
         sequelize,

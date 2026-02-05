@@ -119,7 +119,7 @@ export default function Dashboard() {
 
   // Top selling items
   const itemSales = orders.reduce((acc, order) => {
-    order.items.forEach(item => {
+    (order.items || []).forEach(item => {
       acc[item.menu_item_id] = (acc[item.menu_item_id] || 0) + item.quantity;
     });
     return acc;
@@ -130,6 +130,7 @@ export default function Dashboard() {
     .slice(0, 3)
     .map(([itemId, quantity]) => {
       const item = menuItems.find(m => m.id === itemId);
+      if (!item) return null;
       return { ...item, totalSold: quantity };
     })
     .filter(Boolean);
