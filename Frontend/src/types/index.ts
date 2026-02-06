@@ -133,3 +133,49 @@ export interface Inquiry {
   updated_at: string;
   updatedAt?: string;
 }
+
+export interface TopSellingItem {
+  id: string;
+  name: string;
+  price: number;
+  image_url?: string;
+  totalSold: number;
+}
+
+export interface DashboardStats {
+  totalCustomers: number;
+  totalOrders: number;
+  totalRevenue: number;
+  totalMenuItems: number;
+  recentOrders: Order[];
+  recentInquiries: Inquiry[];
+  salesData: {
+    date: string;
+    revenue: number;
+    orders: number;
+    rawDate?: string;
+  }[];
+  ordersByStatus: {
+    pending: number;
+    confirmed: number;
+    preparing: number;
+    out_for_delivery: number;
+    delivered: number;
+    cancelled: number;
+    [key: string]: number;
+  };
+  ordersByType: {
+    pickup: number;
+    delivery: number;
+    [key: string]: number;
+  };
+  topSellingItems: TopSellingItem[];
+  todayMetrics: {
+    revenue: number;
+    ordersCount: number;
+    pendingOrders: number;
+    newCustomers: number;
+    pendingPayments: number;
+  };
+  todayOrders: Order[];
+}

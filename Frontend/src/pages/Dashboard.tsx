@@ -1,12 +1,13 @@
-import { useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MetricsCard from '@/components/MetricsCard';
-import { useOrderStore } from '@/store/order-store';
-import { useCustomerStore } from '@/store/customer-store';
-import { usePaymentStore } from '@/store/payment-store';
-import { useMenuStore } from '@/store/menu-store';
-import { useInquiryStore } from '@/store/inquiry-store';
-import { Users, ShoppingBag, DollarSign, UtensilsCrossed, TrendingUp, Clock, CheckCircle, Package, Truck, AlertCircle, Plus, Calendar, ChefHat, MessageSquare, Phone, Mail } from 'lucide-react';
+import api from '@/lib/api';
+import { DashboardStats } from '@/types';
+import {
+  Users, ShoppingBag, DollarSign, UtensilsCrossed, TrendingUp, Clock, CheckCircle,
+  Package, Truck, AlertCircle, Plus, Calendar, ChefHat, MessageSquare, Phone, Mail,
+  Loader2
+} from 'lucide-react';
 
 const statusConfig = {
   pending: {
@@ -43,118 +44,66 @@ const statusConfig = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const orders = useOrderStore((state) => state.orders);
-  const customers = useCustomerStore((state) => state.customers);
-  const payments = usePaymentStore((state) => state.payments);
-  const menuItems = useMenuStore((state) => state.menuItems);
-  const inquiries = useInquiryStore((state) => state.inquiries);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const totalRevenue = payments
-    .filter((p) => p.status === 'completed')
-    .reduce((sum, p) => sum + Number(p.amount), 0);
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get('/dashboard/stats');
+        if (response.data.success) {
+          setStats(response.data.data);
+        } else {
+          setError('Failed to load dashboard data');
+        }
+      } catch (err: any) {
+        console.error('Error fetching dashboard stats:', err);
+        setError(err.response?.data?.message || 'Failed to connect to server');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const recentOrders = useMemo(() =>
-    orders
-      .slice()
-      .sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime())
-      .slice(0, 5),
-    [orders]
-  );
+    fetchStats();
+  }, []);
 
-  const recentInquiries = useMemo(() =>
-    inquiries
-      .slice()
-      .sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime())
-      .slice(0, 5),
-    [inquiries]
-  );
+  if (loading) {
+    return (
+      <div className="flex bg-slate-50 dark:bg-slate-950 items-center justify-center min-h-[500px]">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-10 h-10 animate-spin text-primary-500" />
+          <p className="text-slate-500 dark:text-slate-400">Loading dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
-  const salesData = useMemo(() => {
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() - (6 - i));
-      return date.toISOString().split('T')[0];
-    });
+  if (error || !stats) {
+    return (
+      <div className="flex bg-slate-50 dark:bg-slate-950 items-center justify-center min-h-[500px]">
+        <div className="text-center">
+          <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
+          <p className="text-red-500 font-medium mb-2">Error loading dashboard</p>
+          <p className="text-slate-500 dark:text-slate-400 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
-    return last7Days.map((date) => {
-      const dayOrders = orders.filter((o) => {
-        const dateStr = o.created_at || o.createdAt;
-        if (!dateStr) return false;
-        const orderDate = dateStr.split('T')[0];
-        return orderDate === date;
-      });
-      const dayRevenue = dayOrders.reduce((sum, o) => sum + Number(o.total_amount), 0);
-      return {
-        date: new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-        revenue: dayRevenue,
-        orders: dayOrders.length,
-      };
-    });
-  }, [orders]);
+  // Calculate max revenue for chart scaling
+  const maxRevenue = Math.max(...stats.salesData.map((d: any) => d.revenue), 1);
 
-  const maxRevenue = Math.max(...salesData.map((d) => d.revenue), 1);
-
-  const ordersByStatus = {
-    pending: orders.filter((o) => o.status === 'pending').length,
-    confirmed: orders.filter((o) => o.status === 'confirmed').length,
-    preparing: orders.filter((o) => o.status === 'preparing').length,
-    out_for_delivery: orders.filter((o) => o.status === 'out_for_delivery').length,
-    delivered: orders.filter((o) => o.status === 'delivered').length,
-    cancelled: orders.filter((o) => o.status === 'cancelled').length,
-  };
-
-  const ordersByType = {
-    pickup: orders.filter((o) => o.order_type === 'pickup').length,
-    delivery: orders.filter((o) => o.order_type === 'delivery').length,
-  };
-
-  // Today's metrics - Using 2025-10-01 for demo purposes
-  const today = '2025-10-01';
-  const todayOrders = orders.filter(order => (order.created_at || order.createdAt || '').startsWith(today));
-  const todayRevenue = todayOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
-  const pendingOrders = orders.filter(order => order.status === 'pending').length;
-  const newCustomersToday = customers.filter(customer =>
-    (customer.created_at || '').startsWith(today)
-  ).length;
-
-  // Top selling items
-  const itemSales = orders.reduce((acc, order) => {
-    (order.items || []).forEach(item => {
-      acc[item.menu_item_id] = (acc[item.menu_item_id] || 0) + item.quantity;
-    });
-    return acc;
-  }, {} as Record<string, number>);
-
-  const topSellingItems = Object.entries(itemSales)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
-    .map(([itemId, quantity]) => {
-      const item = menuItems.find(m => m.id === itemId);
-      if (!item) return null;
-      return { ...item, totalSold: quantity };
-    })
-    .filter(Boolean);
-
-  // Delivery vs Pickup ratio
-  const totalOrders = orders.length;
-  const deliveryRatio = totalOrders > 0 ? (ordersByType.delivery / totalOrders * 100).toFixed(1) : '0';
-  const pickupRatio = totalOrders > 0 ? (ordersByType.pickup / totalOrders * 100).toFixed(1) : '0';
-
-  // Pending payments (assuming failed payments)
-  const pendingPayments = payments.filter(payment => payment.status === 'pending').length;
-
-  // Expired offers (assuming we have offers with expiry dates)
-  // const todayDate = new Date();
-  // const expiredOffers = []; // This would come from an offers store if available
-
-  const getOrderItemImages = (orderItems: typeof orders[0]['items']) => {
-    return orderItems
-      .slice(0, 3)
-      .map((item) => {
-        const menuItem = menuItems.find((m) => m.id === item.menu_item_id);
-        return menuItem?.image_url || 'https://images.pexels.com/photos/1640777/pexels-photo-1640777.jpeg?auto=compress&cs=tinysrgb&w=100';
-      });
-  };
+  // Calculate ratios
+  const deliveryRatio = stats.totalOrders > 0 ? (stats.ordersByType.delivery / stats.totalOrders * 100).toFixed(1) : '0';
+  const pickupRatio = stats.totalOrders > 0 ? (stats.ordersByType.pickup / stats.totalOrders * 100).toFixed(1) : '0';
 
   return (
     <div className="space-y-6">
@@ -170,28 +119,28 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <MetricsCard
           title="Total Customers"
-          value={customers.length}
+          value={stats.totalCustomers}
           icon={Users}
-          trend={{ value: '8% from last month', positive: true }}
+          trend={{ value: 'View Details', positive: true }}
           onClick={() => navigate('/admin/users')}
         />
         <MetricsCard
           title="Total Orders"
-          value={orders.length}
+          value={stats.totalOrders}
           icon={ShoppingBag}
-          trend={{ value: '12% from last month', positive: true }}
+          trend={{ value: 'View Details', positive: true }}
           onClick={() => navigate('/admin/orders')}
         />
         <MetricsCard
           title="Total Revenue"
-          value={`₹${totalRevenue.toLocaleString()}`}
+          value={`₹${stats.totalRevenue.toLocaleString()}`}
           icon={DollarSign}
-          trend={{ value: '15% from last month', positive: true }}
+          trend={{ value: 'View Details', positive: true }}
           onClick={() => navigate('/admin/payments')}
         />
         <MetricsCard
           title="Menu Items"
-          value={menuItems.length}
+          value={stats.totalMenuItems}
           icon={UtensilsCrossed}
           onClick={() => navigate('/admin/menu')}
         />
@@ -250,15 +199,15 @@ export default function Dashboard() {
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Today's Schedule</h3>
           </div>
           <span className="text-sm text-slate-500 dark:text-slate-400">
-            {todayOrders.length} orders today
+            {stats.todayOrders.length} orders today
           </span>
         </div>
 
-        {todayOrders.length > 0 ? (
+        {stats.todayOrders.length > 0 ? (
           <div className="space-y-3">
-            {todayOrders.map((order) => {
-              const StatusIcon = statusConfig[order.status].icon;
-              const customer = customers.find(c => c.id === order.customer_id);
+            {stats.todayOrders.map((order) => {
+              const config = statusConfig[order.status as keyof typeof statusConfig] || statusConfig.pending;
+              const StatusIcon = config.icon;
               return (
                 <div
                   key={order.id}
@@ -266,22 +215,17 @@ export default function Dashboard() {
                   className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 hover:bg-slate-100 dark:hover:bg-slate-600 cursor-pointer transition-colors duration-200 hover:shadow-md"
                 >
                   <div className="flex items-center gap-4">
-                    <div className={`p-2 rounded-lg ${statusConfig[order.status].color}`}>
+                    <div className={`p-2 rounded-lg ${config.color}`}>
                       <StatusIcon className="w-4 h-4" />
                     </div>
                     <div>
                       <p className="font-medium text-slate-900 dark:text-white">{order.order_number}</p>
                       <p className="text-sm text-slate-600 dark:text-slate-400">{order.customer_name}</p>
-                      {customer && (
+                      {(order as any).customer_phone && (
                         <div className="flex items-center gap-2 mt-1">
                           <span className="text-xs text-slate-500 dark:text-slate-400">
-                            📞 {customer.phone}
+                            📞 {(order as any).customer_phone}
                           </span>
-                          {customer.email && (
-                            <span className="text-xs text-slate-500 dark:text-slate-400">
-                              ✉️ {customer.email}
-                            </span>
-                          )}
                         </div>
                       )}
                     </div>
@@ -314,7 +258,7 @@ export default function Dashboard() {
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Sales Overview (Last 7 Days)</h3>
           </div>
           <div className="space-y-4">
-            {salesData.map((day, index) => (
+            {stats.salesData.map((day, index) => (
               <div key={index} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-slate-600 dark:text-slate-400">{day.date}</span>
@@ -336,7 +280,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-slate-600 dark:text-slate-400">7-Day Total</span>
               <span className="text-xl font-bold text-slate-900 dark:text-white">
-                ₹{salesData.reduce((sum, d) => sum + d.revenue, 0).toLocaleString()}
+                ₹{stats.salesData.reduce((sum, d) => sum + d.revenue, 0).toLocaleString()}
               </span>
             </div>
           </div>
@@ -345,7 +289,12 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Orders by Status</h3>
           <div className="space-y-3">
-            {Object.entries(ordersByStatus).map(([status, count]) => {
+            {Object.entries(stats.ordersByStatus).map(([status, count]) => {
+              if (count === 0 && !['pending', 'confirmed'].includes(status)) return null; // Show at least pending/confirmed even if 0? Or just show existing.
+              // Actually let's just map over all known statuses to keep UI consistent
+              const knownStatuses = Object.keys(statusConfig);
+              if (!knownStatuses.includes(status)) return null;
+
               const config = statusConfig[status as keyof typeof statusConfig];
               const IconComponent = config.icon;
 
@@ -358,7 +307,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span className="text-lg font-semibold text-slate-900 dark:text-white">
-                    {count}
+                    {count as React.ReactNode}
                   </span>
                 </div>
               );
@@ -369,7 +318,7 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Orders by Type</h3>
           <div className="space-y-3">
-            {Object.entries(ordersByType).map(([type, count]) => {
+            {Object.entries(stats.ordersByType).map(([type, count]) => {
               const isDelivery = type === 'delivery';
               const color = isDelivery
                 ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800'
@@ -385,7 +334,7 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <span className="text-lg font-semibold text-slate-900 dark:text-white">
-                    {count}
+                    {count as React.ReactNode}
                   </span>
                 </div>
               );
@@ -400,7 +349,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Today's Revenue</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">₹{todayRevenue.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">₹{stats.todayMetrics.revenue.toLocaleString()}</p>
             </div>
             <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-full">
               <DollarSign className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -412,7 +361,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Pending Orders</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{pendingOrders}</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.todayMetrics.pendingOrders}</p>
             </div>
             <div className="p-3 bg-amber-100 dark:bg-amber-900/30 rounded-full">
               <Clock className="w-6 h-6 text-amber-600 dark:text-amber-400" />
@@ -424,7 +373,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">New Customers</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{newCustomersToday}</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.todayMetrics.newCustomers}</p>
             </div>
             <div className="p-3 bg-blue-100 dark:bg-blue-900/30 rounded-full">
               <Users className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -436,7 +385,7 @@ export default function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Pending Payments</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{pendingPayments}</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.todayMetrics.pendingPayments}</p>
             </div>
             <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
               <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -451,20 +400,23 @@ export default function Dashboard() {
         <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Top Selling Items</h3>
           <div className="space-y-4">
-            {topSellingItems.length > 0 ? (
-              topSellingItems.map((item, index) => (
-                <div key={item?.id} className="flex items-center justify-between">
+            {stats.topSellingItems.length > 0 ? (
+              stats.topSellingItems.map((item, index) => (
+                <div key={item.id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
                     <div className="w-8 h-8 bg-gold-100 dark:bg-gold-900/30 rounded-full flex items-center justify-center">
                       <span className="text-sm font-bold text-gold-600 dark:text-gold-400">#{index + 1}</span>
                     </div>
+                    {item.image_url ? (
+                      <img src={item.image_url} alt={item.name} className="w-10 h-10 rounded-full object-cover" />
+                    ) : null}
                     <div>
-                      <p className="font-medium text-slate-900 dark:text-white">{item?.name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">₹{item?.price}</p>
+                      <p className="font-medium text-slate-900 dark:text-white">{item.name}</p>
+                      <p className="text-sm text-slate-500 dark:text-slate-400">₹{item.price}</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-slate-900 dark:text-white">{item?.totalSold} sold</p>
+                    <p className="font-semibold text-slate-900 dark:text-white">{item.totalSold} sold</p>
                   </div>
                 </div>
               ))
@@ -485,7 +437,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="font-medium text-slate-900 dark:text-white">Delivery</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{ordersByType.delivery} orders</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{stats.ordersByType.delivery} orders</p>
                 </div>
               </div>
               <div className="text-right">
@@ -507,7 +459,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="font-medium text-slate-900 dark:text-white">Pickup</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400">{ordersByType.pickup} orders</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">{stats.ordersByType.pickup} orders</p>
                 </div>
               </div>
               <div className="text-right">
@@ -528,9 +480,10 @@ export default function Dashboard() {
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Recent Orders</h3>
         <div className="space-y-4">
-          {recentOrders.map((order) => {
-            const itemImages = getOrderItemImages(order.items);
-            const customer = customers.find(c => c.id === order.customer_id);
+          {stats.recentOrders.map((order) => {
+            const config = statusConfig[order.status as keyof typeof statusConfig] || statusConfig.pending;
+            const StatusIcon = config.icon;
+
             return (
               <div
                 key={order.id}
@@ -538,51 +491,39 @@ export default function Dashboard() {
                 className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer hover:shadow-md"
               >
                 <div className="flex -space-x-2">
-                  {itemImages.map((img, idx) => (
-                    <img
-                      key={idx}
-                      src={img}
-                      alt="Order item"
-                      className="w-12 h-12 rounded-lg object-cover border-2 border-white dark:border-slate-800"
-                    />
+                  {/* We don't have item images ready in the order object without full population, 
+                      but let's try to use what we have or placeholder */}
+                  {(order.items || []).slice(0, 3).map((item, idx) => (
+                    <div key={idx} className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 border-2 border-white dark:border-slate-800 flex items-center justify-center">
+                      <UtensilsCrossed className="w-6 h-6 text-orange-500" />
+                    </div>
                   ))}
-                  {order.items.length > 3 && (
+                  {(order.items || []).length > 3 && (
                     <div className="w-12 h-12 rounded-lg bg-slate-300 dark:bg-slate-700 border-2 border-white dark:border-slate-800 flex items-center justify-center text-sm font-medium text-slate-700 dark:text-slate-300">
-                      +{order.items.length - 3}
+                      +{(order.items || []).length - 3}
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-semibold text-slate-900 dark:text-white">
-                      #{order.order_number}
+                      {order.order_number}
                     </h4>
-                    {(() => {
-                      const config = statusConfig[order.status];
-                      const IconComponent = config.icon;
-                      return (
-                        <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${config.color}`}>
-                          <IconComponent className="w-3 h-3" />
-                          <span>{config.label}</span>
-                        </div>
-                      );
-                    })()}
+
+                    <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${config.color}`}>
+                      <StatusIcon className="w-3 h-3" />
+                      <span>{config.label}</span>
+                    </div>
+
                   </div>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {order.customer_name} • {order.items.length} items
+                    {order.customer_name} • {(order.items || []).length} items
                   </p>
-                  {customer && (
+                  {(order as any).customer_phone && (
                     <div className="flex items-center gap-3 mt-1">
-                      {customer.phone && (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          📞 {customer.phone}
-                        </span>
-                      )}
-                      {customer.email && (
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
-                          ✉️ {customer.email}
-                        </span>
-                      )}
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        📞 {(order as any).customer_phone}
+                      </span>
                     </div>
                   )}
                 </div>
@@ -615,8 +556,8 @@ export default function Dashboard() {
           </button>
         </div>
         <div className="space-y-4">
-          {recentInquiries.length > 0 ? (
-            recentInquiries.map((inquiry) => {
+          {stats.recentInquiries.length > 0 ? (
+            stats.recentInquiries.map((inquiry) => {
               const priorityColors = {
                 low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800',
                 medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
@@ -629,6 +570,7 @@ export default function Dashboard() {
                 quoted: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200 dark:border-orange-800',
                 converted: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800',
                 lost: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800',
+                closed: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300 border-gray-200 dark:border-gray-800',
               };
 
               return (
