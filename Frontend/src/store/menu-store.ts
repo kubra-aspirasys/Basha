@@ -1,239 +1,238 @@
 import { create } from 'zustand';
-import { MenuItem } from '@/types';
-import { mockMenuItems } from '@/lib/menu-mock-data';
-import { supabase } from '@/lib/supabase';
+import api from '@/lib/api';
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  description?: string;
+  price: number;
+  category_id?: string;
+  type_id?: string;
+  unit_type: string;
+  min_order_qty: number;
+  max_order_qty?: number;
+  image_url?: string;
+  is_vegetarian: boolean;
+  is_available: boolean;
+  is_featured: boolean;
+  featured_priority: number;
+  stock_quantity?: number;
+  preparation_time?: number;
+  pre_order_time?: number;
+  offer_code?: string;
+  offer_discount_type?: 'percentage' | 'fixed';
+  offer_discount_value?: number;
+  discounted_price?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface MenuCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+  display_order: number;
+  is_active: boolean;
+  image_url?: string;
+  icon?: string;
+}
+
+export interface ProductType {
+  id: string;
+  name: string;
+  slug: string;
+  color?: string;
+  icon?: string;
+}
 
 interface MenuState {
   menuItems: MenuItem[];
+  categories: MenuCategory[];
+  productTypes: ProductType[];
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
   loading: boolean;
   error: string | null;
-  fetchMenuItems: () => Promise<void>;
-  addMenuItem: (item: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
-  updateMenuItem: (id: string, item: Partial<MenuItem>) => Promise<void>;
-  deleteMenuItem: (id: string) => Promise<void>;
-  toggleFeatured: (id: string) => Promise<void>;
-  updateFeaturedPriority: (items: MenuItem[]) => void;
-}
 
-const normalizeMenuItem = (item: any): MenuItem => ({
-  ...item,
-  price: Number(item.price ?? 0),
-  min_order_qty: Number(item.min_order_qty ?? 0),
-  max_order_qty: item.max_order_qty !== null && item.max_order_qty !== undefined ? Number(item.max_order_qty) : undefined,
-  preparation_time: item.preparation_time !== null && item.preparation_time !== undefined ? Number(item.preparation_time) : undefined,
-  stock_quantity: item.stock_quantity !== null && item.stock_quantity !== undefined ? Number(item.stock_quantity) : undefined,
-  featured_priority: item.featured_priority ?? undefined,
-  discounted_price: item.discounted_price !== null && item.discounted_price !== undefined ? Number(item.discounted_price) : undefined,
-  offer_discount_value: item.offer_discount_value !== null && item.offer_discount_value !== undefined ? Number(item.offer_discount_value) : undefined,
-});
+  fetchMenuItems: (params?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    category?: string;
+    type?: string;
+    available?: boolean;
+    featured?: boolean;
+  }) => Promise<void>;
+
+  fetchCategories: () => Promise<void>;
+  fetchProductTypes: () => Promise<void>;
+
+  addMenuItem: (formData: FormData) => Promise<void>;
+  updateMenuItem: (id: string, formData: FormData) => Promise<void>;
+  deleteMenuItem: (id: string) => Promise<void>;
+  toggleAvailability: (id: string) => Promise<void>;
+  toggleFeatured: (id: string) => Promise<void>;
+  createCategory: (name: string) => Promise<any>;
+  createProductType: (name: string) => Promise<any>;
+}
 
 export const useMenuStore = create<MenuState>((set, get) => ({
   menuItems: [],
+  categories: [],
+  productTypes: [],
+  totalItems: 0,
+  totalPages: 0,
+  currentPage: 1,
   loading: false,
   error: null,
 
-  fetchMenuItems: async () => {
-    // Fall back to mock data when Supabase isn't configured
-    if (!supabase) {
-      set({ menuItems: mockMenuItems, error: null });
-      return;
-    }
-
+  fetchMenuItems: async (params = {}) => {
     set({ loading: true, error: null });
-    const { data, error } = await supabase
-      .from('menu_items')
-      .select('*')
-      .order('is_featured', { ascending: false })
-      .order('featured_priority', { ascending: true })
-      .order('created_at', { ascending: false });
+    try {
+      const queryParams = new URLSearchParams();
+      if (params.page) queryParams.append('page', params.page.toString());
+      if (params.limit) queryParams.append('limit', params.limit.toString());
+      if (params.search) queryParams.append('search', params.search);
+      if (params.category && params.category !== 'all') queryParams.append('category', params.category);
+      if (params.type && params.type !== 'all') queryParams.append('type', params.type);
+      if (params.available !== undefined) queryParams.append('available', params.available.toString());
+      if (params.featured !== undefined) queryParams.append('featured', params.featured.toString());
 
-    if (error) {
-      console.error('Failed to load menu items from Supabase', error);
-      set({ menuItems: mockMenuItems, error: error.message, loading: false });
-      return;
+      const response = await api.get(`/menu?${queryParams.toString()}`);
+      // Based on controller response: { success: true, message, data: items, pagination }
+      // Or if I copied exactly: { success: true, message: '...', data: result } where result is { items, total, ... }
+      // Let's re-read the controller code I wrote.
+      // Controller: "data: result.items, pagination: {...}"
+      // Wait, in `menuController.js`: 
+      // res.json({ success: true, data: result.items, pagination: { total: result.total, ... } });
+      // So response.data.data is the array.
+
+      const { data, pagination } = response.data;
+
+      set({
+        menuItems: data || [],
+        totalItems: pagination?.total || 0,
+        totalPages: pagination?.totalPages || 0,
+        currentPage: pagination?.page || 1,
+        loading: false
+      });
+    } catch (error: any) {
+      console.error('Failed to fetch menu items:', error);
+      set({ error: error.response?.data?.message || 'Failed to fetch menu items', loading: false });
     }
-
-    set({ menuItems: (data || []).map(normalizeMenuItem), loading: false });
   },
 
-  addMenuItem: async (item) => {
-    const featuredCount = useMenuStore.getState().menuItems.filter(menuItem => menuItem.is_featured).length;
-    const newItem = {
-      ...item,
-      featured_priority: item.is_featured && !item.featured_priority ? featuredCount + 1 : item.featured_priority,
-    };
-
-    // Try Supabase first
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .insert({
-          ...newItem,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Failed to add menu item to Supabase:', error);
-        set({ error: error.message });
-        // Fall back to local
-        const fallbackItem = {
-          ...newItem,
-          id: `local-${Date.now()}`,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-        set((state) => ({ menuItems: [fallbackItem as MenuItem, ...state.menuItems] }));
-        return;
-      }
-
-      if (data) {
-        set((state) => ({ menuItems: [normalizeMenuItem(data), ...state.menuItems], error: null }));
-        return;
-      }
+  fetchCategories: async () => {
+    try {
+      const response = await api.get('/menu/categories'); // I added this route
+      set({ categories: response.data.data || [] });
+    } catch (error: any) {
+      console.error('Failed to fetch categories:', error);
     }
-
-    // Fallback for no Supabase
-    const fallbackItem = {
-      ...newItem,
-      id: `local-${Date.now()}`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    set((state) => ({ menuItems: [fallbackItem as MenuItem, ...state.menuItems] }));
   },
 
-  updateMenuItem: async (id, item) => {
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .update({ ...item, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Failed to update menu item:', error);
-        set({ error: error.message });
-        // Still update locally
-        set((state) => ({
-          menuItems: state.menuItems.map((menuItem) =>
-            menuItem.id === id
-              ? { ...menuItem, ...item, updated_at: new Date().toISOString() }
-              : menuItem
-          ),
-        }));
-        return;
-      }
-
-      if (data) {
-        set((state) => ({
-          menuItems: state.menuItems.map((menuItem) =>
-            menuItem.id === id ? normalizeMenuItem(data) : menuItem
-          ),
-          error: null,
-        }));
-        return;
-      }
+  fetchProductTypes: async () => {
+    try {
+      const response = await api.get('/menu/types'); // I added this route
+      set({ productTypes: response.data.data || [] });
+    } catch (error: any) {
+      console.error('Failed to fetch product types:', error);
     }
-
-    // Fallback for no Supabase
-    set((state) => ({
-      menuItems: state.menuItems.map((menuItem) =>
-        menuItem.id === id
-          ? { ...menuItem, ...item, updated_at: new Date().toISOString() }
-          : menuItem
-      ),
-    }));
   },
 
-  deleteMenuItem: async (id) => {
-    if (supabase) {
-      const { error } = await supabase
-        .from('menu_items')
-        .delete()
-        .eq('id', id);
-
-      if (error) {
-        console.error('Failed to delete menu item:', error);
-        set({ error: error.message });
-        return;
-      }
+  addMenuItem: async (formData: FormData) => {
+    set({ loading: true, error: null });
+    try {
+      await api.post('/menu', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      await get().fetchMenuItems({ page: get().currentPage });
+      set({ loading: false });
+    } catch (error: any) {
+      console.error('Failed to add menu item:', error);
+      set({ error: error.response?.data?.message || 'Failed to add menu item', loading: false });
+      throw error;
     }
-
-    // Update local state regardless
-    set((state) => ({
-      menuItems: state.menuItems.filter((item) => item.id !== id),
-      error: null,
-    }));
   },
 
-  toggleFeatured: async (id) => {
-    const item = get().menuItems.find(item => item.id === id);
-    if (!item) return;
-
-    const newFeaturedStatus = !item.is_featured;
-    const featuredCount = get().menuItems.filter(menuItem => menuItem.is_featured).length;
-
-    const updatedItem = {
-      ...item,
-      is_featured: newFeaturedStatus,
-      featured_priority: newFeaturedStatus ? featuredCount + 1 : undefined,
-    };
-
-    if (supabase) {
-      const { data, error } = await supabase
-        .from('menu_items')
-        .update({
-          is_featured: updatedItem.is_featured,
-          featured_priority: updatedItem.featured_priority,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Failed to toggle featured:', error);
-        set({ error: error.message });
-        // Still update locally for optimistic UI
-      } else if (data) {
-        set((state) => ({
-          menuItems: state.menuItems.map((menuItem) =>
-            menuItem.id === id ? normalizeMenuItem(data) : menuItem
-          ),
-          error: null,
-        }));
-        return;
-      }
+  updateMenuItem: async (id: string, formData: FormData) => {
+    set({ loading: true, error: null });
+    try {
+      await api.patch(`/menu/${id}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      await get().fetchMenuItems({ page: get().currentPage });
+      set({ loading: false });
+    } catch (error: any) {
+      console.error('Failed to update menu item:', error);
+      set({ error: error.response?.data?.message || 'Failed to update menu item', loading: false });
+      throw error;
     }
-
-    // Update local state if no Supabase or on error
-    set((state) => ({
-      menuItems: state.menuItems.map((menuItem) =>
-        menuItem.id === id ? updatedItem : menuItem
-      ),
-      error: null,
-    }));
   },
 
-  updateFeaturedPriority: (items) =>
-    set(() => {
-      if (supabase) {
-        const updates = items.map((item) => ({ id: item.id, featured_priority: item.featured_priority }));
-        supabase
-          .from('menu_items')
-          .upsert(updates)
-          .then(({ error }) => {
-            if (error) {
-              console.error('Failed to update featured priority', error);
-              set({ error: error.message });
-            }
-          });
-      }
+  deleteMenuItem: async (id: string) => {
+    try {
+      await api.delete(`/menu/${id}`);
+      set(state => ({
+        menuItems: state.menuItems.filter(item => item.id !== id),
+        totalItems: state.totalItems - 1
+      }));
+    } catch (error: any) {
+      console.error('Failed to delete menu item:', error);
+      set({ error: error.response?.data?.message || 'Failed to delete menu item' });
+    }
+  },
 
-      return { menuItems: items };
-    }),
+  toggleAvailability: async (id: string) => {
+    try {
+      const response = await api.patch(`/menu/${id}/availability`);
+      const updatedStatus = response.data.data.is_available;
+      set(state => ({
+        menuItems: state.menuItems.map(item =>
+          item.id === id ? { ...item, is_available: updatedStatus } : item
+        )
+      }));
+    } catch (error: any) {
+      console.error('Failed to toggle availability:', error);
+    }
+  },
+
+  toggleFeatured: async (id: string) => {
+    try {
+      const response = await api.patch(`/menu/${id}/featured`);
+      const updatedStatus = response.data.data.is_featured;
+      set(state => ({
+        menuItems: state.menuItems.map(item =>
+          item.id === id ? { ...item, is_featured: updatedStatus } : item
+        )
+      }));
+    } catch (error: any) {
+      console.error('Failed to toggle featured status:', error);
+      throw error;
+    }
+  },
+
+  createCategory: async (name: string) => {
+    try {
+      const response = await api.post('/menu/categories', { name });
+      set((state) => ({ categories: [...state.categories, response.data.data] }));
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Failed to create category:', error);
+      throw error;
+    }
+  },
+
+  createProductType: async (name: string) => {
+    try {
+      const response = await api.post('/menu/types', { name });
+      set((state) => ({ productTypes: [...state.productTypes, response.data.data] }));
+      return response.data.data;
+    } catch (error: any) {
+      console.error('Failed to create product type:', error);
+      throw error;
+    }
+  },
 }));

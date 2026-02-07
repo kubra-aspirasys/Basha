@@ -25,6 +25,9 @@ module.exports = {
             image_url: {
                 type: Sequelize.STRING
             },
+            icon: {
+                type: Sequelize.STRING
+            },
             display_order: {
                 type: Sequelize.INTEGER,
                 defaultValue: 0
