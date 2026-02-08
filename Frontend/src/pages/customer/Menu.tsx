@@ -1,13 +1,29 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useMenuStore } from '@/store/menu-store';
 import { useCartStore } from '@/store/cart-store';
 import { Search, ShoppingCart, Filter, X } from 'lucide-react';
-import { categoryNames, typeNames } from '@/lib/menu-mock-data';
 import MenuItemDetailModal from '@/components/MenuItemDetailModal';
 import { MenuItem } from '@/types';
 
+// Helper to construct full image URL
+const getImageUrl = (url?: string) => {
+  if (!url) return '/banner.jpeg'; // Fallback
+  if (url.startsWith('http')) return url;
+  // Remove /api from base if present to get root
+  const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+  return `${baseUrl}${url}`;
+};
+
 export default function CustomerMenu() {
-  const { menuItems, fetchMenuItems, loading } = useMenuStore();
+  const {
+    menuItems,
+    categories: storeCategories,
+    productTypes,
+    fetchMenuItems,
+    fetchCategories,
+    fetchProductTypes,
+    loading
+  } = useMenuStore();
   const { addItem } = useCartStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -17,10 +33,27 @@ export default function CustomerMenu() {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
 
   useEffect(() => {
-    if (!menuItems.length) {
-      fetchMenuItems();
-    }
-  }, [fetchMenuItems, menuItems.length]);
+    fetchMenuItems({ available: true });
+    fetchCategories();
+    fetchProductTypes();
+  }, [fetchMenuItems, fetchCategories, fetchProductTypes]);
+
+  // Derive mappings from store data to replace mock objects
+  const categoryNames = useMemo(() => {
+    const map: Record<string, string> = {};
+    storeCategories.forEach(c => {
+      map[c.id] = c.name;
+    });
+    return map;
+  }, [storeCategories]);
+
+  const typeNames = useMemo(() => {
+    const map: Record<string, { name: string; color: string }> = {};
+    productTypes.forEach(t => {
+      map[t.id] = { name: t.name, color: t.color || '#999' };
+    });
+    return map;
+  }, [productTypes]);
 
   // Get unique categories
   const categories = ['all', ...new Set(menuItems.map(item => item.category_id).filter(Boolean))];
@@ -29,7 +62,7 @@ export default function CustomerMenu() {
   // Filter items
   const filteredItems = menuItems.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      item.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || item.category_id === selectedCategory;
     const matchesType = selectedType === 'all' || item.type_id === selectedType;
     return matchesSearch && matchesCategory && matchesType && item.is_available;
@@ -179,21 +212,24 @@ export default function CustomerMenu() {
               <div
                 key={item.id}
                 onClick={() => setSelectedItem(item)}
-                className="group bg-[#1a1a1a] rounded-lg overflow-hidden border border-[#F2A900]/12 hover:border-[#F2A900]/35 transition-all duration-300 hover:shadow-2xl gold-ring animate-fade-in cursor-pointer"
+                className="group bg-[#1a1a1a] rounded-lg overflow-hidden border border-[#F2A900]/12 hover:border-[#F2A900]/35 transition-all duration-300 hover:shadow-2xl gold-ring animate-fade-in"
                 style={{ animationDelay: `${(index % 8) * 50}ms` }}
               >
                 {/* Image */}
                 <div className="relative h-48 overflow-hidden bg-[#0a0a0a]">
                   <img
-                    src={item.image_url}
+                    src={getImageUrl(item.image_url)}
                     alt={item.name}
                     className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    onError={(e) => {
+                      e.currentTarget.src = '/banner.jpeg';
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-transparent opacity-80" />
 
                   {/* Type Badge */}
                   {item.type_id && (
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-3 right-3 z-20">
                       <span
                         className="px-3 py-1 rounded-full text-xs font-semibold text-white"
                         style={{ backgroundColor: typeNames[item.type_id]?.color || '#666' }}
@@ -205,7 +241,7 @@ export default function CustomerMenu() {
 
                   {/* Featured Badge */}
                   {item.is_featured && (
-                    <div className="absolute top-3 left-3">
+                    <div className="absolute top-3 left-3 z-20">
                       <span className="px-3 py-1 rounded-full text-xs font-semibold text-black bg-[#F2A900]">
                         ⭐ Featured
                       </span>
@@ -235,11 +271,10 @@ export default function CustomerMenu() {
                       e.stopPropagation();
                       handleAddToCart(item);
                     }}
-                    className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${
-                      addedToCart === item.id
-                        ? 'bg-green-600 text-white'
-                        : 'bg-[#F2A900] hover:bg-[#D99700] text-black'
-                    }`}
+                    className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${addedToCart === item.id
+                      ? 'bg-green-600 text-white'
+                      : 'bg-[#F2A900] hover:bg-[#D99700] text-black'
+                      }`}
                   >
                     <ShoppingCart className="w-4 h-4" />
                     {addedToCart === item.id ? 'Added!' : 'Add to Cart'}

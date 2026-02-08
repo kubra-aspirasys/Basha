@@ -1,5 +1,5 @@
 import { ArrowRight, Clock, Phone, MapPin, Star } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useMenuStore } from '@/store/menu-store';
 import { useCartStore } from '@/store/cart-store';
 import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
@@ -10,8 +10,17 @@ import { categoryNames } from '@/lib/menu-mock-data';
 
 const IconMap: Record<string, any> = { Clock, Phone, MapPin };
 
+// Helper to construct full image URL
+const getImageUrl = (url?: string) => {
+  if (!url) return '/banner.jpeg'; // Fallback
+  if (url.startsWith('http')) return url;
+  // Remove /api from base if present to get root
+  const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+  return `${baseUrl}${url}`;
+};
+
 export default function Home() {
-  const { menuItems, fetchMenuItems } = useMenuStore();
+  const { menuItems, fetchMenuItems, categories: storeCategories, fetchCategories } = useMenuStore();
   const { addItem } = useCartStore();
   const { homepageHero, fetchHomepageHero } = useCMSEnhancedStore();
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -23,8 +32,39 @@ export default function Home() {
     if (!menuItems.length) {
       fetchMenuItems();
     }
+    fetchCategories();
     fetchHomepageHero();
-  }, [fetchMenuItems, menuItems.length, fetchHomepageHero]);
+  }, [fetchMenuItems, fetchCategories, menuItems.length, fetchHomepageHero]);
+
+  // Create lookup map for category names
+  const categoryLookup = useMemo(() => {
+    const map: Record<string, string> = {};
+    storeCategories.forEach(c => map[c.id] = c.name);
+    return map;
+  }, [storeCategories]);
+
+  // Debug logging
+  console.log('DEBUG HOME:', { storeCategories, categoryLookup });
+
+  // ... existing code ...
+
+  // Inside the render loop for categories (approx line 298-307)
+  // We need to replace the mapping:
+  /*
+  {categories.map((category) => (
+    <button
+      key={category}
+      onClick={() => setSelectedCategory(category || 'all')}
+      className={`px-4 py-2 sm:px-8 sm:py-4 rounded-full font-bold text-xs sm:text-sm uppercase tracking-wider transition-all duration-300 whitespace-nowrap ${selectedCategory === category
+        ? 'bg-[#F2A900] text-black shadow-lg scale-105'
+        : 'bg-[#1a1a1a] text-white hover:bg-[#2a2a2a] border border-[#F2A900]/20 hover:border-[#F2A900]/40'
+        }`}
+    >
+      {category === 'all' ? 'All' : (categoryLookup[category] || category)}
+    </button>
+  ))}
+  */
+
 
   // Use CMS config or fallbacks from original design
   const config = homepageHero || {
@@ -304,7 +344,7 @@ export default function Home() {
                       : 'bg-[#1a1a1a] text-white hover:bg-[#2a2a2a] border border-[#F2A900]/20 hover:border-[#F2A900]/40'
                       }`}
                   >
-                    {category === 'all' ? 'All' : (categoryNames[category as keyof typeof categoryNames] || category)}
+                    {category === 'all' ? 'All' : (categoryLookup[category] || 'Unknown Category')}
                   </button>
                 ))}
               </div>
@@ -321,7 +361,7 @@ export default function Home() {
                 >
                   <div className="relative w-28 h-28 flex-shrink-0 sm:w-full sm:h-56 overflow-hidden">
                     <img
-                      src={item.image_url || '/banner.jpeg'}
+                      src={getImageUrl(item.image_url)}
                       alt={item.name}
                       className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                     />

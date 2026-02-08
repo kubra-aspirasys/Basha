@@ -11,6 +11,15 @@ interface MenuItemDetailModalProps {
   onAddToCart: (quantity: number) => void;
 }
 
+// Helper to construct full image URL
+const getImageUrl = (url?: string) => {
+  if (!url) return '/banner.jpeg'; // Fallback
+  if (url.startsWith('http')) return url;
+  // Remove /api from base if present to get root
+  const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+  return `${baseUrl}${url}`;
+};
+
 export default function MenuItemDetailModal({ item, isOpen, onClose, onAddToCart }: MenuItemDetailModalProps) {
   const [quantity, setQuantity] = useState(item.min_order_qty || 1);
 
@@ -54,7 +63,7 @@ export default function MenuItemDetailModal({ item, isOpen, onClose, onAddToCart
           <div className="space-y-4">
             <div className="relative rounded-xl overflow-hidden aspect-square">
               <img
-                src={item.image_url || '/banner.jpeg'}
+                src={getImageUrl(item.image_url)}
                 alt={item.name}
                 className="w-full h-full object-cover"
               />
@@ -175,5 +184,3 @@ export default function MenuItemDetailModal({ item, isOpen, onClose, onAddToCart
     </div>
   );
 }
-
-

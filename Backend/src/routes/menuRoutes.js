@@ -5,17 +5,18 @@ const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
-// All routes are protected
+// Public Routes (No auth required)
+// GET /menu-items - List items
+router.get('/', menuController.listMenuItems);
+
+// GET /menu-items/categories - List categories
+router.get('/categories', menuController.listCategories);
+
+// GET /menu-items/types - List types
+router.get('/types', menuController.listTypes);
+
+// Protected Routes (Admin/Staff)
 router.use(protect);
-
-// GET /menu-items - List items (Admin/Staff)
-router.get('/', authorize('admin', 'staff'), menuController.listMenuItems);
-
-// GET /menu-items/categories - List categories (Admin/Staff)
-router.get('/categories', authorize('admin', 'staff'), menuController.listCategories);
-
-// GET /menu-items/types - List types (Admin/Staff)
-router.get('/types', authorize('admin', 'staff'), menuController.listTypes);
 
 // POST /menu-items/categories - Create category (Admin only)
 router.post('/categories', authorize('admin'), menuController.createCategory);
