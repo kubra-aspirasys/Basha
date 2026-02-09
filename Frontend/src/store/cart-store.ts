@@ -15,7 +15,7 @@ export interface CartItem {
 interface CartState {
   items: CartItem[];
   isLoading: boolean;
-  addItem: (item: Omit<CartItem, 'quantity' | 'unit_type'> & { unit_type?: string }) => Promise<void>;
+  addItem: (item: Omit<CartItem, 'quantity' | 'unit_type'> & { unit_type?: string; quantity?: number }) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
   updateQuantity: (id: string, quantity: number) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -38,7 +38,7 @@ export const useCartStore = create<CartState>()(
         try {
           const response = await api.get('/cart');
           if (response.data.success) {
-            const serverItems = response.data.data.items.map((item: any) => ({
+            const rawItems = response.data.data.items.map((item: any) => ({
               id: item.menu_item_id,
               name: item.name,
               price: item.price,
@@ -46,7 +46,19 @@ export const useCartStore = create<CartState>()(
               image_url: item.image_url,
               unit_type: item.unit_type
             }));
-            set({ items: serverItems });
+
+            // Aggregate duplicates if any exist in the database
+            const aggregatedItems = rawItems.reduce((acc: CartItem[], current: CartItem) => {
+              const existing = acc.find(item => item.id === current.id);
+              if (existing) {
+                existing.quantity += current.quantity;
+              } else {
+                acc.push(current);
+              }
+              return acc;
+            }, []);
+
+            set({ items: aggregatedItems });
           }
         } catch (error) {
           console.error('Failed to fetch cart:', error);
@@ -57,6 +69,7 @@ export const useCartStore = create<CartState>()(
 
       addItem: async (item) => {
         const { user } = useAuthStore.getState();
+        const quantityToAdd = item.quantity || 1;
 
         // Optimistic update
         set((state) => {
@@ -64,12 +77,12 @@ export const useCartStore = create<CartState>()(
           if (existingItem) {
             return {
               items: state.items.map((i) =>
-                i.id === item.id ? { ...i, quantity: i.quantity + 1 } : i
+                i.id === item.id ? { ...i, quantity: i.quantity + quantityToAdd } : i
               ),
             };
           }
           return {
-            items: [...state.items, { ...item, unit_type: item.unit_type || 'piece', quantity: 1 }],
+            items: [...state.items, { ...item, unit_type: item.unit_type || 'piece', quantity: quantityToAdd }],
           };
         });
 
@@ -78,7 +91,7 @@ export const useCartStore = create<CartState>()(
           try {
             await api.post('/cart/add', {
               menu_item_id: item.id,
-              quantity: 1 // We are adding 1 by default in the optimistic update above
+              quantity: quantityToAdd
             });
           } catch (error) {
             console.error('Failed to sync add item to server:', error);

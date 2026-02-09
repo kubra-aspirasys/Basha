@@ -6,7 +6,7 @@ import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
 import { MenuItem } from '@/types';
 import MenuItemDetailModal from '@/components/MenuItemDetailModal';
 import { formatCurrency } from '@/utils/orderCalculations';
-import { categoryNames } from '@/lib/menu-mock-data';
+
 
 const IconMap: Record<string, any> = { Clock, Phone, MapPin };
 
@@ -136,16 +136,14 @@ export default function Home() {
 
   const handleAddToCart = (quantity: number) => {
     if (selectedItem) {
-      // Add items one by one based on quantity
-      for (let i = 0; i < quantity; i++) {
-        addItem({
-          id: selectedItem.id,
-          name: selectedItem.name,
-          price: selectedItem.discounted_price || selectedItem.price,
-          image_url: selectedItem.image_url,
-          unit_type: selectedItem.unit_type,
-        });
-      }
+      addItem({
+        id: selectedItem.id,
+        name: selectedItem.name,
+        price: selectedItem.discounted_price || selectedItem.price,
+        image_url: selectedItem.image_url,
+        unit_type: selectedItem.unit_type,
+        quantity: quantity,
+      });
     }
   };
 
@@ -344,7 +342,7 @@ export default function Home() {
                       : 'bg-[#1a1a1a] text-white hover:bg-[#2a2a2a] border border-[#F2A900]/20 hover:border-[#F2A900]/40'
                       }`}
                   >
-                    {category === 'all' ? 'All' : (categoryLookup[category] || 'Unknown Category')}
+                    {category === 'all' ? 'All' : (categoryLookup[category as string] || 'Unknown Category')}
                   </button>
                 ))}
               </div>
