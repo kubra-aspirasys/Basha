@@ -29,6 +29,7 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { DeleteModal } from './DeleteModal';
 
 export default function ProductCategoryManager() {
   const {
@@ -57,6 +58,13 @@ export default function ProductCategoryManager() {
   const [showPreview, setShowPreview] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+
+  // Delete modal state
+  const [deleteData, setDeleteData] = useState<{
+    id: string | null;
+    type: 'category' | 'type' | 'bulk' | null;
+    name: string;
+  }>({ id: null, type: null, name: '' });
 
   const [categoryForm, setCategoryForm] = useState({
     name: '',
@@ -169,20 +177,47 @@ export default function ProductCategoryManager() {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (confirm('Are you sure you want to delete this category? This action cannot be undone.')) {
-      try {
-        await deleteProductCategory(id);
+    const category = productCategories.find(c => c.id === id);
+    setDeleteData({
+      id,
+      type: 'category',
+      name: category?.name || 'this category'
+    });
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteData.id && deleteData.type !== 'bulk') return;
+
+    try {
+      if (deleteData.type === 'category') {
+        await deleteProductCategory(deleteData.id!);
         toast({
-          title: 'Success',
-          description: 'Category deleted successfully',
+          title: 'Category deleted',
+          description: 'The category has been removed successfully.',
         });
-      } catch (error) {
+      } else if (deleteData.type === 'type') {
+        await deleteProductType(deleteData.id!);
         toast({
-          title: 'Error',
-          description: 'Failed to delete category',
-          variant: 'destructive',
+          title: 'Product type deleted',
+          description: 'The product type has been removed successfully.',
+        });
+      } else if (deleteData.type === 'bulk') {
+        const promises = selectedCategories.map(id => deleteProductCategory(id));
+        await Promise.all(promises);
+        setSelectedCategories([]);
+        toast({
+          title: 'Categories deleted',
+          description: `${selectedCategories.length} categories have been removed successfully.`,
         });
       }
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete item. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setDeleteData({ id: null, type: null, name: '' });
     }
   };
 
@@ -207,23 +242,50 @@ export default function ProductCategoryManager() {
   };
 
   const handleAddType = async () => {
-    await addProductType(typeForm);
-    setTypeForm({ name: '', slug: '', icon: null, color: '#6B7280', display_order: 0, is_active: true });
-    setIsAddingType(false);
+    try {
+      await addProductType(typeForm);
+      setTypeForm({ name: '', slug: '', icon: null, color: '#6B7280', display_order: 0, is_active: true });
+      setIsAddingType(false);
+      toast({
+        title: 'Product type added',
+        description: 'New product type has been added successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to add product type',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleUpdateType = async () => {
     if (editingType) {
-      await updateProductType(editingType.id, typeForm);
-      setEditingType(null);
-      setTypeForm({ name: '', slug: '', icon: null, color: '#6B7280', display_order: 0, is_active: true });
+      try {
+        await updateProductType(editingType.id, typeForm);
+        setEditingType(null);
+        setTypeForm({ name: '', slug: '', icon: null, color: '#6B7280', display_order: 0, is_active: true });
+        toast({
+          title: 'Product type updated',
+          description: 'Product type has been updated successfully',
+        });
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to update product type',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
   const handleDeleteType = async (id: string) => {
-    if (confirm('Are you sure you want to delete this type?')) {
-      await deleteProductType(id);
-    }
+    const type = productTypes.find(t => t.id === id);
+    setDeleteData({
+      id,
+      type: 'type',
+      name: type?.name || 'this product type'
+    });
   };
 
   const handleEditType = (type: ProductType) => {
@@ -288,23 +350,11 @@ export default function ProductCategoryManager() {
   };
 
   const handleBulkDelete = async () => {
-    if (confirm(`Are you sure you want to delete ${selectedCategories.length} categories? This action cannot be undone.`)) {
-      try {
-        const promises = selectedCategories.map(id => deleteProductCategory(id));
-        await Promise.all(promises);
-        setSelectedCategories([]);
-        toast({
-          title: 'Success',
-          description: `${selectedCategories.length} categories deleted`,
-        });
-      } catch (error) {
-        toast({
-          title: 'Error',
-          description: 'Failed to delete categories',
-          variant: 'destructive',
-        });
-      }
-    }
+    setDeleteData({
+      id: null,
+      type: 'bulk',
+      name: `${selectedCategories.length} categories`
+    });
   };
 
   const toggleCategorySelection = (id: string) => {
@@ -416,7 +466,7 @@ export default function ProductCategoryManager() {
                   setIsAddingCategory(true);
                   setEditingCategory(null);
                 }}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full sm:w-auto"
+                className="bg-[#e67e22] hover:bg-[#d35400] text-white w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Category
@@ -444,7 +494,7 @@ export default function ProductCategoryManager() {
                   variant={filterActive === 'all' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setFilterActive('all')}
-                  className="flex-1 sm:flex-none"
+                  className={`flex-1 sm:flex-none ${filterActive === 'all' ? 'bg-[#e67e22] hover:bg-[#d35400] text-white border-transparent' : ''}`}
                 >
                   All ({stats.total})
                 </Button>
@@ -452,7 +502,7 @@ export default function ProductCategoryManager() {
                   variant={filterActive === 'active' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setFilterActive('active')}
-                  className="flex-1 sm:flex-none"
+                  className={`flex-1 sm:flex-none ${filterActive === 'active' ? 'bg-[#e67e22] hover:bg-[#d35400] text-white border-transparent' : ''}`}
                 >
                   Active ({stats.active})
                 </Button>
@@ -460,7 +510,7 @@ export default function ProductCategoryManager() {
                   variant={filterActive === 'inactive' ? 'default' : 'outline'}
                   size="sm"
                   onClick={() => setFilterActive('inactive')}
-                  className="flex-1 sm:flex-none"
+                  className={`flex-1 sm:flex-none ${filterActive === 'inactive' ? 'bg-[#e67e22] hover:bg-[#d35400] text-white border-transparent' : ''}`}
                 >
                   Inactive ({stats.inactive})
                 </Button>
@@ -630,7 +680,7 @@ export default function ProductCategoryManager() {
                 <Button
                   onClick={editingCategory ? handleUpdateCategory : handleAddCategory}
                   disabled={loading || isUploading}
-                  className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 w-full sm:w-auto"
+                  className="bg-[#e67e22] hover:bg-[#d35400] text-white w-full sm:w-auto"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {editingCategory ? 'Update Category' : 'Add Category'}
@@ -759,7 +809,7 @@ export default function ProductCategoryManager() {
                 setIsAddingType(true);
                 setEditingType(null);
               }}
-              className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 w-full sm:w-auto"
+              className="bg-[#e67e22] hover:bg-[#d35400] text-white w-full sm:w-auto"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Type
@@ -834,7 +884,7 @@ export default function ProductCategoryManager() {
                 <Button
                   onClick={editingType ? handleUpdateType : handleAddType}
                   disabled={loading}
-                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700"
+                  className="bg-[#e67e22] hover:bg-[#d35400] text-white"
                 >
                   <Save className="w-4 h-4 mr-2" />
                   {editingType ? 'Update Type' : 'Add Type'}
@@ -908,6 +958,14 @@ export default function ProductCategoryManager() {
           </div>
         </CardContent>
       </Card>
+
+      <DeleteModal
+        isOpen={deleteData.type !== null}
+        onClose={() => setDeleteData({ id: null, type: null, name: '' })}
+        onConfirm={confirmDelete}
+        itemName={deleteData.name}
+        loading={loading}
+      />
     </div>
   );
 }

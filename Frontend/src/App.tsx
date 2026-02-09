@@ -5,6 +5,8 @@ import AuthLayout from '@/components/layouts/AuthLayout';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import CustomerLayout from '@/components/layouts/CustomerLayout';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import { Toaster } from "@/components/ui/toaster"
+import { Toaster as SonnerToaster } from "@/components/ui/sonner"
 import Login from '@/pages/Login';
 import Signup from '@/pages/Signup';
 import ForgotPassword from '@/pages/ForgotPassword';
@@ -76,6 +78,8 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
+      <Toaster />
+      <SonnerToaster position="top-right" expand={true} richColors />
     </ThemeProvider>
   );
 }

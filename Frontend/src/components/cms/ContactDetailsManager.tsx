@@ -88,9 +88,22 @@ export default function ContactDetailsManager() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Contact Page Content</h2>
           <p className="text-slate-500 dark:text-slate-400">Manage the information displayed on your customer-facing contact page</p>
         </div>
-        <Button onClick={handleSaveAll} className="gradient-primary text-white shadow-lg">
-          <Save className="w-4 h-4 mr-2" />
-          Save All Changes
+        <Button
+          onClick={handleSaveAll}
+          disabled={loading}
+          className="bg-[#e67e22] hover:bg-[#d35400] text-white shadow-lg min-w-[140px]"
+        >
+          {loading ? (
+            <>
+              <Save className="w-4 h-4 mr-2 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              Save All Changes
+            </>
+          )}
         </Button>
       </div>
 

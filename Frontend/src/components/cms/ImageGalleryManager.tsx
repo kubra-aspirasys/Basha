@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
 import { Image, Upload, Trash2, Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { DeleteModal } from './DeleteModal';
+import { GalleryImage } from '@/types/cms';
 
 export default function ImageGalleryManager() {
   const {
@@ -13,7 +16,10 @@ export default function ImageGalleryManager() {
     uploadImage,
   } = useCMSEnhancedStore();
 
+  const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
+  const [imageToDelete, setImageToDelete] = useState<GalleryImage | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -50,8 +56,16 @@ export default function ImageGalleryManager() {
         display_order: 0,
       });
       e.target.value = '';
+      toast({
+        title: 'Image uploaded',
+        description: 'New image has been added to the gallery.',
+      });
     } catch (error) {
-      console.error('Upload failed:', error);
+      toast({
+        title: 'Upload failed',
+        description: 'Failed to upload the image. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setIsUploading(false);
     }
@@ -61,9 +75,32 @@ export default function ImageGalleryManager() {
     await updateGalleryImage(id, { is_active: !isActive });
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this image?')) {
-      await deleteGalleryImage(id);
+  const handleDelete = (id: string) => {
+    const image = galleryImages.find(img => img.id === id);
+    if (image) {
+      setImageToDelete(image);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!imageToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteGalleryImage(imageToDelete.id);
+      toast({
+        title: 'Image deleted',
+        description: 'The gallery image has been removed successfully.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete the image. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setImageToDelete(null);
     }
   };
 
@@ -198,6 +235,14 @@ export default function ImageGalleryManager() {
           ))}
         </div>
       </div>
+
+      <DeleteModal
+        isOpen={!!imageToDelete}
+        onClose={() => setImageToDelete(null)}
+        onConfirm={confirmDelete}
+        itemName={imageToDelete?.title}
+        loading={isDeleting}
+      />
     </div>
   );
 }

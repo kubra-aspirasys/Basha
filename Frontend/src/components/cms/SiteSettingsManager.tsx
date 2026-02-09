@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
 import { Settings, Upload, Save } from 'lucide-react';
 import { SiteSetting } from '@/types/cms';
+import { useToast } from '@/hooks/use-toast';
 
 export default function SiteSettingsManager() {
   const {
@@ -12,6 +13,7 @@ export default function SiteSettingsManager() {
     uploadImage,
   } = useCMSEnhancedStore();
 
+  const { toast } = useToast();
   const [editingValues, setEditingValues] = useState<Record<string, string>>({});
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
 
@@ -32,6 +34,10 @@ export default function SiteSettingsManager() {
         delete updated[setting.id];
         return updated;
       });
+      toast({
+        title: 'Setting updated',
+        description: 'The site setting has been saved successfully.',
+      });
     }
   };
 
@@ -46,8 +52,16 @@ export default function SiteSettingsManager() {
         delete updated[setting.id];
         return updated;
       });
+      toast({
+        title: 'Image updated',
+        description: 'New image has been uploaded and saved.',
+      });
     } catch (error) {
-      console.error('Upload failed:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload image. Please try again.',
+        variant: 'destructive',
+      });
     } finally {
       setUploadingKey(null);
     }
@@ -110,10 +124,11 @@ export default function SiteSettingsManager() {
                         {hasChanges(setting) && (
                           <button
                             onClick={() => handleSave(setting)}
-                            className="px-3 py-1 gradient-primary text-white rounded text-xs sm:text-sm flex items-center gap-1 hover:shadow-lg transition-all w-full sm:w-auto justify-center sm:justify-start"
+                            disabled={loading}
+                            className={`px-3 py-1 text-white rounded text-xs sm:text-sm flex items-center gap-1 shadow-sm hover:shadow-lg transition-all w-full sm:w-auto justify-center sm:justify-start ${loading ? 'bg-slate-400 cursor-not-allowed' : 'bg-[#e67e22] hover:bg-[#d35400]'}`}
                           >
-                            <Save className="w-3 h-3" />
-                            Save
+                            <Save className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                            {loading ? 'Saving...' : 'Save'}
                           </button>
                         )}
                       </div>

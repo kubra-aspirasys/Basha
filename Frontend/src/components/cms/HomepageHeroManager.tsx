@@ -71,36 +71,39 @@ export default function HomepageHeroManager() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Homepage Content Management</h2>
           <p className="text-slate-500 dark:text-slate-400">Manage all existing sections of the Customer Home Page</p>
         </div>
-        <Button onClick={handleSave} disabled={loading} className="gradient-primary text-white shadow-lg px-6">
-          <Save className="w-4 h-4 mr-2" />
+        <Button onClick={handleSave} disabled={loading} className="bg-[#e67e22] hover:bg-[#d35400] text-white shadow-lg px-6 min-w-[140px]">
+          <Save className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
           {loading ? 'Saving...' : 'Save Changes'}
         </Button>
       </div>
 
-      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
-        {[
-          { id: 'hero', label: 'Hero', icon: Layout },
-          { id: 'about', label: 'About', icon: Edit3 },
-          { id: 'heritage', label: 'Heritage', icon: BookOpen },
-          { id: 'menu', label: 'Menu Section', icon: Star },
-          { id: 'features', label: 'Features', icon: Star },
-          { id: 'cta', label: 'CTA', icon: MousePointer2 },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-lg font-semibold transition-all ${activeTab === tab.id
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-md ring-1 ring-slate-200 dark:ring-slate-600'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
-            >
-              <Icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          );
-        })}
+      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-1">
+        <div className="flex flex-wrap items-center gap-1">
+          {[
+            { id: 'hero', label: 'Hero', icon: Layout },
+            { id: 'about', label: 'About', icon: Edit3 },
+            { id: 'heritage', label: 'Heritage', icon: BookOpen },
+            { id: 'menu', label: 'Menu Section', icon: Star },
+            { id: 'features', label: 'Features', icon: Star },
+            { id: 'cta', label: 'CTA', icon: MousePointer2 },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`flex items-center gap-2 px-5 py-2 rounded-lg font-semibold transition-all duration-300 text-sm ${isActive
+                  ? 'bg-[#e67e22] text-white shadow-md transform scale-[1.02]'
+                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700/50 hover:text-slate-900'
+                  }`}
+              >
+                <Icon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <span>{tab.label}</span>
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       <div className="grid gap-6">
