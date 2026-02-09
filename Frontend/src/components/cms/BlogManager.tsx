@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
 import { Newspaper, Plus, Trash2, CreditCard as Edit2, Eye, EyeOff, X, Upload, Calendar } from 'lucide-react';
 import { BlogPost } from '@/types/cms';
+import { useToast } from '@/hooks/use-toast';
+import { DeleteModal } from './DeleteModal';
 
 export default function BlogManager() {
   const {
@@ -14,8 +16,11 @@ export default function BlogManager() {
     uploadImage,
   } = useCMSEnhancedStore();
 
+  const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [postToDelete, setPostToDelete] = useState<BlogPost | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [formData, setFormData] = useState({
     title: '',
@@ -136,8 +141,16 @@ export default function BlogManager() {
 
     if (editingPost) {
       await updateBlogPost(editingPost.id, postData);
+      toast({
+        title: 'Blog post updated',
+        description: 'Your blog post has been updated successfully.',
+      });
     } else {
       await addBlogPost(postData);
+      toast({
+        title: 'Blog post created',
+        description: 'Your new blog post has been created and saved.',
+      });
     }
     resetForm();
   };
@@ -149,9 +162,32 @@ export default function BlogManager() {
     });
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this blog post?')) {
-      await deleteBlogPost(id);
+  const handleDelete = (id: string) => {
+    const post = blogPosts.find(p => p.id === id);
+    if (post) {
+      setPostToDelete(post);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!postToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteBlogPost(postToDelete.id);
+      toast({
+        title: 'Post deleted',
+        description: 'The blog post has been removed successfully.',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete the post. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsDeleting(false);
+      setPostToDelete(null);
     }
   };
 
@@ -431,6 +467,14 @@ export default function BlogManager() {
           </div>
         )}
       </div>
+
+      <DeleteModal
+        isOpen={!!postToDelete}
+        onClose={() => setPostToDelete(null)}
+        onConfirm={confirmDelete}
+        itemName={postToDelete?.title}
+        loading={isDeleting}
+      />
     </div>
   );
 }

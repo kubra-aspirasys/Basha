@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, X, Camera, Crop, Eye, EyeOff } from 'lucide-react';
+import { DeleteModal } from '@/components/cms/DeleteModal';
 
 export default function Profile() {
   const { user: admin, updateProfile } = useAuthStore();
@@ -31,6 +32,7 @@ export default function Profile() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [showCropModal, setShowCropModal] = useState(false);
   const [cropImage, setCropImage] = useState<string | null>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -175,12 +177,26 @@ export default function Profile() {
   };
 
   const handleRemoveImage = () => {
-    setPreviewImage(null);
-    updateProfile({ ...formData, avatar_url: '' });
-    toast({
-      title: 'Profile picture removed',
-      description: 'Your profile picture has been removed',
-    });
+    setShowDeleteModal(true);
+  };
+
+  const confirmRemoveImage = async () => {
+    try {
+      setPreviewImage(null);
+      await updateProfile({ ...formData, avatar_url: '' });
+      toast({
+        title: 'Profile picture removed',
+        description: 'Your profile picture has been removed successfully',
+      });
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to remove profile picture',
+        variant: 'destructive',
+      });
+    } finally {
+      setShowDeleteModal(false);
+    }
   };
 
   const handleCancelImage = () => {
@@ -534,6 +550,13 @@ export default function Profile() {
         </div>
       )}
 
+      <DeleteModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        onConfirm={confirmRemoveImage}
+        title="Remove Profile Picture"
+        description="Are you sure you want to remove your profile picture? This action will set your avatar back to the default initials."
+      />
     </div>
   );
 }
