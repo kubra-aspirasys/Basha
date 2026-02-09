@@ -46,6 +46,7 @@ app.use('/api/cart', require('./routes/cartRoutes'));
 app.use('/api/customers', require('./routes/customerRoutes'));
 app.use('/api/inquiries', require('./routes/inquiryRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
+app.use('/api/contact', require('./routes/contactRoutes'));
 
 // Error Handling Middleware (Centralized)
 app.use(errorHandler);

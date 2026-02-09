@@ -5,41 +5,108 @@ module.exports = (sequelize, DataTypes) => {
     class MenuItem extends Model {
         static associate(models) {
             MenuItem.belongsTo(models.MenuCategory, { foreignKey: 'category_id', as: 'category' });
-            MenuItem.belongsTo(models.MenuType, { foreignKey: 'type_id', as: 'type' });
-            MenuItem.hasMany(models.OrderItem, { foreignKey: 'menu_item_id', as: 'order_items' });
+            MenuItem.belongsTo(models.MenuType, { foreignKey: 'type_id', as: 'type' }); // Changed to MenuType to match existing db
+            // Verify if OrderItem and other relations exist before associating
+            if (models.OrderItem) MenuItem.hasMany(models.OrderItem, { foreignKey: 'menu_item_id' });
+            if (models.UserFavorite) MenuItem.hasMany(models.UserFavorite, { foreignKey: 'menu_item_id' });
+            if (models.Review) MenuItem.hasMany(models.Review, { foreignKey: 'menu_item_id' });
+            MenuItem.hasMany(models.MenuItemImage, { foreignKey: 'menu_item_id', as: 'images' });
         }
     }
     MenuItem.init({
         id: {
             type: DataTypes.UUID,
             defaultValue: DataTypes.UUIDV4,
-            primaryKey: true
+            primaryKey: true,
         },
-        name: DataTypes.STRING,
-        description: DataTypes.TEXT,
-        price: DataTypes.DECIMAL(10, 2),
-        category_id: DataTypes.UUID,
-        type_id: DataTypes.UUID,
-        unit_type: DataTypes.STRING,
-        min_order_qty: DataTypes.INTEGER,
-        max_order_qty: DataTypes.INTEGER,
-        stock_quantity: DataTypes.INTEGER,
-        preparation_time: DataTypes.INTEGER,
-        pre_order_time: DataTypes.INTEGER,
-        is_available: DataTypes.BOOLEAN,
-        is_featured: DataTypes.BOOLEAN,
-        featured_priority: DataTypes.INTEGER,
-        offer_code: DataTypes.STRING,
-        offer_discount_type: DataTypes.ENUM('percentage', 'fixed'),
-        offer_discount_value: DataTypes.DECIMAL(10, 2),
-        discounted_price: DataTypes.DECIMAL(10, 2),
-        image_url: DataTypes.STRING
+        category_id: {
+            type: DataTypes.UUID,
+            allowNull: true,
+        },
+        type_id: {
+            type: DataTypes.UUID,
+            allowNull: true, // Product Type ID
+        },
+        name: {
+            type: DataTypes.STRING,
+            allowNull: false,
+        },
+        description: {
+            type: DataTypes.TEXT,
+            allowNull: true,
+        },
+        price: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: false,
+        },
+        unit_type: {
+            type: DataTypes.STRING, // kg, piece, liter, plate
+            allowNull: false,
+            defaultValue: 'piece',
+        },
+        min_order_qty: {
+            type: DataTypes.INTEGER,
+            defaultValue: 1,
+        },
+        max_order_qty: {
+            type: DataTypes.INTEGER,
+            allowNull: true,
+        },
+        image_url: {
+            type: DataTypes.TEXT, // Changed from STRING to TEXT to support long URLs
+            allowNull: true,
+        },
+        is_vegetarian: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
+        },
+        is_available: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: true,
+        },
+        is_featured: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false,
+        },
+        featured_priority: {
+            type: DataTypes.INTEGER,
+            defaultValue: 0,
+        },
+        stock_quantity: {
+            type: DataTypes.INTEGER,
+            allowNull: true, // Null means unlimited
+        },
+        preparation_time: {
+            type: DataTypes.INTEGER, // in minutes
+            allowNull: true,
+        },
+        pre_order_time: {
+            type: DataTypes.INTEGER, // in hours, required advance notice
+            allowNull: true,
+        },
+        offer_code: {
+            type: DataTypes.STRING,
+            allowNull: true,
+        },
+        offer_discount_type: {
+            type: DataTypes.ENUM('percentage', 'fixed'),
+            allowNull: true,
+        },
+        offer_discount_value: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: true,
+        },
+        discounted_price: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: true,
+        },
     }, {
         sequelize,
         modelName: 'MenuItem',
         tableName: 'menu_items',
+        timestamps: true,
+        paranoid: true,
         underscored: true,
-        paranoid: true
     });
     return MenuItem;
 };

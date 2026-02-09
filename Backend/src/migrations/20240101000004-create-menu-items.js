@@ -57,6 +57,10 @@ module.exports = {
                 type: Sequelize.INTEGER,
                 comment: 'in minutes'
             },
+            is_vegetarian: {
+                type: Sequelize.BOOLEAN,
+                defaultValue: true
+            },
             pre_order_time: {
                 type: Sequelize.INTEGER,
                 comment: 'in hours'
@@ -85,7 +89,7 @@ module.exports = {
                 type: Sequelize.DECIMAL(10, 2)
             },
             image_url: {
-                type: Sequelize.STRING
+                type: Sequelize.TEXT
             },
             created_at: {
                 allowNull: false,

@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
-import { useInquiryStore } from '@/store/inquiry-store';
 import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
 import { MapPin, Phone, Mail, Send, CheckCircle, Clock } from 'lucide-react';
 
+import api from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
+
 export default function Contact() {
-    const { addInquiry } = useInquiryStore();
+    // const { addInquiry } = useInquiryStore(); // Removed as per requirement
     const { siteSettings, fetchSiteSettings } = useCMSEnhancedStore();
+    const { toast } = useToast();
 
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -42,17 +45,7 @@ export default function Contact() {
         setLoading(true);
 
         try {
-            await addInquiry({
-                full_name: formData.name,
-                email: formData.email,
-                phone: formData.phone,
-                status: 'new',
-                priority: 'medium',
-                additional_details: `Subject: ${formData.subject}\n\nMessage: ${formData.message}\n\nEvent Type: ${formData.eventType}\nEvent Date: ${formData.eventDate}\nGuest Count: ${formData.guestCount}`,
-                event_type: formData.eventType as any || undefined,
-                event_date: formData.eventDate || undefined,
-                guest_count: formData.guestCount ? parseInt(formData.guestCount) : undefined
-            });
+            await api.post('/contact', formData);
 
             setSubmitted(true);
             setFormData({
@@ -65,8 +58,23 @@ export default function Contact() {
                 eventDate: '',
                 guestCount: ''
             });
-        } catch (error) {
-            console.error('Failed to submit inquiry:', error);
+
+            toast({
+                title: "Message Sent",
+                description: "We've received your message and will get back to you soon.",
+                variant: "default",
+                className: "bg-green-600 text-white border-none"
+            });
+
+        } catch (error: any) {
+            console.error('Failed to submit contact form:', error);
+            const errorMessage = error.response?.data?.message || "Something went wrong. Please try again.";
+
+            toast({
+                title: "Error",
+                description: errorMessage,
+                variant: "destructive",
+            });
         } finally {
             setLoading(false);
         }

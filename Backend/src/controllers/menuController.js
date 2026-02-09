@@ -1,143 +1,180 @@
-const { MenuItem, MenuCategory, MenuType } = require('../models');
+const menuService = require('../services/menuService');
+const { createMenuItemSchema, updateMenuItemSchema, listMenuItemsSchema } = require('../validators/menuValidator');
 
-// @desc    Get all menu items
-// @route   GET /api/menu/items
-// @access  Public
-const getMenuItems = async (req, res, next) => {
+const listMenuItems = async (req, res, next) => {
     try {
-        const items = await MenuItem.findAll({
-            include: [
-                { model: MenuCategory, as: 'category' },
-                { model: MenuType, as: 'type' }
-            ],
-            order: [
-                ['is_featured', 'DESC'],
-                ['featured_priority', 'ASC'],
-                ['created_at', 'DESC']
-            ]
+        const { error, value } = listMenuItemsSchema.validate(req.query);
+        if (error) {
+            return res.status(400).json({ success: false, message: error.details[0].message });
+        }
+
+        const result = await menuService.listMenuItems(value);
+        res.json({
+            success: true,
+            message: 'Menu items retrieved successfully',
+            data: result.items, // Ensure it matches Frontend expectation if they expect array directly or {items: [], total: X}
+            pagination: { // Adding pagination metadata structure if required, or keep user response
+                total: result.total,
+                page: result.page,
+                limit: result.limit,
+                totalPages: Math.ceil(result.total / result.limit)
+            }
         });
-        res.json(items);
     } catch (error) {
         next(error);
     }
 };
 
-// @desc    Create a menu item
-// @route   POST /api/menu/items
-// @access  Private/Admin
+const getMenuItemCount = async (req, res, next) => {
+    try {
+        const result = await menuService.getMenuItemCount();
+        res.json({
+            success: true,
+            message: 'Menu item counts retrieved successfully',
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const createMenuItem = async (req, res, next) => {
     try {
-        const item = await MenuItem.create(req.body);
-        const fullItem = await MenuItem.findByPk(item.id, {
-            include: ['category', 'type']
+        const { error, value } = createMenuItemSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ success: false, message: error.details[0].message });
+        }
+
+        const newItem = await menuService.createMenuItem(value, req.file);
+        res.status(201).json({
+            success: true,
+            message: 'Menu item created successfully',
+            data: newItem
         });
-        res.status(201).json(fullItem);
     } catch (error) {
         next(error);
     }
 };
 
-// @desc    Update a menu item
-// @route   PUT /api/menu/items/:id
-// @access  Private/Admin
 const updateMenuItem = async (req, res, next) => {
     try {
-        const item = await MenuItem.findByPk(req.params.id);
-
-        if (item) {
-            await item.update(req.body);
-            const fullItem = await MenuItem.findByPk(item.id, {
-                include: ['category', 'type']
-            });
-            res.json(fullItem);
-        } else {
-            res.status(404);
-            throw new Error('Menu item not found');
+        const { id } = req.params;
+        const { error, value } = updateMenuItemSchema.validate(req.body);
+        if (error) {
+            return res.status(400).json({ success: false, message: error.details[0].message });
         }
+
+        const updatedItem = await menuService.updateMenuItem(id, value, req.file);
+        res.json({
+            success: true,
+            message: 'Menu item updated successfully',
+            data: updatedItem
+        });
     } catch (error) {
         next(error);
     }
 };
 
-// @desc    Delete a menu item
-// @route   DELETE /api/menu/items/:id
-// @access  Private/Admin
-const deleteMenuItem = async (req, res, next) => {
+const toggleAvailability = async (req, res, next) => {
     try {
-        const item = await MenuItem.findByPk(req.params.id);
-
-        if (item) {
-            await item.destroy();
-            res.json({ message: 'Menu item removed' });
-        } else {
-            res.status(404);
-            throw new Error('Menu item not found');
-        }
+        const { id } = req.params;
+        const result = await menuService.toggleAvailability(id);
+        res.json({
+            success: true,
+            message: 'Menu item availability toggled successfully',
+            data: result
+        });
     } catch (error) {
         next(error);
     }
 };
 
-// @desc    Toggle featured status
-// @route   PATCH /api/menu/items/:id/featured
-// @access  Private/Admin
 const toggleFeatured = async (req, res, next) => {
     try {
-        const item = await MenuItem.findByPk(req.params.id);
-
-        if (item) {
-            item.is_featured = !item.is_featured;
-            if (item.is_featured && !item.featured_priority) {
-                // Simple logic to put at end of featured list
-                const count = await MenuItem.count({ where: { is_featured: true } });
-                item.featured_priority = count + 1;
-            }
-            await item.save();
-            const fullItem = await MenuItem.findByPk(item.id, {
-                include: ['category', 'type']
-            });
-            res.json(fullItem);
-        } else {
-            res.status(404);
-            throw new Error('Menu item not found');
-        }
-    } catch (error) {
-        next(error);
-    }
-};
-
-// @desc    Get all categories
-// @route   GET /api/menu/categories
-// @access  Public
-const getCategories = async (req, res, next) => {
-    try {
-        const categories = await MenuCategory.findAll({
-            order: [['display_order', 'ASC']]
+        const { id } = req.params;
+        const result = await menuService.toggleFeatured(id);
+        res.json({
+            success: true,
+            message: 'Menu item featured status toggled successfully',
+            data: result
         });
-        res.json(categories);
     } catch (error) {
         next(error);
     }
 };
 
-// @desc    Create category
-// @route   POST /api/menu/categories
-// @access  Private/Admin
+const deleteMenuItem = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const result = await menuService.deleteMenuItem(id);
+        res.json({
+            success: true,
+            message: 'Menu item deleted successfully',
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const listCategories = async (req, res, next) => {
+    try {
+        const categories = await menuService.getAllCategories();
+        res.json({
+            success: true,
+            data: categories
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const listTypes = async (req, res, next) => {
+    try {
+        const types = await menuService.getAllTypes();
+        res.json({
+            success: true,
+            data: types
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const createCategory = async (req, res, next) => {
     try {
-        const category = await MenuCategory.create(req.body);
-        res.status(201).json(category);
+        const category = await menuService.createCategory(req.body);
+        res.status(201).json({
+            success: true,
+            data: category
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+const createType = async (req, res, next) => {
+    try {
+        const type = await menuService.createType(req.body);
+        res.status(201).json({
+            success: true,
+            data: type
+        });
     } catch (error) {
         next(error);
     }
 };
 
 module.exports = {
-    getMenuItems,
+    listMenuItems,
+    getMenuItemCount,
     createMenuItem,
     updateMenuItem,
-    deleteMenuItem,
+    toggleAvailability,
     toggleFeatured,
-    getCategories,
-    createCategory
+    deleteMenuItem,
+    listCategories,
+    listTypes,
+    createCategory,
+    createType
 };
