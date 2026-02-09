@@ -81,15 +81,14 @@ export default function CustomerMenu() {
   };
 
   const handleAddToCartFromModal = (item: MenuItem, quantity: number) => {
-    for (let i = 0; i < quantity; i++) {
-      addItem({
-        id: item.id,
-        name: item.name,
-        price: item.discounted_price || item.price,
-        image_url: item.image_url,
-        unit_type: item.unit_type,
-      });
-    }
+    addItem({
+      id: item.id,
+      name: item.name,
+      price: item.discounted_price || item.price,
+      image_url: item.image_url,
+      unit_type: item.unit_type,
+      quantity: quantity,
+    });
     setAddedToCart(item.id);
     setTimeout(() => setAddedToCart(null), 2000);
   };

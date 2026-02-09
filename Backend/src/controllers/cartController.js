@@ -94,18 +94,38 @@ exports.addToCart = async (req, res) => {
             }
         });
 
-        // Check if item already in cart
-        let cartItem = await CartItem.findOne({
+        // Check for existing items (handling potential duplicates)
+        const cartItems = await CartItem.findAll({
             where: {
                 cart_id: cart.id,
                 menu_item_id: menu_item_id
             }
         });
 
-        if (cartItem) {
-            // Update quantity
-            cartItem.quantity += quantity;
-            await cartItem.save();
+        let cartItem;
+
+        if (cartItems.length > 0) {
+            // Duplicate handling: merge all into the first one
+            const firstItem = cartItems[0];
+
+            // Calculate total existing quantity from all duplicates
+            const currentTotalQty = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+            // Update the first item with new total
+            firstItem.quantity = currentTotalQty + quantity;
+            await firstItem.save();
+
+            // Delete duplicates if any
+            if (cartItems.length > 1) {
+                const idsToDelete = cartItems.slice(1).map(i => i.id);
+                await CartItem.destroy({
+                    where: {
+                        id: idsToDelete
+                    }
+                });
+            }
+
+            cartItem = firstItem;
         } else {
             // Create new cart item
             cartItem = await CartItem.create({
@@ -131,7 +151,7 @@ exports.addToCart = async (req, res) => {
 exports.updateCartItem = async (req, res) => {
     try {
         const userId = req.user.userId;
-        const { menu_item_id } = req.params; // Using menu_item_id to identify item in cart for simplicity with frontend store
+        const { menu_item_id } = req.params;
         const { quantity } = req.body;
 
         // Find active cart
@@ -143,8 +163,20 @@ exports.updateCartItem = async (req, res) => {
             return res.status(404).json({ success: false, message: 'No active cart found' });
         }
 
+        // Find all items matching this product (to handle duplicates)
+        const cartItems = await CartItem.findAll({
+            where: {
+                cart_id: cart.id,
+                menu_item_id: menu_item_id
+            }
+        });
+
+        if (cartItems.length === 0) {
+            return res.status(404).json({ success: false, message: 'Item not found in cart' });
+        }
+
         if (quantity <= 0) {
-            // Remove item
+            // Remove all instances of this item
             await CartItem.destroy({
                 where: {
                     cart_id: cart.id,
@@ -154,18 +186,21 @@ exports.updateCartItem = async (req, res) => {
             return res.status(200).json({ success: true, message: 'Item removed from cart' });
         }
 
-        const [updatedRows] = await CartItem.update(
-            { quantity },
-            {
-                where: {
-                    cart_id: cart.id,
-                    menu_item_id: menu_item_id
-                }
-            }
-        );
+        // Update logic: Consolidate to first item
+        const firstItem = cartItems[0];
 
-        if (updatedRows === 0) {
-            return res.status(404).json({ success: false, message: 'Item not found in cart' });
+        // Update first item to exact new quantity
+        firstItem.quantity = quantity;
+        await firstItem.save();
+
+        // Delete duplicates if any
+        if (cartItems.length > 1) {
+            const idsToDelete = cartItems.slice(1).map(i => i.id);
+            await CartItem.destroy({
+                where: {
+                    id: idsToDelete
+                }
+            });
         }
 
         res.status(200).json({ success: true, message: 'Cart updated' });

@@ -8,9 +8,17 @@ import { useSettingsStore } from '@/store/settings-store';
 import { calculateOrderTotal, formatCurrency } from '@/utils/orderCalculations';
 import { Pencil, Plus, Minus, ShoppingBag, CheckCircle, QrCode } from 'lucide-react';
 
+const getImageUrl = (url?: string) => {
+  if (!url) return '/banner.jpeg'; // Fallback
+  if (url.startsWith('http')) return url;
+  // Remove /api from base if present to get root
+  const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+  return `${baseUrl}${url}`;
+};
+
 export default function Cart() {
   const navigate = useNavigate();
-  const { items, updateQuantity, removeItem, clearCart, fetchCart, isLoading } = useCartStore();
+  const { items, updateQuantity, removeItem, clearCart, fetchCart } = useCartStore();
   const { createOrder } = useOrderStore();
   const { user } = useAuthStore();
   const { settings } = useSettingsStore();
@@ -194,12 +202,21 @@ export default function Cart() {
               <h3 className="text-white text-lg sm:text-xl font-semibold mb-2">Your cart is empty</h3>
               <p className="text-gray-400 mb-6 text-sm sm:text-base">Add some delicious items to get started!</p>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => {
+                  navigate('/');
+                  setTimeout(() => {
+                    const menuSection = document.getElementById('menu');
+                    if (menuSection) {
+                      menuSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }, 100);
+                }}
                 className="px-6 py-3 bg-[#F2A900] hover:bg-[#D99700] text-black font-semibold rounded-lg transition-colors inline-flex items-center gap-2 text-sm sm:text-base"
               >
                 <ShoppingBag className="w-5 h-5" />
                 Browse Menu
               </button>
+```
             </div>
           )}
 
@@ -214,7 +231,7 @@ export default function Cart() {
                   {item.image_url && (
                     <div className="flex-shrink-0">
                       <img
-                        src={item.image_url}
+                        src={getImageUrl(item.image_url)}
                         alt={item.name}
                         className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-lg border-2 border-[#F2A900]/30 group-hover:border-[#F2A900] transition-colors"
                       />
