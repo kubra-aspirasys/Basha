@@ -4,7 +4,7 @@ const {
     MenuItem,
     Payment,
     Customer,
-    Inquiry,
+    ContactInquiry,
     sequelize
 } = require('../models');
 const { Op } = require('sequelize');
@@ -44,9 +44,9 @@ class DashboardService {
         });
 
         // 3. Recent Inquiries
-        const recentInquiries = await Inquiry.findAll({
+        const recentInquiries = await ContactInquiry.findAll({
             limit: 5,
-            order: [['createdAt', 'DESC']]
+            order: [['created_at', 'DESC']]
         });
 
         // 4. Sales Data (Last 7 Days)

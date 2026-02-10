@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import MetricsCard from '@/components/MetricsCard';
 import api from '@/lib/api';
 import { DashboardStats } from '@/types';
+import { Badge } from '@/components/ui/badge';
 import {
   Users, ShoppingBag, DollarSign, UtensilsCrossed, TrendingUp, Clock, CheckCircle,
   Package, Truck, AlertCircle, Plus, Calendar, ChefHat, MessageSquare, Phone, Mail,
-  Loader2
+  Loader2, XCircle, Layers
 } from 'lucide-react';
+import { format } from 'date-fns';
 
 const statusConfig = {
   pending: {
@@ -39,6 +41,24 @@ const statusConfig = {
     color: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800',
     icon: AlertCircle,
     label: 'Cancelled'
+  },
+};
+
+const inquiryStatusConfig = {
+  Pending: {
+    color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800',
+    icon: Clock,
+    label: 'Pending'
+  },
+  Approved: {
+    color: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800',
+    icon: CheckCircle,
+    label: 'Approved'
+  },
+  Disapproved: {
+    color: 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300 border-rose-200 dark:border-rose-800',
+    icon: XCircle,
+    label: 'Disapproved'
   },
 };
 
@@ -290,8 +310,6 @@ export default function Dashboard() {
           <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Orders by Status</h3>
           <div className="space-y-3">
             {Object.entries(stats.ordersByStatus).map(([status, count]) => {
-              if (count === 0 && !['pending', 'confirmed'].includes(status)) return null; // Show at least pending/confirmed even if 0? Or just show existing.
-              // Actually let's just map over all known statuses to keep UI consistent
               const knownStatuses = Object.keys(statusConfig);
               if (!knownStatuses.includes(status)) return null;
 
@@ -491,9 +509,7 @@ export default function Dashboard() {
                 className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer hover:shadow-md"
               >
                 <div className="flex -space-x-2">
-                  {/* We don't have item images ready in the order object without full population, 
-                      but let's try to use what we have or placeholder */}
-                  {(order.items || []).slice(0, 3).map((item, idx) => (
+                  {(order.items || []).slice(0, 3).map((_, idx) => (
                     <div key={idx} className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 border-2 border-white dark:border-slate-800 flex items-center justify-center">
                       <UtensilsCrossed className="w-6 h-6 text-orange-500" />
                     </div>
@@ -544,100 +560,83 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Recent Inquiries & Quotes */}
-      <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Recent Inquiries & Quotes</h3>
+      <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gold-100 dark:bg-gold-900/20 rounded-xl flex items-center justify-center">
+              <MessageSquare className="w-5 h-5 text-gold-600" />
+            </div>
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Recent Contact Inquiries</h3>
+          </div>
           <button
             onClick={() => navigate('/admin/inquiries')}
-            className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
+            className="px-4 py-2 hover:bg-gold-50 dark:hover:bg-gold-900/20 text-gold-600 font-bold text-sm rounded-xl transition-all"
           >
-            View All
+            View All Hub
           </button>
         </div>
-        <div className="space-y-4">
+        <div className="divide-y divide-slate-100 dark:divide-slate-800">
           {stats.recentInquiries.length > 0 ? (
             stats.recentInquiries.map((inquiry) => {
-              const priorityColors = {
-                low: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800',
-                medium: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
-                high: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800',
-              };
-
-              const statusColors = {
-                new: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800',
-                contacted: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
-                quoted: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200 dark:border-orange-800',
-                converted: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border-green-200 dark:border-green-800',
-                lost: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border-red-200 dark:border-red-800',
-                closed: 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300 border-gray-200 dark:border-gray-800',
-              };
+              const status = inquiryStatusConfig[inquiry.status] || inquiryStatusConfig.Pending;
+              const StatusIcon = status.icon;
 
               return (
                 <div
                   key={inquiry.id}
-                  onClick={() => navigate(`/admin/inquiries?openInquiry=${inquiry.id}`)}
-                  className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer hover:shadow-md"
+                  onClick={() => navigate(`/admin/inquiries`)}
+                  className="flex items-center gap-6 p-6 hover:bg-gold-50/20 dark:hover:bg-gold-900/5 transition-all cursor-pointer group"
                 >
-                  <div className="flex-shrink-0">
-                    <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center">
-                      <MessageSquare className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  <div className="flex-shrink-0 relative">
+                    <div className="w-12 h-12 bg-slate-100 dark:bg-slate-800 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform font-black text-slate-400 group-hover:text-gold-600">
+                      {(inquiry.name || 'U').charAt(0).toUpperCase()}
                     </div>
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-semibold text-slate-900 dark:text-white">
-                        {inquiry.full_name}
+                    <div className="flex items-center gap-3 mb-1.5">
+                      <h4 className="font-bold text-slate-900 dark:text-white capitalize truncate group-hover:text-gold-600 transition-colors">
+                        {inquiry.name}
                       </h4>
-                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${statusColors[inquiry.status]}`}>
-                        {inquiry.status.charAt(0).toUpperCase() + inquiry.status.slice(1)}
-                      </div>
-                      <div className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${priorityColors[inquiry.priority]}`}>
-                        {inquiry.priority.charAt(0).toUpperCase() + inquiry.priority.slice(1)}
-                      </div>
+                      <Badge className={`${status.color} px-2 py-0 border font-bold text-[10px] rounded-lg`}>
+                        <StatusIcon className="w-3 h-3 mr-1" />
+                        {inquiry.status}
+                      </Badge>
                     </div>
 
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-2">
-                      {inquiry.event_type} • {inquiry.guest_count} guests
-                    </p>
-
-                    <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
-                      <div className="flex items-center gap-1">
-                        <Phone className="w-3 h-3" />
-                        <span>{inquiry.phone}</span>
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                      <div className="flex items-center gap-1.5 font-semibold text-gold-600 dark:text-gold-500">
+                        <Layers className="w-3.5 h-3.5" />
+                        {inquiry.subject}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Mail className="w-3 h-3" />
-                        <span>{inquiry.email}</span>
+                      <div className="flex items-center gap-1.5">
+                        <Phone className="w-3.5 h-3.5" />
+                        {inquiry.phone}
                       </div>
-                      <div className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        <span>{inquiry.event_date ? new Date(inquiry.event_date).toLocaleDateString() : 'Not specified'}</span>
+                      <div className="flex items-center gap-1.5">
+                        <Mail className="w-3.5 h-3.5" />
+                        {inquiry.email}
                       </div>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    {inquiry.quote_amount && (
-                      <div className="text-lg font-bold text-slate-900 dark:text-white">
-                        ₹{inquiry.quote_amount.toLocaleString()}
-                      </div>
-                    )}
-                    <div className="text-xs text-slate-500 dark:text-slate-400">
-                      {new Date(inquiry.created_at || inquiry.createdAt || Date.now()).toLocaleDateString()}
-                    </div>
-                    <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                      Click to view
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">
+                      {inquiry.event_type || 'General'}
+                    </p>
+                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">
+                      {format(new Date(inquiry.created_at || (inquiry as any).createdAt || Date.now()), 'dd MMM yyyy')}
                     </div>
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="text-center py-8">
-              <MessageSquare className="w-12 h-12 text-slate-400 dark:text-slate-500 mx-auto mb-4" />
-              <p className="text-slate-500 dark:text-slate-400">No recent inquiries</p>
+            <div className="text-center py-12 px-6">
+              <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-3xl flex items-center justify-center mx-auto mb-4 grayscale opacity-40">
+                <MessageSquare className="w-8 h-8 text-slate-400" />
+              </div>
+              <p className="text-slate-500 dark:text-slate-400 font-medium tracking-tight">Stationed for new inquiries</p>
             </div>
           )}
         </div>

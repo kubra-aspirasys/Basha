@@ -2,12 +2,12 @@
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
-    class ContactMessage extends Model {
+    class ContactInquiry extends Model {
         static associate(models) {
-            // define association here if needed
+            // No specific associations needed for now
         }
     }
-    ContactMessage.init({
+    ContactInquiry.init({
         id: {
             type: DataTypes.UUID,
             defaultValue: DataTypes.UUIDV4,
@@ -36,18 +36,32 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.TEXT,
             allowNull: false
         },
-        created_at: {
-            type: DataTypes.DATE,
-            defaultValue: DataTypes.NOW
+        event_type: {
+            type: DataTypes.STRING,
+            allowNull: true
+        },
+        guest_count: {
+            type: DataTypes.INTEGER,
+            allowNull: true
+        },
+        status: {
+            type: DataTypes.ENUM('Pending', 'Approved', 'Disapproved'),
+            defaultValue: 'Pending'
+        },
+        internal_notes: {
+            type: DataTypes.TEXT,
+            allowNull: true
         }
     }, {
         sequelize,
-        modelName: 'ContactMessage',
-        tableName: 'contact_messages',
+        modelName: 'ContactInquiry',
+        tableName: 'contact_inquiries',
         underscored: true,
         timestamps: true,
+        paranoid: true,
         createdAt: 'created_at',
-        updatedAt: 'updated_at'
+        updatedAt: 'updated_at',
+        deletedAt: 'deleted_at'
     });
-    return ContactMessage;
+    return ContactInquiry;
 };

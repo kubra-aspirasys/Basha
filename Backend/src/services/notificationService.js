@@ -1,4 +1,4 @@
-const { Notification, Order, Customer, Inquiry, Payment, sequelize } = require('../models');
+const { Notification, Order, Customer, ContactInquiry, Payment, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 const logAudit = (action, details, user = 'system') => {
@@ -40,11 +40,11 @@ const getAllNotifications = async ({ search, type, priority, is_read, sort, page
         where.is_read = is_read === 'true' || is_read === true;
     }
 
-    let order = [['created_at', 'DESC']];
+    let order = [['createdAt', 'DESC']];
     if (sort) {
-        if (sort === 'created_at_asc') order = [['created_at', 'ASC']];
-        else if (sort === 'created_at_desc') order = [['created_at', 'DESC']];
-        else if (sort === 'priority_desc') order = [['priority', 'DESC'], ['created_at', 'DESC']];
+        if (sort === 'created_at_asc') order = [['createdAt', 'ASC']];
+        else if (sort === 'created_at_desc') order = [['createdAt', 'DESC']];
+        else if (sort === 'priority_desc') order = [['priority', 'DESC'], ['createdAt', 'DESC']];
     }
 
     const { count, rows } = await Notification.findAndCountAll({
@@ -170,7 +170,7 @@ const getNotificationStats = async () => {
     today.setHours(0, 0, 0, 0);
     const todayCount = await Notification.count({
         where: {
-            created_at: { [Op.gte]: today }
+            createdAt: { [Op.gte]: today }
         }
     });
 
@@ -190,7 +190,7 @@ const getNotificationStats = async () => {
 const getLatestUnread = async (limit = 5) => {
     return await Notification.findAll({
         where: { is_read: false },
-        order: [['created_at', 'DESC']],
+        order: [['createdAt', 'DESC']],
         limit: parseInt(limit)
     });
 };
@@ -208,8 +208,8 @@ const generateFromActivity = async () => {
         const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
         const recentOrders = await Order.findAll({
-            where: { created_at: { [Op.gte]: yesterday } },
-            order: [['created_at', 'DESC']]
+            where: { createdAt: { [Op.gte]: yesterday } },
+            order: [['createdAt', 'DESC']]
         });
 
         for (const order of recentOrders) {
@@ -243,8 +243,8 @@ const generateFromActivity = async () => {
 
         // 2. New customers (last 24 hours)
         const recentCustomers = await Customer.findAll({
-            where: { created_at: { [Op.gte]: yesterday } },
-            order: [['created_at', 'DESC']]
+            where: { createdAt: { [Op.gte]: yesterday } },
+            order: [['createdAt', 'DESC']]
         });
 
         for (const customer of recentCustomers) {
@@ -274,8 +274,8 @@ const generateFromActivity = async () => {
             }
         }
 
-        // 3. New inquiries (last 24 hours)
-        const recentInquiries = await Inquiry.findAll({
+        // 3. New inquiries (last 24 hours) - using new ContactInquiry model
+        const recentInquiries = await ContactInquiry.findAll({
             where: { created_at: { [Op.gte]: yesterday } },
             order: [['created_at', 'DESC']]
         });
@@ -291,16 +291,16 @@ const generateFromActivity = async () => {
             if (!exists) {
                 await Notification.create({
                     type: 'new_inquiry',
-                    title: `New Inquiry from ${inquiry.full_name}`,
-                    message: `${inquiry.full_name} submitted a ${inquiry.event_type || 'general'} inquiry for ${inquiry.guest_count || 'N/A'} guests`,
-                    priority: inquiry.priority || 'medium',
+                    title: `New Inquiry from ${inquiry.name}`,
+                    message: `${inquiry.name} submitted a ${inquiry.event_type || 'general'} inquiry for ${inquiry.guest_count || 'N/A'} guests`,
+                    priority: 'medium',
                     reference_id: inquiry.id,
                     reference_type: 'inquiry',
                     metadata: {
-                        full_name: inquiry.full_name,
+                        full_name: inquiry.name,
                         event_type: inquiry.event_type,
                         guest_count: inquiry.guest_count,
-                        event_date: inquiry.event_date
+                        subject: inquiry.subject
                     }
                 });
                 results.created++;
@@ -310,8 +310,8 @@ const generateFromActivity = async () => {
 
         // 4. New payments (last 24 hours)
         const recentPayments = await Payment.findAll({
-            where: { created_at: { [Op.gte]: yesterday } },
-            order: [['created_at', 'DESC']]
+            where: { createdAt: { [Op.gte]: yesterday } },
+            order: [['createdAt', 'DESC']]
         });
 
         for (const payment of recentPayments) {
@@ -350,9 +350,9 @@ const generateFromActivity = async () => {
         const cancelledOrders = await Order.findAll({
             where: {
                 status: 'cancelled',
-                updated_at: { [Op.gte]: yesterday }
+                updatedAt: { [Op.gte]: yesterday }
             },
-            order: [['updated_at', 'DESC']]
+            order: [['updatedAt', 'DESC']]
         });
 
         for (const order of cancelledOrders) {

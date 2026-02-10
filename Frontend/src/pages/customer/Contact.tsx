@@ -19,7 +19,6 @@ export default function Contact() {
         subject: 'General Inquiry',
         message: '',
         eventType: '',
-        eventDate: '',
         guestCount: ''
     });
 
@@ -44,8 +43,16 @@ export default function Contact() {
         e.preventDefault();
         setLoading(true);
 
+        // Sanitize payload: replace empty strings with null for optional fields
+        // and ensure guestCount is a number if it exists
+        const payload = {
+            ...formData,
+            guestCount: formData.guestCount === '' ? null : parseInt(formData.guestCount, 10),
+            eventType: formData.eventType === '' ? null : formData.eventType,
+        };
+
         try {
-            await api.post('/contact', formData);
+            await api.post('/contact', payload);
 
             setSubmitted(true);
             setFormData({
@@ -55,7 +62,6 @@ export default function Contact() {
                 subject: 'General Inquiry',
                 message: '',
                 eventType: '',
-                eventDate: '',
                 guestCount: ''
             });
 

@@ -116,22 +116,17 @@ export interface Payment {
 
 export interface Inquiry {
   id: string;
-  full_name: string;
+  name: string;
   email: string;
   phone: string;
-  event_date?: string;
-  event_type?: 'wedding' | 'corporate' | 'birthday' | 'anniversary' | 'other';
+  subject: string;
+  message: string;
+  event_type?: string;
   guest_count?: number;
-  additional_details?: string;
-  status: 'new' | 'contacted' | 'quoted' | 'converted' | 'closed';
-  priority: 'low' | 'medium' | 'high';
-  assigned_to?: string;
-  notes?: string;
-  quote_amount?: number;
+  status: 'Pending' | 'Approved' | 'Disapproved';
+  internal_notes?: string;
   created_at: string;
-  createdAt?: string;
   updated_at: string;
-  updatedAt?: string;
 }
 
 export interface TopSellingItem {
