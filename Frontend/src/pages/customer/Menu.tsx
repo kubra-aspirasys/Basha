@@ -19,7 +19,7 @@ export default function CustomerMenu() {
     menuItems,
     categories: storeCategories,
     productTypes,
-    fetchMenuItems,
+    fetchAllMenuItems,
     fetchCategories,
     fetchProductTypes,
     loading
@@ -33,10 +33,10 @@ export default function CustomerMenu() {
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
 
   useEffect(() => {
-    fetchMenuItems({ available: true });
+    fetchAllMenuItems();
     fetchCategories();
     fetchProductTypes();
-  }, [fetchMenuItems, fetchCategories, fetchProductTypes]);
+  }, [fetchAllMenuItems, fetchCategories, fetchProductTypes]);
 
   // Derive mappings from store data to replace mock objects
   const categoryNames = useMemo(() => {

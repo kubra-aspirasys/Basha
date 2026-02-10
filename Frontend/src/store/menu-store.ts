@@ -66,6 +66,7 @@ interface MenuState {
     featured?: boolean;
   }) => Promise<void>;
 
+  fetchAllMenuItems: () => Promise<void>;
   fetchCategories: () => Promise<void>;
   fetchProductTypes: () => Promise<void>;
 
@@ -120,6 +121,21 @@ export const useMenuStore = create<MenuState>((set, get) => ({
       });
     } catch (error: any) {
       console.error('Failed to fetch menu items:', error);
+      set({ error: error.response?.data?.message || 'Failed to fetch menu items', loading: false });
+    }
+  },
+
+  fetchAllMenuItems: async () => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.get('/menu/all');
+      set({
+        menuItems: response.data.data || [],
+        totalItems: response.data.data?.length || 0,
+        loading: false
+      });
+    } catch (error: any) {
+      console.error('Failed to fetch all menu items:', error);
       set({ error: error.response?.data?.message || 'Failed to fetch menu items', loading: false });
     }
   },

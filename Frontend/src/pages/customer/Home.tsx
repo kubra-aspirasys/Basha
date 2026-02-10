@@ -20,7 +20,7 @@ const getImageUrl = (url?: string) => {
 };
 
 export default function Home() {
-  const { menuItems, fetchMenuItems, categories: storeCategories, fetchCategories } = useMenuStore();
+  const { menuItems, fetchAllMenuItems, categories: storeCategories, fetchCategories } = useMenuStore();
   const { addItem } = useCartStore();
   const { homepageHero, fetchHomepageHero } = useCMSEnhancedStore();
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
@@ -30,11 +30,11 @@ export default function Home() {
   // Fetch menu items and CMS content on mount
   useEffect(() => {
     if (!menuItems.length) {
-      fetchMenuItems();
+      fetchAllMenuItems();
     }
     fetchCategories();
     fetchHomepageHero();
-  }, [fetchMenuItems, fetchCategories, menuItems.length, fetchHomepageHero]);
+  }, [fetchAllMenuItems, fetchCategories, menuItems.length, fetchHomepageHero]);
 
   // Create lookup map for category names
   const categoryLookup = useMemo(() => {

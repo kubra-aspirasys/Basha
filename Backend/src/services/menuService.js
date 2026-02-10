@@ -218,8 +218,32 @@ const createType = async (data) => {
     throw new Error('MenuType model not found');
 };
 
+const getAllMenuItems = async () => {
+    const items = await MenuItem.findAll({
+        where: { is_available: true },
+        include: [
+            {
+                model: MenuCategory,
+                as: 'category',
+                attributes: ['id', 'name', 'display_order']
+            },
+            {
+                model: MenuItemImage,
+                as: 'images',
+                attributes: ['id', 'image_url']
+            }
+        ],
+        order: [
+            [{ model: MenuCategory, as: 'category' }, 'display_order', 'ASC'],
+            ['name', 'ASC']
+        ]
+    });
+    return items;
+};
+
 module.exports = {
     listMenuItems,
+    getAllMenuItems,
     getMenuItemCount,
     createMenuItem,
     updateMenuItem,

@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Moon, Sun, LogOut, Bell, Menu } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
+import { useNotificationStore, Notification } from '@/store/notification-store';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from 'next-themes';
-import { useToast } from '@/hooks/use-toast';
 import GlobalSearch from '../GlobalSearch';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
@@ -15,13 +15,19 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const { user, logout, fetchProfile } = useAuthStore();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  const { toast } = useToast();
+  // const { toast } = useToast();
+  const { latestUnread, unreadCount, fetchLatestUnread, markAsRead } = useNotificationStore();
   const [showNotifications, setShowNotifications] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetchProfile();
-  }, [fetchProfile]);
+    fetchLatestUnread();
+
+    // Optional: Poll for new notifications every minute
+    const interval = setInterval(fetchLatestUnread, 60000);
+    return () => clearInterval(interval);
+  }, [fetchProfile, fetchLatestUnread]);
 
   const admin = user && user.role === 'admin' ? user : null;
 
@@ -36,11 +42,48 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   const handleNotificationClick = () => {
     setShowNotifications(!showNotifications);
-    if (!showNotifications) {
-      toast({
-        title: 'Notifications',
-        description: 'You have 3 new notifications',
-      });
+  };
+
+  const formatTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 172800) return 'Yesterday';
+    return date.toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  };
+
+  const handleReadAndNavigate = async (notification: Notification) => {
+    await markAsRead(notification.id);
+    setShowNotifications(false);
+
+    // Smart redirection based on notification type
+    switch (notification.type) {
+      case 'new_order':
+      case 'order_status':
+      case 'order_cancelled':
+        navigate('/admin/orders');
+        break;
+      case 'new_payment':
+      case 'payment_failed':
+        navigate('/admin/payments');
+        break;
+      case 'new_customer':
+        navigate('/admin/users');
+        break;
+      case 'new_inquiry':
+      case 'new_quote':
+      case 'contact_message':
+        navigate('/admin/inquiries');
+        break;
+      case 'low_stock':
+        navigate('/admin/menu');
+        break;
+      default:
+        navigate('/admin/notifications');
     }
   };
 
@@ -107,34 +150,54 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         <div className="relative group" ref={notificationRef}>
           <button
             onClick={handleNotificationClick}
-            className="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all duration-300 hover:scale-105 hover:premium-shadow"
+            className="p-2.5 rounded-xl bg-slate-100/80 dark:bg-slate-800/80 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all duration-300 hover:scale-105 hover:premium-shadow relative"
           >
             <Bell className="w-5 h-5 text-slate-600 dark:text-slate-400" strokeWidth={2.5} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-error rounded-full border-2 border-white dark:border-slate-800 animate-pulse" />
+            )}
           </button>
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-error rounded-full border-2 border-white dark:border-slate-800 animate-pulse" />
 
           {/* Notification Dropdown */}
           {showNotifications && (
-            <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-[9999]">
-              <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+            <div className="absolute right-0 top-full mt-2 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 z-[9999] overflow-hidden">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                 <h3 className="font-semibold text-slate-900 dark:text-white">Notifications</h3>
+                {unreadCount > 0 && (
+                  <span className="text-xs font-medium text-white bg-error px-1.5 py-0.5 rounded-full">
+                    {unreadCount} New
+                  </span>
+                )}
               </div>
-              <div className="max-h-64 overflow-y-auto">
-                <div className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-600">
-                  <p className="text-sm text-slate-900 dark:text-white">New order received</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">2 minutes ago</p>
-                </div>
-                <div className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-600">
-                  <p className="text-sm text-slate-900 dark:text-white">Payment completed</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">5 minutes ago</p>
-                </div>
-                <div className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700">
-                  <p className="text-sm text-slate-900 dark:text-white">New customer registered</p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">10 minutes ago</p>
-                </div>
+              <div className="max-h-80 overflow-y-auto">
+                {latestUnread.length === 0 ? (
+                  <div className="p-8 text-center text-slate-500 dark:text-slate-400">
+                    <Bell className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No new notifications</p>
+                  </div>
+                ) : (
+                  latestUnread.map((notification) => (
+                    <div
+                      key={notification.id}
+                      onClick={() => handleReadAndNavigate(notification)}
+                      className="p-3 hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700 cursor-pointer transition-colors"
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <p className="text-sm font-medium text-slate-900 dark:text-white line-clamp-1">{notification.title}</p>
+                        <span className="text-[10px] text-slate-400 whitespace-nowrap ml-2">
+                          {formatTimeAgo(notification.created_at)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{notification.message}</p>
+                    </div>
+                  ))
+                )}
               </div>
-              <div className="p-3 border-t border-slate-200 dark:border-slate-700">
-                <button className="w-full text-sm text-gold-500 hover:text-gold-600 font-medium">
+              <div className="p-3 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+                <button
+                  onClick={() => { setShowNotifications(false); navigate('/admin/notifications'); }}
+                  className="w-full text-sm text-amber-600 hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400 font-medium transition-colors"
+                >
                   View all notifications
                 </button>
               </div>

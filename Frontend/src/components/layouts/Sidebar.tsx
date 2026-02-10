@@ -1,9 +1,10 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UtensilsCrossed, ShoppingBag, Tag, FileText, CreditCard, MessageSquare, CircleUser as UserCircle, ChevronRight, X } from 'lucide-react';
+import { LayoutDashboard, Users, UtensilsCrossed, ShoppingBag, Tag, FileText, CreditCard, MessageSquare, Bell, CircleUser as UserCircle, ChevronRight, X } from 'lucide-react';
 
 const navItems = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
+  { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
   { to: '/admin/users', icon: Users, label: 'Users' },
   { to: '/admin/menu', icon: UtensilsCrossed, label: 'Menu' },
   { to: '/admin/orders', icon: ShoppingBag, label: 'Orders' },

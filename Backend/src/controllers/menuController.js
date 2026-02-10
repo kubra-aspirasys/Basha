@@ -165,8 +165,22 @@ const createType = async (req, res, next) => {
     }
 };
 
+const getAllMenuItems = async (req, res, next) => {
+    try {
+        const items = await menuService.getAllMenuItems();
+        res.json({
+            success: true,
+            message: 'All menu items retrieved successfully',
+            data: items
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     listMenuItems,
+    getAllMenuItems,
     getMenuItemCount,
     createMenuItem,
     updateMenuItem,

@@ -6,8 +6,11 @@ const { authorize } = require('../middleware/roleMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
 // Public Routes (No auth required)
-// GET /menu-items - List items
+// GET /menu-items - List items (paginated, for admin)
 router.get('/', menuController.listMenuItems);
+
+// GET /menu/all - List ALL available items (no pagination, for customer)
+router.get('/all', menuController.getAllMenuItems);
 
 // GET /menu-items/categories - List categories
 router.get('/categories', menuController.listCategories);
