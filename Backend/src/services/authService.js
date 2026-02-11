@@ -159,16 +159,24 @@ class AuthService {
         if (!user) throw new Error('User not found with this email');
 
         const token = uuidv4();
-        const expires = new Date(Date.now() + 3600000);
+        const expires = new Date(Date.now() + 3600000); // 1 hour
 
         await user.update({
             reset_password_token: token,
             reset_password_expires: expires
         });
 
-        console.log(`[MOCK MAIL] Reset password link for ${role} (${email}): http://localhost:5173/reset-password?token=${token}`);
+        // Construct reset link
+        const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+        const resetLink = `${clientUrl}/reset-password?token=${token}`;
 
-        return { message: 'Reset link generated successfully' };
+        // Send actual email
+        const emailService = require('./emailService');
+        await emailService.sendPasswordResetEmail(user.email, user.name || 'User', resetLink);
+
+        console.log(`[MAIL SENT] Reset password link for ${role} (${email}): ${resetLink}`);
+
+        return { message: 'Password reset instructions sent to your email' };
     }
 
     async resetPassword(token, newPassword) {

@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Customer, Order } from '@/types';
+import { toast } from 'sonner';
 
 // const ITEMS_PER_PAGE = 10;
 
@@ -50,10 +51,10 @@ function AddUserModal() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white">
+        {/* <Button className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white">
           <Plus className="w-4 h-4" />
           Add New User
-        </Button>
+        </Button> */}
       </DialogTrigger>
       <DialogContent className="max-w-md mx-4 sm:mx-0">
         <DialogHeader>
@@ -155,7 +156,7 @@ function AddUserModal() {
 // Customer Detail Modal Component
 function CustomerDetailModal({ customer, orders }: { customer: Customer; orders: Order[] }) {
   const customerOrders = orders.filter(order => order.customer_id === customer.id);
-  const totalSpent = customerOrders.reduce((sum, order) => sum + order.total_amount, 0);
+  const totalSpent = customerOrders.reduce((sum, order) => sum + Number(order.total_amount), 0);
   const averageOrderValue = customerOrders.length > 0 ? totalSpent / customerOrders.length : 0;
   const favoriteItems = customerOrders
     .flatMap(order => order.items)
@@ -296,7 +297,7 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
   const [emailSubject, setEmailSubject] = useState('');
   const [emailMessage, setEmailMessage] = useState('');
   const [emailAttachment, setEmailAttachment] = useState<File | null>(null);
-
+  const [isSending, setIsSending] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
 
@@ -354,52 +355,83 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
     }
   };
 
-  const handleSendMessage = () => {
+  const handleSendMessage = async () => {
     const selectedCustomersData = customers.filter(c => selectedCustomers.has(c.id));
-
-    if (messageType === 'whatsapp') {
-      // Handle WhatsApp sending logic
-      // Call Backend to log
-      sendNotification({
-        type: 'whatsapp',
-        customers: selectedCustomersData.map(c => c.id),
-        message: whatsappMessage,
-        image_url: whatsappImagePreview // Simplified for now as full file upload might need FormData
-      });
-
-      // Generate WhatsApp URLs for each customer
-
-      // Generate WhatsApp URLs for each customer
-      selectedCustomersData.forEach(customer => {
-        if (customer.phone) {
-          const message = encodeURIComponent(whatsappMessage);
-          const whatsappUrl = `https://wa.me/${customer.phone.replace(/\D/g, '')}?text=${message}`;
-          window.open(whatsappUrl, '_blank');
-        }
-      });
-    } else {
-      // Handle Email sending logic
-      sendNotification({
-        type: 'email',
-        customers: selectedCustomersData.map(c => c.id),
-        subject: emailSubject,
-        message: emailMessage,
-        // attachment: emailAttachment 
-      });
-
-      // Generate mailto URLs for each customer
-
-      // Generate mailto URLs for each customer
-      selectedCustomersData.forEach(customer => {
-        const subject = encodeURIComponent(emailSubject);
-        const body = encodeURIComponent(emailMessage);
-        const mailtoUrl = `mailto:${customer.email}?subject=${subject}&body=${body}`;
-        window.open(mailtoUrl);
-      });
+    if (selectedCustomersData.length === 0) {
+      toast.error('Please select at least one recipient');
+      return;
     }
 
-    setIsOpen(false);
-    resetForm();
+    setIsSending(true);
+    try {
+      if (messageType === 'whatsapp') {
+        const responseData = await sendNotification({
+          type: 'whatsapp',
+          customers: selectedCustomersData.map(c => c.id),
+          message: whatsappMessage,
+          image_data: whatsappImagePreview
+        });
+
+        if (responseData?.success) {
+          toast.success(`Successfully logged WhatsApp broadcast for ${selectedCustomersData.length} customers.`);
+
+          const finalMsg = responseData.data?.finalMessage || whatsappMessage;
+          const urlMsg = encodeURIComponent(finalMsg);
+
+          // Browsers block multiple window.open from one click.
+          // We open the first one and tell the user.
+          const firstCustomer = selectedCustomersData.find(c => c.phone);
+          if (firstCustomer) {
+            const whatsappUrl = `https://wa.me/${firstCustomer.phone.replace(/\D/g, '')}?text=${urlMsg}`;
+            window.open(whatsappUrl, '_blank');
+          }
+
+          if (selectedCustomersData.length > 1) {
+            toast.info("Note: Browser pop-up blockers prevent opening multiple tabs. Only the first customer was opened.");
+          }
+
+          if (whatsappImagePreview) {
+            toast.info("Image link included in WhatsApp message.");
+          }
+        } else {
+          toast.error('Failed to prepare WhatsApp broadcast');
+        }
+      } else {
+        // Email Handling
+        let attachmentData = null;
+        if (emailAttachment) {
+          attachmentData = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target?.result as string);
+            reader.onerror = (err) => reject(err);
+            reader.readAsDataURL(emailAttachment);
+          });
+        }
+
+        const responseData = await sendNotification({
+          type: 'email',
+          customers: selectedCustomersData.map(c => c.id),
+          subject: emailSubject,
+          message: emailMessage,
+          attachment_data: attachmentData,
+          attachment_name: emailAttachment?.name
+        });
+
+        if (responseData?.success) {
+          toast.success(`Successfully sent emails to ${selectedCustomersData.length} customers`);
+        } else {
+          toast.error(responseData?.message || 'Failed to send emails via backend');
+        }
+      }
+
+      setIsOpen(false);
+      resetForm();
+    } catch (error) {
+      toast.error('An error occurred while sending messages');
+      console.error(error);
+    } finally {
+      setIsSending(false);
+    }
   };
 
   const resetForm = () => {
@@ -472,8 +504,8 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
             <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-700 rounded-lg">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 p-4">
                 {customers.map((customer) => {
-                  const customerOrders = orders.filter(order => order.customer_id === customer.id);
-                  const totalSpent = customerOrders.reduce((sum, order) => sum + order.total_amount, 0);
+                  const totalSpent = customer.total_spent || 0;
+                  const orderCount = customer.orders_count || 0;
 
                   return (
                     <div key={customer.id} className="flex items-center gap-3 p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-lg">
@@ -492,7 +524,7 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
                             {messageType === 'whatsapp' ? customer.phone || 'No phone' : customer.email}
                           </div>
                           <div className="text-xs text-slate-400">
-                            {customerOrders.length} orders • ₹{totalSpent.toLocaleString()} spent
+                            {orderCount} orders • ₹{totalSpent.toLocaleString()} spent
                           </div>
                         </div>
                       </div>
@@ -690,12 +722,16 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-200 dark:border-slate-700">
             <Button
+              className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white"
               onClick={handleSendMessage}
-              disabled={selectedCustomers.size === 0 || (messageType === 'whatsapp' ? !whatsappMessage : !emailMessage || !emailSubject)}
-              className="flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white"
+              disabled={isSending || selectedCustomers.size === 0 || (messageType === 'whatsapp' ? !whatsappMessage : !emailMessage || !emailSubject)}
             >
-              <Send className="w-4 h-4" />
-              Send {messageType === 'whatsapp' ? 'WhatsApp' : 'Email'} ({selectedCustomers.size})
+              {isSending ? (
+                <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+              ) : (
+                <Send className="w-4 h-4" />
+              )}
+              {isSending ? 'Sending...' : `Send ${messageType === 'whatsapp' ? 'WhatsApp' : 'Email'} (${selectedCustomers.size})`}
             </Button>
             <Button
               variant="outline"
@@ -712,7 +748,7 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
 
 export default function Users() {
   const { customers, fetchCustomers, fetchStats, updateCustomerStatus, exportCustomers, totalPages, totalCount, stats } = useCustomerStore();
-  const { orders } = useOrderStore(); // Still keep this if needed for order history deep dive or replace with API
+  const { orders, fetchOrders } = useOrderStore(); // Still keep this if needed for order history deep dive or replace with API
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -721,9 +757,9 @@ export default function Users() {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
 
-  // Fetch data on mount and when dependencies change
   useEffect(() => {
     fetchStats();
+    fetchOrders(); // Fetch orders to populate history in modals
   }, []);
 
   useEffect(() => {
@@ -941,8 +977,8 @@ export default function Users() {
             </thead>
             <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-gray-700">
               {paginatedCustomers.map((customer) => {
-                const customerOrders = orders.filter(order => order.customer_id === customer.id);
-                const totalSpent = customerOrders.reduce((sum, order) => sum + order.total_amount, 0);
+                const totalSpent = customer.total_spent || 0;
+                const orderCount = customer.orders_count || 0;
 
                 return (
                   <tr key={customer.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
@@ -964,7 +1000,7 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-blue-500" />
-                        <span className="font-medium">{customerOrders.length}</span>
+                        <span className="font-medium">{orderCount}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1039,8 +1075,8 @@ export default function Users() {
         {/* Mobile Card View */}
         <div className="lg:hidden space-y-4 p-4">
           {paginatedCustomers.map((customer) => {
-            const customerOrders = orders.filter(order => order.customer_id === customer.id);
-            const totalSpent = customerOrders.reduce((sum, order) => sum + order.total_amount, 0);
+            const totalSpent = customer.total_spent || 0;
+            const orderCount = customer.orders_count || 0;
 
             return (
               <Card key={customer.id} className="p-4">
@@ -1069,14 +1105,13 @@ export default function Users() {
                     </div>
                   </div>
 
-                  {/* Stats */}
                   <div className="grid grid-cols-2 gap-4 pt-2 border-t border-slate-200 dark:border-slate-700">
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <TrendingUp className="w-4 h-4 text-blue-500" />
                         <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Orders</span>
                       </div>
-                      <div className="text-lg font-bold text-slate-900 dark:text-white">{customerOrders.length}</div>
+                      <div className="text-lg font-bold text-slate-900 dark:text-white">{orderCount}</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1 mb-1">

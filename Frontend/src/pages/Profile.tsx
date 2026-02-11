@@ -10,7 +10,7 @@ import { Upload, X, Camera, Crop, Eye, EyeOff } from 'lucide-react';
 import { DeleteModal } from '@/components/cms/DeleteModal';
 
 export default function Profile() {
-  const { user: admin, updateProfile } = useAuthStore();
+  const { user: admin, updateProfile, changePassword } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     name: admin?.name || '',
@@ -30,23 +30,21 @@ export default function Profile() {
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
-  const [showCropModal, setShowCropModal] = useState(false);
-  const [cropImage, setCropImage] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    updateProfile(formData);
-    setIsEditing(false);
-    toast({
-      title: 'Profile updated',
-      description: 'Your profile has been updated successfully',
-    });
+    const success = await updateProfile(formData);
+    if (success) {
+      setIsEditing(false);
+      toast({
+        title: 'Profile updated',
+        description: 'Your profile has been updated successfully',
+      });
+    }
   };
-
-  const changePassword = useAuthStore((state) => state.changePassword);
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -110,8 +108,7 @@ export default function Profile() {
     const reader = new FileReader();
     reader.onload = (e) => {
       const result = e.target?.result as string;
-      setCropImage(result);
-      setShowCropModal(true);
+      setPreviewImage(result);
     };
     reader.readAsDataURL(file);
   };
@@ -143,28 +140,27 @@ export default function Profile() {
     }
   }, []);
 
-  const handleCropComplete = (croppedImage: string) => {
-    setPreviewImage(croppedImage);
-    setShowCropModal(false);
-    setCropImage(null);
-  };
 
   const handleSaveImage = async () => {
     if (!previewImage) return;
 
     setIsUploading(true);
     try {
-      // In a real app, you would upload to a cloud service like AWS S3, Cloudinary, etc.
-      // For now, we'll simulate the upload
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const success = await updateProfile({ avatar_url: previewImage });
 
-      updateProfile({ ...formData, avatar_url: previewImage });
-      setPreviewImage(null);
+      if (success) {
+        setPreviewImage(null);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
 
-      toast({
-        title: 'Profile picture updated',
-        description: 'Your profile picture has been updated successfully',
-      });
+        toast({
+          title: 'Profile picture updated',
+          description: 'Your profile picture has been updated successfully',
+        });
+      } else {
+        throw new Error('Update failed');
+      }
     } catch (error) {
       toast({
         title: 'Upload failed',
@@ -278,70 +274,55 @@ export default function Profile() {
 
               {/* Image upload controls */}
               <div className="flex flex-col sm:flex-row items-center gap-2 mt-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-xs w-full sm:w-auto"
-                >
-                  <Upload className="w-3 h-3 mr-1" />
-                  Upload Photo
-                </Button>
-                {admin.avatar_url && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleRemoveImage}
-                    className="text-xs text-red-600 hover:text-red-700 w-full sm:w-auto"
-                  >
-                    <X className="w-3 h-3 mr-1" />
-                    Remove
-                  </Button>
+                {!previewImage ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="text-xs w-full sm:w-auto"
+                    >
+                      <Upload className="w-3 h-3 mr-1" />
+                      Upload Photo
+                    </Button>
+                    {admin.avatar_url && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={handleRemoveImage}
+                        className="text-xs text-red-600 hover:text-red-700 w-full sm:w-auto"
+                      >
+                        <X className="w-3 h-3 mr-1" />
+                        Remove
+                      </Button>
+                    )}
+                  </>
+                ) : (
+                  <>
+                    <Button
+                      size="sm"
+                      onClick={handleSaveImage}
+                      disabled={isUploading}
+                      className="bg-gold-500 hover:bg-gold-600 text-xs w-full sm:w-auto"
+                    >
+                      {isUploading ? 'Saving...' : 'Save Photo'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelImage}
+                      disabled={isUploading}
+                      className="text-xs w-full sm:w-auto"
+                    >
+                      Cancel
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
           </div>
 
           {/* Image preview and save controls */}
-          {previewImage && (
-            <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <img
-                    src={previewImage}
-                    alt="Preview"
-                    className="w-16 h-16 rounded-full object-cover border-2 border-slate-200 dark:border-slate-600"
-                  />
-                </div>
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-900 dark:text-white">
-                    New Profile Picture
-                  </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Click save to update your profile picture
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    onClick={handleSaveImage}
-                    disabled={isUploading}
-                    className="bg-gold-500 hover:bg-gold-600"
-                  >
-                    {isUploading ? 'Saving...' : 'Save'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleCancelImage}
-                    disabled={isUploading}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
 
           {isEditing ? (
             <form onSubmit={handleSaveProfile} className="space-y-4">
@@ -502,53 +483,6 @@ export default function Profile() {
       </Card>
 
 
-      {/* Crop Modal */}
-      {showCropModal && cropImage && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                <Crop className="w-5 h-5" />
-                Crop Profile Picture
-              </h3>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowCropModal(false)}
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            <div className="p-6">
-              <div className="text-center mb-6">
-                <img
-                  src={cropImage}
-                  alt="Crop preview"
-                  className="max-w-full max-h-64 mx-auto rounded-lg border border-slate-200 dark:border-slate-600"
-                />
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
-                  Drag to reposition and resize your profile picture
-                </p>
-              </div>
-              <div className="flex items-center justify-end gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCropModal(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => handleCropComplete(cropImage)}
-                  className="bg-gold-500 hover:bg-gold-600"
-                >
-                  <Crop className="w-4 h-4 mr-2" />
-                  Crop & Save
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       <DeleteModal
         isOpen={showDeleteModal}

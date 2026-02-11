@@ -186,7 +186,8 @@ class CustomerController {
                 });
             }
 
-            const result = await customerService.sendNotification(value);
+            const baseUrl = `${req.protocol}://${req.get('host')}`;
+            const result = await customerService.sendNotification({ ...value, baseUrl });
             res.status(200).json({
                 success: true,
                 message: 'Notifications queued successfully',

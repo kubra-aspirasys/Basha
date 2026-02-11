@@ -28,21 +28,17 @@ const sendNotificationSchema = Joi.object({
         'any.required': 'Customer list is required'
     }),
     type: Joi.string().valid('email', 'sms', 'whatsapp').required(),
-    message: Joi.string().when('type', {
-        is: 'whatsapp',
-        then: Joi.string().required(),
-        otherwise: Joi.string().optional()
+    message: Joi.string().required().messages({
+        'any.required': 'Message content is required'
     }),
     subject: Joi.string().when('type', {
         is: 'email',
         then: Joi.string().required(),
         otherwise: Joi.optional()
     }),
-    emailBody: Joi.string().when('type', {
-        is: 'email',
-        then: Joi.string().required(),
-        otherwise: Joi.optional()
-    })
+    image_data: Joi.string().allow(null, '').optional(),
+    attachment_data: Joi.string().allow(null, '').optional(),
+    attachment_name: Joi.string().allow(null, '').optional()
 }).unknown(true); // Allow other fields like attachments if needed
 
 module.exports = {

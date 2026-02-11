@@ -110,10 +110,10 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   sendNotification: async (data) => {
     try {
       const response = await api.post('/customers/notifications/send', data);
-      return response.data.success;
+      return response.data;
     } catch (error: any) {
       console.error('Failed to send notification:', error);
-      return false;
+      return null;
     }
   },
 

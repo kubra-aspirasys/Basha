@@ -22,6 +22,8 @@ export interface Customer {
   role?: 'customer';
   password?: string;
   avatar_url?: string;
+  orders_count?: number;
+  total_spent?: number;
 }
 
 export interface MenuItem {
