@@ -50,12 +50,12 @@ function AddUserModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
-        {/* <Button className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white">
+      {/* <DialogTrigger asChild>
+        <Button className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white">
           <Plus className="w-4 h-4" />
           Add New User
-        </Button> */}
-      </DialogTrigger>
+        </Button>
+      </DialogTrigger> */}
       <DialogContent className="max-w-md mx-4 sm:mx-0">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -1122,52 +1122,53 @@ export default function Users() {
                     </div>
 
                     {/* Join Date */}
-                    <div className="text-center text-sm text-slate-500 dark:text-slate-400">
+                    <div className="text-center text-sm text-slate-500 dark:text-slate-400 col-span-2 border-t border-slate-100 dark:border-slate-800 pt-2 mt-1">
                       Joined: {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : 'N/A'}
                     </div>
-
-                    {/* Actions */}
-                    <div className="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                      <Dialog>
-                        <DialogTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setSelectedCustomer(customer)}
-                            className="flex-1 flex items-center gap-1"
-                          >
-                            <Eye className="w-4 h-4" />
-                            View
-                          </Button>
-                        </DialogTrigger>
-                        {selectedCustomer && (
-                          <CustomerDetailModal customer={selectedCustomer} orders={orders} />
-                        )}
-                      </Dialog>
-
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleToggleBlock(customer.id, customer.is_blocked ?? false)}
-                        className={`flex-1 flex items-center gap-1 ${customer.is_blocked
-                          ? 'text-green-700 hover:text-green-800'
-                          : 'text-red-700 hover:text-red-800'
-                          }`}
-                      >
-                        {customer.is_blocked ? (
-                          <>
-                            <Check className="w-4 h-4" />
-                            Unblock
-                          </>
-                        ) : (
-                          <>
-                            <Ban className="w-4 h-4" />
-                            Block
-                          </>
-                        )}
-                      </Button>
-                    </div>
                   </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSelectedCustomer(customer)}
+                          className="flex-1 flex items-center gap-1"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View
+                        </Button>
+                      </DialogTrigger>
+                      {selectedCustomer && (
+                        <CustomerDetailModal customer={selectedCustomer} orders={orders} />
+                      )}
+                    </Dialog>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleToggleBlock(customer.id, customer.is_blocked ?? false)}
+                      className={`flex-1 flex items-center gap-1 ${customer.is_blocked
+                        ? 'text-green-700 hover:text-green-800'
+                        : 'text-red-700 hover:text-red-800'
+                        }`}
+                    >
+                      {customer.is_blocked ? (
+                        <>
+                          <Check className="w-4 h-4" />
+                          Unblock
+                        </>
+                      ) : (
+                        <>
+                          <Ban className="w-4 h-4" />
+                          Block
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
               </Card>
             );
           })}
