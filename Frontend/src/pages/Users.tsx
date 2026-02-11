@@ -51,10 +51,10 @@ function AddUserModal() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white">
+        {/* <Button className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white">
           <Plus className="w-4 h-4" />
           Add New User
-        </Button>
+        </Button> */}
       </DialogTrigger>
       <DialogContent className="max-w-md mx-4 sm:mx-0">
         <DialogHeader>
