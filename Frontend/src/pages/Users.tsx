@@ -51,10 +51,10 @@ function AddUserModal() {
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        {/* <Button className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white">
+        <Button className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white">
           <Plus className="w-4 h-4" />
           Add New User
-        </Button> */}
+        </Button>
       </DialogTrigger>
       <DialogContent className="max-w-md mx-4 sm:mx-0">
         <DialogHeader>
@@ -1006,7 +1006,7 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-green-500" />
-                        <span className="font-medium">₹{totalSpent.toLocaleString()}</span>
+                        <span className="font-medium">₹{(customer.total_spent || 0).toLocaleString()}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1118,57 +1118,56 @@ export default function Users() {
                         <DollarSign className="w-4 h-4 text-green-500" />
                         <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Spent</span>
                       </div>
-                      <div className="text-lg font-bold text-slate-900 dark:text-white">₹{totalSpent.toLocaleString()}</div>
+                      <div className="text-lg font-bold text-slate-900 dark:text-white">₹{(customer.total_spent || 0).toLocaleString()}</div>
+                    </div>
+
+                    {/* Join Date */}
+                    <div className="text-center text-sm text-slate-500 dark:text-slate-400">
+                      Joined: {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : 'N/A'}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setSelectedCustomer(customer)}
+                            className="flex-1 flex items-center gap-1"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View
+                          </Button>
+                        </DialogTrigger>
+                        {selectedCustomer && (
+                          <CustomerDetailModal customer={selectedCustomer} orders={orders} />
+                        )}
+                      </Dialog>
+
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleToggleBlock(customer.id, customer.is_blocked ?? false)}
+                        className={`flex-1 flex items-center gap-1 ${customer.is_blocked
+                          ? 'text-green-700 hover:text-green-800'
+                          : 'text-red-700 hover:text-red-800'
+                          }`}
+                      >
+                        {customer.is_blocked ? (
+                          <>
+                            <Check className="w-4 h-4" />
+                            Unblock
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="w-4 h-4" />
+                            Block
+                          </>
+                        )}
+                      </Button>
                     </div>
                   </div>
-
-                  {/* Join Date */}
-                  <div className="text-center text-sm text-slate-500 dark:text-slate-400">
-                    Joined: {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : 'N/A'}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setSelectedCustomer(customer)}
-                          className="flex-1 flex items-center gap-1"
-                        >
-                          <Eye className="w-4 h-4" />
-                          View
-                        </Button>
-                      </DialogTrigger>
-                      {selectedCustomer && (
-                        <CustomerDetailModal customer={selectedCustomer} orders={orders} />
-                      )}
-                    </Dialog>
-
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleToggleBlock(customer.id, customer.is_blocked ?? false)}
-                      className={`flex-1 flex items-center gap-1 ${customer.is_blocked
-                        ? 'text-green-700 hover:text-green-800'
-                        : 'text-red-700 hover:text-red-800'
-                        }`}
-                    >
-                      {customer.is_blocked ? (
-                        <>
-                          <Check className="w-4 h-4" />
-                          Unblock
-                        </>
-                      ) : (
-                        <>
-                          <Ban className="w-4 h-4" />
-                          Block
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
               </Card>
             );
           })}

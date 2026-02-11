@@ -12,7 +12,9 @@ export interface Notification {
     reference_type?: string;
     metadata?: Record<string, any>;
     created_at: string;
+    createdAt?: string;
     updated_at: string;
+    updatedAt?: string;
 }
 
 export interface NotificationStats {
@@ -63,8 +65,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         try {
             const response = await api.get('/notifications', { params });
             const data = response.data.data;
+            const normalizedNotifications = data.notifications.map((n: any) => ({
+                ...n,
+                created_at: n.created_at || n.createdAt,
+                updated_at: n.updated_at || n.updatedAt
+            }));
             set({
-                notifications: data.notifications,
+                notifications: normalizedNotifications,
                 total: data.total,
                 totalPages: data.totalPages,
                 currentPage: data.currentPage,
@@ -80,8 +87,13 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         try {
             const response = await api.get('/notifications/latest');
             const data = response.data.data;
+            const normalizedLatest = data.notifications.map((n: any) => ({
+                ...n,
+                created_at: n.created_at || n.createdAt,
+                updated_at: n.updated_at || n.updatedAt
+            }));
             set({
-                latestUnread: data.notifications,
+                latestUnread: normalizedLatest,
                 unreadCount: data.unreadCount,
             });
         } catch (error) {

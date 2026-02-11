@@ -21,6 +21,7 @@ export interface Customer {
   created_at?: string;
   role?: 'customer';
   password?: string;
+
   avatar_url?: string;
   orders_count?: number;
   total_spent?: number;

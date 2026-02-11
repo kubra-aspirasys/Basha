@@ -58,7 +58,12 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
     try {
       const response = await api.get('/customers/stats');
       if (response.data.success) {
-        set({ stats: response.data.data });
+        const statsData = response.data.data;
+        const stats = {
+          ...statsData,
+          totalRevenue: typeof statsData.totalRevenue === 'string' ? parseFloat(statsData.totalRevenue) : statsData.totalRevenue
+        };
+        set({ stats });
       }
     } catch (error) {
       console.error('Failed to fetch stats:', error);

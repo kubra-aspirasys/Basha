@@ -53,7 +53,20 @@ export const useOrderStore = create<OrderState>((set) => ({
       const response = await api.get(endpoint);
 
       if (response.data.success) {
-        set({ orders: response.data.data, loading: false });
+        // Parse decimal strings to numbers
+        const orders = response.data.data.map((order: any) => ({
+          ...order,
+          total_amount: typeof order.total_amount === 'string' ? parseFloat(order.total_amount) : order.total_amount,
+          subtotal: typeof order.subtotal === 'string' ? parseFloat(order.subtotal) : order.subtotal,
+          gst_amount: typeof order.gst_amount === 'string' ? parseFloat(order.gst_amount) : order.gst_amount,
+          delivery_charges: typeof order.delivery_charges === 'string' ? parseFloat(order.delivery_charges) : order.delivery_charges,
+          service_charges: typeof order.service_charges === 'string' ? parseFloat(order.service_charges) : order.service_charges,
+          items: order.items?.map((item: any) => ({
+            ...item,
+            price: typeof item.price === 'string' ? parseFloat(item.price) : item.price
+          })) || []
+        }));
+        set({ orders, loading: false });
       } else {
         set({ error: 'Failed to fetch orders', loading: false });
       }
@@ -85,7 +98,20 @@ export const useOrderStore = create<OrderState>((set) => ({
       const response = await api.post('/customer/orders', requestData);
 
       if (response.data.success) {
-        const newOrder = response.data.data;
+        const newOrderData = response.data.data;
+        // Parse decimal strings to numbers
+        const newOrder = {
+          ...newOrderData,
+          total_amount: typeof newOrderData.total_amount === 'string' ? parseFloat(newOrderData.total_amount) : newOrderData.total_amount,
+          subtotal: typeof newOrderData.subtotal === 'string' ? parseFloat(newOrderData.subtotal) : newOrderData.subtotal,
+          gst_amount: typeof newOrderData.gst_amount === 'string' ? parseFloat(newOrderData.gst_amount) : newOrderData.gst_amount,
+          delivery_charges: typeof newOrderData.delivery_charges === 'string' ? parseFloat(newOrderData.delivery_charges) : newOrderData.delivery_charges,
+          service_charges: typeof newOrderData.service_charges === 'string' ? parseFloat(newOrderData.service_charges) : newOrderData.service_charges,
+          items: newOrderData.items?.map((item: any) => ({
+            ...item,
+            price: typeof item.price === 'string' ? parseFloat(item.price) : item.price
+          })) || []
+        };
         set((state) => ({ orders: [newOrder, ...state.orders] }));
         return newOrder;
       }
@@ -103,7 +129,19 @@ export const useOrderStore = create<OrderState>((set) => ({
 
       if (response.data.success) {
         // Update local state
-        const updatedOrder = response.data.data;
+        const updatedOrderData = response.data.data;
+        const updatedOrder = {
+          ...updatedOrderData,
+          total_amount: typeof updatedOrderData.total_amount === 'string' ? parseFloat(updatedOrderData.total_amount) : updatedOrderData.total_amount,
+          subtotal: typeof updatedOrderData.subtotal === 'string' ? parseFloat(updatedOrderData.subtotal) : updatedOrderData.subtotal,
+          gst_amount: typeof updatedOrderData.gst_amount === 'string' ? parseFloat(updatedOrderData.gst_amount) : updatedOrderData.gst_amount,
+          delivery_charges: typeof updatedOrderData.delivery_charges === 'string' ? parseFloat(updatedOrderData.delivery_charges) : updatedOrderData.delivery_charges,
+          service_charges: typeof updatedOrderData.service_charges === 'string' ? parseFloat(updatedOrderData.service_charges) : updatedOrderData.service_charges,
+          items: updatedOrderData.items?.map((item: any) => ({
+            ...item,
+            price: typeof item.price === 'string' ? parseFloat(item.price) : item.price
+          })) || []
+        };
         set((state) => ({
           orders: state.orders.map((order) =>
             order.id === id ? updatedOrder : order
