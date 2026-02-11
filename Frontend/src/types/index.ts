@@ -21,7 +21,10 @@ export interface Customer {
   created_at?: string;
   role?: 'customer';
   password?: string;
+
   avatar_url?: string;
+  total_spent?: number;
+  orders_count?: number;
 }
 
 export interface MenuItem {

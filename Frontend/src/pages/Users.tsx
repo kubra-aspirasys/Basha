@@ -712,7 +712,7 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
 
 export default function Users() {
   const { customers, fetchCustomers, fetchStats, updateCustomerStatus, exportCustomers, totalPages, totalCount, stats } = useCustomerStore();
-  const { orders } = useOrderStore(); // Still keep this if needed for order history deep dive or replace with API
+  const { orders, fetchOrders } = useOrderStore(); // Still keep this if needed for order history deep dive or replace with API
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
@@ -724,6 +724,7 @@ export default function Users() {
   // Fetch data on mount and when dependencies change
   useEffect(() => {
     fetchStats();
+    fetchOrders(); // Ensure orders are loaded for deep dive modal
   }, []);
 
   useEffect(() => {
@@ -964,13 +965,13 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <TrendingUp className="w-4 h-4 text-blue-500" />
-                        <span className="font-medium">{customerOrders.length}</span>
+                        <span className="font-medium">{customer.orders_count || 0}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-green-500" />
-                        <span className="font-medium">₹{totalSpent.toLocaleString()}</span>
+                        <span className="font-medium">₹{(customer.total_spent || 0).toLocaleString()}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1076,14 +1077,14 @@ export default function Users() {
                         <TrendingUp className="w-4 h-4 text-blue-500" />
                         <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Orders</span>
                       </div>
-                      <div className="text-lg font-bold text-slate-900 dark:text-white">{customerOrders.length}</div>
+                      <div className="text-lg font-bold text-slate-900 dark:text-white">{customer.orders_count || 0}</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-1 mb-1">
                         <DollarSign className="w-4 h-4 text-green-500" />
                         <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Spent</span>
                       </div>
-                      <div className="text-lg font-bold text-slate-900 dark:text-white">₹{totalSpent.toLocaleString()}</div>
+                      <div className="text-lg font-bold text-slate-900 dark:text-white">₹{(customer.total_spent || 0).toLocaleString()}</div>
                     </div>
                   </div>
 
