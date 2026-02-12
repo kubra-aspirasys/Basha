@@ -70,6 +70,8 @@ app.use('/api/inquiries', require('./routes/inquiryRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 app.use('/api/contact', require('./routes/contactRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
+app.use('/api/offers', require('./routes/offerRoutes'));
+
 
 // Error Handling Middleware (Centralized)
 app.use(errorHandler);

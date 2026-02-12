@@ -20,6 +20,7 @@ import Payments from '@/pages/Payments';
 import Profile from '@/pages/Profile';
 import Inquiries from '@/pages/Inquiries';
 import Notifications from '@/pages/Notifications';
+import Offers from '@/pages/Offers';
 import Home from '@/pages/customer/Home';
 import CustomerMenu from '@/pages/customer/Menu';
 import Cart from '@/pages/customer/Cart';
@@ -70,7 +71,7 @@ function App() {
             <Route path="users" element={<Users />} />
             <Route path="menu" element={<Menu />} />
             <Route path="orders" element={<Orders />} />
-            {/* <Route path="offers" element={<Offers />} /> */}
+            <Route path="offers" element={<Offers />} />
             <Route path="cms" element={<CMS />} />
             <Route path="payments" element={<Payments />} />
             <Route path="inquiries" element={<Inquiries />} />

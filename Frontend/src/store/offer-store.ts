@@ -1,48 +1,85 @@
 import { create } from 'zustand';
 import { Offer } from '@/types';
-import { mockOffers } from '@/lib/mock-data';
+import api from '@/lib/api';
 
 interface OfferState {
   offers: Offer[];
   loading: boolean;
   error: string | null;
   fetchOffers: () => Promise<void>;
-  addOffer: (offer: Omit<Offer, 'id' | 'created_at'>) => void;
-  updateOffer: (id: string, offer: Partial<Offer>) => void;
-  deleteOffer: (id: string) => void;
+  addOffer: (offer: Omit<Offer, 'id' | 'created_at'>) => Promise<void>;
+  updateOffer: (id: string, offer: Partial<Offer>) => Promise<void>;
+  deleteOffer: (id: string) => Promise<void>;
 }
 
 export const useOfferStore = create<OfferState>((set) => ({
-  offers: mockOffers,
+  offers: [],
   loading: false,
   error: null,
 
   fetchOffers: async () => {
-    // Mock fetch - in real app would call API
-    set({ loading: true });
-    // Simulate delay if needed, or just set mock data
-    // For now, we reuse mockOffers as the initial state already has them,
-    // but to satisfy the interface we just toggle loading.
-    setTimeout(() => set({ loading: false }), 500);
+    set({ loading: true, error: null });
+    try {
+      const response = await api.get('/offers');
+      if (response.data.success) {
+        set({ offers: response.data.data, loading: false });
+      } else {
+        set({ error: 'Failed to fetch offers', loading: false });
+      }
+    } catch (error: any) {
+      console.error('Failed to fetch offers:', error);
+      set({ error: error.response?.data?.message || error.message, loading: false });
+    }
   },
 
-  addOffer: (offer) =>
-    set((state) => ({
-      offers: [
-        ...state.offers,
-        {
-          ...offer,
-          id: `${Date.now()}`,
-          created_at: new Date().toISOString(),
-        },
-      ],
-    })),
-  updateOffer: (id, offer) =>
-    set((state) => ({
-      offers: state.offers.map((o) => (o.id === id ? { ...o, ...offer } : o)),
-    })),
-  deleteOffer: (id) =>
-    set((state) => ({
-      offers: state.offers.filter((offer) => offer.id !== id),
-    })),
+  addOffer: async (offerData) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.post('/offers', offerData);
+      if (response.data.success) {
+        set((state) => ({
+          offers: [response.data.data, ...state.offers],
+          loading: false
+        }));
+      }
+    } catch (error: any) {
+      console.error('Failed to add offer:', error);
+      set({ error: error.response?.data?.message || 'Failed to add offer', loading: false });
+      throw error;
+    }
+  },
+
+  updateOffer: async (id, offerData) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.put(`/offers/${id}`, offerData);
+      if (response.data.success) {
+        set((state) => ({
+          offers: state.offers.map((o) => (o.id === id ? response.data.data : o)),
+          loading: false
+        }));
+      }
+    } catch (error: any) {
+      console.error('Failed to update offer:', error);
+      set({ error: error.response?.data?.message || 'Failed to update offer', loading: false });
+      throw error;
+    }
+  },
+
+  deleteOffer: async (id) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.delete(`/offers/${id}`);
+      if (response.data.success) {
+        set((state) => ({
+          offers: state.offers.filter((offer) => offer.id !== id),
+          loading: false
+        }));
+      }
+    } catch (error: any) {
+      console.error('Failed to delete offer:', error);
+      set({ error: error.response?.data?.message || 'Failed to delete offer', loading: false });
+      throw error;
+    }
+  },
 }));

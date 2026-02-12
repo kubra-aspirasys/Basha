@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useOfferStore } from '@/store/offer-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,11 @@ import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Offers() {
-  const { offers, addOffer, updateOffer, deleteOffer } = useOfferStore();
+  const { offers, addOffer, updateOffer, deleteOffer, fetchOffers } = useOfferStore();
+
+  useEffect(() => {
+    fetchOffers();
+  }, [fetchOffers]);
   const [isOpen, setIsOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<string | null>(null);
   const [formData, setFormData] = useState({
