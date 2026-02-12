@@ -16,7 +16,7 @@ export default function Menu() {
     totalItems,
     totalPages,
     currentPage,
-    loading,
+
     fetchMenuItems,
     fetchCategories,
     fetchProductTypes,
@@ -125,8 +125,12 @@ export default function Menu() {
     }
     // Clean up the path
     const cleanPath = url.startsWith('/') ? url.slice(1) : url;
-    // Use direct IP to avoid localhost resolution issues and bypass proxy
-    return `http://127.0.0.1:5000/${cleanPath}`;
+
+    // Use the API URL to determine the base URL for images
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+    const baseUrl = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
+
+    return `${baseUrl}/${cleanPath}`;
   };
 
   // Offer validation logic
@@ -675,7 +679,7 @@ export default function Menu() {
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0">
                     {item.image_url ? (
-                      <img src={item.image_url} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
+                      <img src={getImageUrl(item.image_url)} alt={item.name} className="w-16 h-16 rounded-lg object-cover" />
                     ) : (
                       <div className="w-16 h-16 rounded-lg bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
                         <span className="text-xs text-slate-500">No image</span>

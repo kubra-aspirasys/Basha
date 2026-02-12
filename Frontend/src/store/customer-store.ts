@@ -22,7 +22,7 @@ interface CustomerState {
   fetchStats: () => Promise<void>;
   updateCustomerStatus: (id: string, is_blocked: boolean) => Promise<void>;
   addCustomer: (customer: Omit<Customer, 'id' | 'created_at'>) => Promise<boolean>;
-  sendNotification: (data: any) => Promise<boolean>;
+  sendNotification: (data: any) => Promise<any>;
   exportCustomers: (filters?: any) => Promise<Blob | null>;
 }
 

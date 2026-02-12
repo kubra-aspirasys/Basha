@@ -1,10 +1,12 @@
 import { ArrowRight, Clock, Phone, MapPin, Star } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useMenuStore } from '@/store/menu-store';
 import { useCartStore } from '@/store/cart-store';
+import { useAuthStore } from '@/store/auth-store';
 import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
 import { MenuItem } from '@/types';
 import MenuItemDetailModal from '@/components/MenuItemDetailModal';
+import AuthModal from '@/components/AuthModal';
 import { formatCurrency } from '@/utils/orderCalculations';
 
 
@@ -22,10 +24,13 @@ const getImageUrl = (url?: string) => {
 export default function Home() {
   const { menuItems, fetchAllMenuItems, categories: storeCategories, fetchCategories } = useMenuStore();
   const { addItem } = useCartStore();
+  const { user } = useAuthStore();
   const { homepageHero, fetchHomepageHero } = useCMSEnhancedStore();
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingCartItem, setPendingCartItem] = useState<{ item: MenuItem; quantity: number } | null>(null);
 
   // Fetch menu items and CMS content on mount
   useEffect(() => {
@@ -134,16 +139,31 @@ export default function Home() {
     setIsDetailModalOpen(true);
   };
 
+  const doAddToCart = useCallback((item: MenuItem, quantity: number) => {
+    addItem({
+      id: item.id,
+      name: item.name,
+      price: item.discounted_price || item.price,
+      image_url: item.image_url,
+      unit_type: item.unit_type,
+      quantity: quantity,
+    });
+  }, [addItem]);
+
   const handleAddToCart = (quantity: number) => {
-    if (selectedItem) {
-      addItem({
-        id: selectedItem.id,
-        name: selectedItem.name,
-        price: selectedItem.discounted_price || selectedItem.price,
-        image_url: selectedItem.image_url,
-        unit_type: selectedItem.unit_type,
-        quantity: quantity,
-      });
+    if (!selectedItem) return;
+    if (!user) {
+      setPendingCartItem({ item: selectedItem, quantity });
+      setShowAuthModal(true);
+      return;
+    }
+    doAddToCart(selectedItem, quantity);
+  };
+
+  const handleAuthSuccess = () => {
+    if (pendingCartItem) {
+      doAddToCart(pendingCartItem.item, pendingCartItem.quantity);
+      setPendingCartItem(null);
     }
   };
 
@@ -467,6 +487,16 @@ export default function Home() {
           onAddToCart={handleAddToCart}
         />
       )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          setPendingCartItem(null);
+        }}
+        onSuccess={handleAuthSuccess}
+      />
     </div>
   );
 }

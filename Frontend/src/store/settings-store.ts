@@ -42,7 +42,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   fetchSettings: async () => {
     set({ loading: true });
     try {
-      const response = await api.get('/cms/site-settings?category=general');
+      await api.get('/cms/site-settings?category=general');
       // Map SiteSetting model back to BusinessSettings object if needed
       // For now we assume they are fetched as specialized keys or we just use the default
       // Better to use fetchSiteSettings from CMSEnhancedStore for UI, but keeping this for compatibility

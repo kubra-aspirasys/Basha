@@ -17,8 +17,6 @@ import {
   Clock,
   Phone,
   MapPin,
-  Eye,
-  EyeOff
 } from 'lucide-react';
 
 export default function HomepageHeroManager() {

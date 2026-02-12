@@ -1,8 +1,10 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useMenuStore } from '@/store/menu-store';
 import { useCartStore } from '@/store/cart-store';
+import { useAuthStore } from '@/store/auth-store';
 import { Search, ShoppingCart, Filter, X } from 'lucide-react';
 import MenuItemDetailModal from '@/components/MenuItemDetailModal';
+import AuthModal from '@/components/AuthModal';
 import { MenuItem } from '@/types';
 
 // Helper to construct full image URL
@@ -25,12 +27,15 @@ export default function CustomerMenu() {
     loading
   } = useMenuStore();
   const { addItem } = useCartStore();
+  const { user } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [addedToCart, setAddedToCart] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [pendingCartItem, setPendingCartItem] = useState<{ item: any; quantity: number } | null>(null);
 
   useEffect(() => {
     fetchAllMenuItems();
@@ -68,29 +73,42 @@ export default function CustomerMenu() {
     return matchesSearch && matchesCategory && matchesType && item.is_available;
   });
 
-  const handleAddToCart = (item: any) => {
+  const doAddItem = (item: any, quantity = 1) => {
     addItem({
       id: item.id,
       name: item.name,
       price: item.price,
       image_url: item.image_url,
       unit_type: item.unit_type,
+      quantity,
     });
     setAddedToCart(item.id);
     setTimeout(() => setAddedToCart(null), 2000);
   };
 
+  const handleAddToCart = (item: any) => {
+    if (!user) {
+      setPendingCartItem({ item, quantity: 1 });
+      setShowAuthModal(true);
+      return;
+    }
+    doAddItem(item);
+  };
+
   const handleAddToCartFromModal = (item: MenuItem, quantity: number) => {
-    addItem({
-      id: item.id,
-      name: item.name,
-      price: item.discounted_price || item.price,
-      image_url: item.image_url,
-      unit_type: item.unit_type,
-      quantity: quantity,
-    });
-    setAddedToCart(item.id);
-    setTimeout(() => setAddedToCart(null), 2000);
+    if (!user) {
+      setPendingCartItem({ item, quantity });
+      setShowAuthModal(true);
+      return;
+    }
+    doAddItem(item, quantity);
+  };
+
+  const handleAuthSuccess = () => {
+    if (pendingCartItem) {
+      doAddItem(pendingCartItem.item, pendingCartItem.quantity);
+      setPendingCartItem(null);
+    }
   };
 
   return (
@@ -308,6 +326,16 @@ export default function CustomerMenu() {
           onAddToCart={(quantity) => handleAddToCartFromModal(selectedItem, quantity)}
         />
       )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => {
+          setShowAuthModal(false);
+          setPendingCartItem(null);
+        }}
+        onSuccess={handleAuthSuccess}
+      />
     </div>
   );
 }

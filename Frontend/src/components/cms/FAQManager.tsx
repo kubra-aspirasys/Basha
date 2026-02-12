@@ -291,7 +291,7 @@ export default function FAQManager() {
             {Object.keys(faqsByCategory).length === 0 ? (
               <p className="text-center text-slate-500 py-8">No custom FAQs yet. Add your first FAQ!</p>
             ) : (
-              Object.entries(faqsByCategory).map(([category, categoryFaqs]) => (
+              (Object.entries(faqsByCategory) as [string, FAQ[]][]).map(([category, categoryFaqs]) => (
                 <div key={category}>
                   <h4 className="text-sm sm:text-md font-semibold text-slate-900 dark:text-white mb-3 capitalize">
                     {category}

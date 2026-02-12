@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Download, X, Plus, RefreshCw, Loader2, Trash2, Edit, Eye } from 'lucide-react';
+import { Search, Download, X, Plus, RefreshCw, Loader2, Trash2, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Payment } from '@/types';
 

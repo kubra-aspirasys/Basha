@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
-import { Save, Phone, Mail, MapPin, Clock, Globe } from 'lucide-react';
+import { Save, Phone, MapPin, Clock, Globe } from 'lucide-react';
 
 export default function ContactDetailsManager() {
   const { siteSettings, fetchSiteSettings, updateSiteSetting, loading } = useCMSEnhancedStore();
@@ -27,24 +27,7 @@ export default function ContactDetailsManager() {
     }
   }, [siteSettings]);
 
-  const handleSave = async (key: string) => {
-    try {
-      const setting = siteSettings.find(s => s.key === key);
-      if (setting) {
-        await updateSiteSetting(setting.id, localSettings[key]);
-        toast({
-          title: 'Update Successful',
-          description: `Setting "${key}" has been updated.`,
-        });
-      }
-    } catch (error: any) {
-      toast({
-        title: 'Update Failed',
-        description: error.message,
-        variant: 'destructive',
-      });
-    }
-  };
+
 
   const handleSaveAll = async () => {
     try {

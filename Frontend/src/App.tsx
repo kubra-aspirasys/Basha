@@ -15,7 +15,6 @@ import Dashboard from '@/pages/Dashboard';
 import Users from '@/pages/Users';
 import Menu from '@/pages/Menu';
 import Orders from '@/pages/Orders';
-import Offers from '@/pages/Offers';
 import CMS from '@/pages/CMS';
 import Payments from '@/pages/Payments';
 import Profile from '@/pages/Profile';

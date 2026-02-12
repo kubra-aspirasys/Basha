@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
-import { CircleAlert as AlertCircle, CheckCircle2, Eye, EyeOff, UtensilsCrossed, ChefHat } from 'lucide-react';
+import { CircleAlert as AlertCircle, CheckCircle2, Eye, EyeOff, UtensilsCrossed } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Signup() {

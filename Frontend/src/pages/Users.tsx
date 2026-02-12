@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useCustomerStore } from '@/store/customer-store';
 import { useOrderStore } from '@/store/order-store';
-import { Search, Ban, Check, Eye, MessageSquare, Download, Star, TrendingUp, Clock, DollarSign, Plus, Users as UsersIcon, Send, Mail, Smartphone, Upload, FileText, Eye as PreviewIcon, X } from 'lucide-react';
+import { Search, Ban, Check, Eye, MessageSquare, Download, Star, TrendingUp, Clock, DollarSign, Users as UsersIcon, Send, Mail, Smartphone, Upload, FileText, Eye as PreviewIcon, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -282,7 +282,7 @@ function CustomerDetailModal({ customer, orders }: { customer: Customer; orders:
 }
 
 // Send Message Modal Component
-function SendMessageModal({ customers, orders }: { customers: Customer[]; orders: Order[] }) {
+function SendMessageModal({ customers }: { customers: Customer[] }) {
   const { sendNotification } = useCustomerStore();
   const [isOpen, setIsOpen] = useState(false);
   const [messageType, setMessageType] = useState<'whatsapp' | 'email'>('whatsapp');
@@ -381,7 +381,7 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
           // Browsers block multiple window.open from one click.
           // We open the first one and tell the user.
           const firstCustomer = selectedCustomersData.find(c => c.phone);
-          if (firstCustomer) {
+          if (firstCustomer?.phone) {
             const whatsappUrl = `https://wa.me/${firstCustomer.phone.replace(/\D/g, '')}?text=${urlMsg}`;
             window.open(whatsappUrl, '_blank');
           }
@@ -398,7 +398,7 @@ function SendMessageModal({ customers, orders }: { customers: Customer[]; orders
         }
       } else {
         // Email Handling
-        let attachmentData = null;
+        let attachmentData: string | null = null;
         if (emailAttachment) {
           attachmentData = await new Promise<string>((resolve, reject) => {
             const reader = new FileReader();
@@ -892,7 +892,7 @@ export default function Users() {
                 <Download className="w-4 h-4" />
                 <span className="hidden sm:inline">Export</span>
               </Button>
-              <SendMessageModal customers={customers} orders={orders} />
+              <SendMessageModal customers={customers} />
             </div>
           </div>
 
@@ -1006,7 +1006,7 @@ export default function Users() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-2">
                         <DollarSign className="w-4 h-4 text-green-500" />
-                        <span className="font-medium">₹{(customer.total_spent || 0).toLocaleString()}</span>
+                        <span className="font-medium">₹{totalSpent.toLocaleString()}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -1118,7 +1118,7 @@ export default function Users() {
                         <DollarSign className="w-4 h-4 text-green-500" />
                         <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Spent</span>
                       </div>
-                      <div className="text-lg font-bold text-slate-900 dark:text-white">₹{(customer.total_spent || 0).toLocaleString()}</div>
+                      <div className="text-lg font-bold text-slate-900 dark:text-white">₹{totalSpent.toLocaleString()}</div>
                     </div>
 
                     {/* Join Date */}

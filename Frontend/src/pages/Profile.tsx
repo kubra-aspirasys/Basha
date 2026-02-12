@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
-import { Upload, X, Camera, Crop, Eye, EyeOff } from 'lucide-react';
+import { Upload, X, Camera, Eye, EyeOff } from 'lucide-react';
 import { DeleteModal } from '@/components/cms/DeleteModal';
 
 export default function Profile() {

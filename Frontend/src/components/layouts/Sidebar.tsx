@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UtensilsCrossed, ShoppingBag, Tag, FileText, CreditCard, MessageSquare, Bell, CircleUser as UserCircle, ChevronRight, X } from 'lucide-react';
+import { LayoutDashboard, Users, UtensilsCrossed, ShoppingBag, FileText, CreditCard, MessageSquare, Bell, CircleUser as UserCircle, ChevronRight, X } from 'lucide-react';
 
 const navItems = [
   { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },

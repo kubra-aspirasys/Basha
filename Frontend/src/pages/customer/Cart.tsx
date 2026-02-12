@@ -216,7 +216,7 @@ export default function Cart() {
                 <ShoppingBag className="w-5 h-5" />
                 Browse Menu
               </button>
-```
+              ```
             </div>
           )}
 

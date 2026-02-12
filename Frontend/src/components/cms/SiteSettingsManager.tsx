@@ -102,7 +102,7 @@ export default function SiteSettingsManager() {
           <div className="text-center py-8 text-slate-500">Loading settings...</div>
         ) : (
           <div className="space-y-8">
-            {Object.entries(settingsByCategory).map(([category, settings]) => (
+            {(Object.entries(settingsByCategory) as [string, SiteSetting[]][]).map(([category, settings]) => (
               <div key={category}>
                 <h4 className="text-sm sm:text-md font-semibold text-slate-900 dark:text-white mb-3 sm:mb-4 pb-2 border-b border-slate-200 dark:border-slate-700">
                   {categoryLabels[category] || category}
