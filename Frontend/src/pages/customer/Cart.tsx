@@ -6,7 +6,9 @@ import { useAuthStore } from '@/store/auth-store';
 import { useSettingsStore } from '@/store/settings-store';
 
 import { calculateOrderTotal, formatCurrency } from '@/utils/orderCalculations';
-import { Pencil, Plus, Minus, ShoppingBag, CheckCircle, QrCode } from 'lucide-react';
+import { Pencil, Plus, Minus, ShoppingBag, CheckCircle, QrCode, Ticket } from 'lucide-react';
+import api from '@/lib/api';
+import { useToast } from '@/hooks/use-toast';
 
 const getImageUrl = (url?: string) => {
   if (!url) return '/banner.jpeg'; // Fallback
@@ -16,12 +18,17 @@ const getImageUrl = (url?: string) => {
   return `${baseUrl}${url}`;
 };
 
+import { useOfferStore } from '@/store/offer-store';
+import { Offer } from '@/types';
+
 export default function Cart() {
   const navigate = useNavigate();
   const { items, updateQuantity, removeItem, clearCart, fetchCart } = useCartStore();
   const { createOrder } = useOrderStore();
   const { user } = useAuthStore();
   const { settings } = useSettingsStore();
+  const { toast } = useToast();
+  const { getPublicOffers } = useOfferStore();
 
   useEffect(() => {
     if (user) {
@@ -41,6 +48,61 @@ export default function Cart() {
     address: '',
     notes: '',
   });
+
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; id: string } | null>(null);
+  const [isValidatingCoupon, setIsValidatingCoupon] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<Offer[]>([]);
+
+  useEffect(() => {
+    const loadCoupons = async () => {
+      const coupons = await getPublicOffers();
+      setAvailableCoupons(coupons);
+    };
+    loadCoupons();
+  }, [getPublicOffers]);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      toast({ title: 'Error', description: 'Please enter a coupon code', variant: 'destructive' });
+      return;
+    }
+
+    setIsValidatingCoupon(true);
+    try {
+      // Calculate total before discount for validation reference
+      const currentTotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+
+      const response = await api.post('/offers/validate', {
+        code: couponCode,
+        order_total: currentTotal
+      });
+
+      if (response.data.success) {
+        const { id, code, calculated_discount } = response.data.data;
+        setAppliedCoupon({
+          id,
+          code,
+          discount: parseFloat(calculated_discount)
+        });
+        toast({ title: 'Success', description: 'Coupon applied successfully!' });
+      }
+    } catch (error: any) {
+      setAppliedCoupon(null);
+      toast({
+        title: 'Error',
+        description: error.response?.data?.message || 'Invalid coupon code',
+        variant: 'destructive'
+      });
+    } finally {
+      setIsValidatingCoupon(false);
+    }
+  };
+
+  const removeCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+  };
 
   // Load saved customer info from localStorage
   useEffect(() => {
@@ -70,9 +132,19 @@ export default function Cart() {
       items.map((item) => ({ name: item.name, quantity: item.quantity, price: item.price })),
       orderType,
       orderType === 'delivery' ? settings.deliveryCharges : 0,
-      settings.serviceCharges
+      settings.serviceCharges,
+      appliedCoupon?.discount || 0
     );
-  }, [items, orderType, settings.deliveryCharges, settings.serviceCharges]);
+  }, [items, orderType, settings.deliveryCharges, settings.serviceCharges, appliedCoupon]);
+
+  // Re-validate coupon when total changes (optional but good for percentage discounts)
+  useEffect(() => {
+    if (appliedCoupon) {
+      // Logic to re-validate or re-calculate discount if cart items change
+      // For now we might just remove coupon if cart changes significantly or just keep it simple
+      // Ideally, we'd recall validate API with new total
+    }
+  }, [items]);
 
   const handlePlaceOrder = async () => {
     setMessage(null);
@@ -103,6 +175,8 @@ export default function Cart() {
         delivery_charges: totals.deliveryCharges || 0,
         service_charges: totals.serviceCharges || 0,
         total_amount: totals.total || 0,
+        discount_amount: totals.discount || 0,
+        coupon_id: appliedCoupon?.id
       },
       items: items.map((item) => ({
         menu_item_id: item.id,
@@ -350,6 +424,23 @@ export default function Cart() {
               </div>
             )}
 
+            {orderType === 'pickup' && (
+              <div className="bg-[#F2A900]/10 border border-[#F2A900]/30 rounded-lg p-3 flex items-start gap-3 mt-4">
+                <div className="bg-[#F2A900] rounded-full p-1 mt-0.5">
+                  <ShoppingBag className="w-3 h-3 text-black" />
+                </div>
+                <div>
+                  <p className="text-[#F2A900] font-semibold text-sm">Pickup at Store</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Please collect your order from our counter. Show your order ID/Number upon arrival.
+                  </p>
+                  <p className="text-gray-300 text-xs mt-2 font-medium">
+                    {settings.businessAddress}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <label className="block mt-4">
               <span className="text-gray-400 text-sm">Notes (optional)</span>
               <textarea
@@ -399,80 +490,158 @@ export default function Cart() {
                 </button>
               </div>
             </div>
+          </div>
 
-            <div className="border-t border-[#F2A900]/20 pt-4 space-y-2 text-sm text-gray-300">
-              <div className="flex justify-between">
-                <span>Subtotal</span>
-                <span>{formatCurrency(totals.subtotal)}</span>
-              </div>
-              {totals.deliveryCharges > 0 && (
-                <div className="flex justify-between">
-                  <span>Delivery</span>
-                  <span>{formatCurrency(totals.deliveryCharges)}</span>
-                </div>
+          {/* Coupon Section */}
+          <div className="space-y-2">
+            <p className="text-gray-400 text-sm">Coupon Code</p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={couponCode}
+                onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                placeholder="Enter code"
+                disabled={!!appliedCoupon}
+                className="flex-1 bg-[#0f0f0f] border border-[#F2A900]/30 rounded px-3 py-2 text-white disabled:opacity-50"
+              />
+              {!appliedCoupon ? (
+                <button
+                  onClick={handleApplyCoupon}
+                  disabled={isValidatingCoupon || !couponCode}
+                  className="bg-[#F2A900]/20 text-[#F2A900] px-4 py-2 rounded hover:bg-[#F2A900]/30 transition disabled:opacity-50"
+                >
+                  {isValidatingCoupon ? '...' : 'Apply'}
+                </button>
+              ) : (
+                <button
+                  onClick={removeCoupon}
+                  className="bg-red-500/20 text-red-400 px-4 py-2 rounded hover:bg-red-500/30 transition"
+                >
+                  Remove
+                </button>
               )}
-              {totals.serviceCharges > 0 && (
-                <div className="flex justify-between">
-                  <span>Service</span>
-                  <span>{formatCurrency(totals.serviceCharges)}</span>
-                </div>
-              )}
-              <div className="flex justify-between">
-                <span>GST</span>
-                <span>{formatCurrency(totals.gstAmount)}</span>
-              </div>
-              <div className="flex justify-between text-white font-semibold text-lg pt-2">
-                <span>Total</span>
-                <span>{formatCurrency(totals.total)}</span>
-              </div>
             </div>
-
-            {message && (
-              <div
-                className={`p-3 rounded text-sm ${message.type === 'success'
-                  ? 'bg-green-900/30 text-green-200 border border-green-700'
-                  : 'bg-red-900/30 text-red-200 border border-red-700'
-                  }`}
-              >
-                {message.text}
+            {appliedCoupon && (
+              <div className="flex items-center gap-2 text-green-400 text-sm">
+                <CheckCircle className="w-4 h-4" />
+                <span>Coupon applied: -{formatCurrency(appliedCoupon.discount)}</span>
               </div>
             )}
 
-            {paymentMethod === 'online' && (
-              <div className="bg-[#0f0f0f] border border-[#F2A900]/20 rounded-lg p-4 mt-2 mb-2 animate-in fade-in slide-in-from-top-2">
-                <div className="flex items-start gap-4">
-                  <div className="bg-white p-2 rounded-lg shrink-0">
-                    {/* Placeholder for QR Code - In a real app, generate a real QR or use an image */}
-                    <div className="w-24 h-24 bg-gray-100 flex items-center justify-center rounded">
-                      <QrCode className="w-12 h-12 text-gray-800" />
+            {/* Suggested Coupons */}
+            {!appliedCoupon && availableCoupons.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Available Coupons</p>
+                <div className="grid gap-2">
+                  {availableCoupons.map((coupon) => (
+                    <div
+                      key={coupon.id}
+                      className="border border-dashed border-[#F2A900]/30 bg-[#F2A900]/5 rounded-lg p-3 flex justify-between items-center group hover:bg-[#F2A900]/10 transition-colors"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono font-bold text-[#F2A900]">{coupon.code}</span>
+                          <span className="text-xs bg-[#F2A900]/20 text-[#F2A900] px-1.5 py-0.5 rounded">
+                            {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% OFF` : `₹${coupon.discount_value} OFF`}
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1">Valid until {new Date(coupon.valid_to).toLocaleDateString()}</p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setCouponCode(coupon.code);
+                          // Optional: Auto apply
+                          // handleApplyCoupon(); // Would need to extract logic or call via effect
+                        }}
+                        className="text-xs font-semibold text-white bg-[#F2A900]/20 hover:bg-[#F2A900] hover:text-black px-3 py-1.5 rounded transition-all"
+                      >
+                        Use
+                      </button>
                     </div>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-[#F2A900] font-semibold text-sm">Scan to Pay</p>
-                    <p className="text-white font-mono text-sm">UPI ID: basha@okicici</p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      Please complete the payment and place the order. We will verify the transaction upon receipt.
-                    </p>
-                  </div>
+                  ))}
                 </div>
               </div>
-            )}
-
-            <button
-              onClick={handlePlaceOrder}
-              disabled={isPlacing || !items.length}
-              className="w-full py-3 rounded bg-[#F2A900] hover:bg-[#D99700] text-black font-semibold transition-colors disabled:opacity-50"
-            >
-              {isPlacing ? 'Placing order...' : `Place Order (${formatCurrency(totals.total)})`}
-            </button>
-            {paymentMethod === 'online' && (
-              <p className="text-xs text-center text-gray-500 mt-2">
-                * You will be redirected to payment gateway after placing order.
-              </p>
             )}
           </div>
+
+          <div className="border-t border-[#F2A900]/20 pt-4 space-y-2 text-sm text-gray-300">
+            <div className="flex justify-between">
+              <span>Subtotal</span>
+              <span>{formatCurrency(totals.subtotal)}</span>
+            </div>
+            {totals.deliveryCharges > 0 && (
+              <div className="flex justify-between">
+                <span>Delivery</span>
+                <span>{formatCurrency(totals.deliveryCharges)}</span>
+              </div>
+            )}
+            {totals.serviceCharges > 0 && (
+              <div className="flex justify-between">
+                <span>Service</span>
+                <span>{formatCurrency(totals.serviceCharges)}</span>
+              </div>
+            )}
+            {totals.discount > 0 && (
+              <div className="flex justify-between text-green-400">
+                <span>Discount</span>
+                <span>-{formatCurrency(totals.discount)}</span>
+              </div>
+            )}
+            <div className="flex justify-between">
+              <span>GST</span>
+              <span>{formatCurrency(totals.gstAmount)}</span>
+            </div>
+            <div className="flex justify-between text-white font-semibold text-lg pt-2">
+              <span>Total</span>
+              <span>{formatCurrency(totals.total)}</span>
+            </div>
+          </div>
+
+          {message && (
+            <div
+              className={`p-3 rounded text-sm ${message.type === 'success'
+                ? 'bg-green-900/30 text-green-200 border border-green-700'
+                : 'bg-red-900/30 text-red-200 border border-red-700'
+                }`}
+            >
+              {message.text}
+            </div>
+          )}
+
+          {paymentMethod === 'online' && (
+            <div className="bg-[#0f0f0f] border border-[#F2A900]/20 rounded-lg p-4 mt-2 mb-2 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-start gap-4">
+                <div className="bg-white p-2 rounded-lg shrink-0">
+                  {/* Placeholder for QR Code - In a real app, generate a real QR or use an image */}
+                  <div className="w-24 h-24 bg-gray-100 flex items-center justify-center rounded">
+                    <QrCode className="w-12 h-12 text-gray-800" />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[#F2A900] font-semibold text-sm">Scan to Pay</p>
+                  <p className="text-white font-mono text-sm">UPI ID: basha@okicici</p>
+                  <p className="text-gray-400 text-xs mt-1">
+                    Please complete the payment and place the order. We will verify the transaction upon receipt.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <button
+            onClick={handlePlaceOrder}
+            disabled={isPlacing || !items.length}
+            className="w-full py-3 rounded bg-[#F2A900] hover:bg-[#D99700] text-black font-semibold transition-colors disabled:opacity-50"
+          >
+            {isPlacing ? 'Placing order...' : `Place Order (${formatCurrency(totals.total)})`}
+          </button>
+          {paymentMethod === 'online' && (
+            <p className="text-xs text-center text-gray-500 mt-2">
+              * You will be redirected to payment gateway after placing order.
+            </p>
+          )}
         </div>
       </div>
-    </div>
+    </div >
   );
 }

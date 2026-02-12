@@ -5,8 +5,14 @@ const {
     getAllOffers,
     createOffer,
     updateOffer,
-    deleteOffer
+    deleteOffer,
+    validateOffer,
+    getPublicOffers
 } = require('../controllers/offerController');
+
+// Public route for validation and listing available
+router.post('/validate', validateOffer);
+router.get('/available', getPublicOffers);
 
 router.use(protect);
 router.use(admin);

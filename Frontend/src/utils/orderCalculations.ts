@@ -5,6 +5,7 @@ export interface OrderCalculationResult {
   gstAmount: number;
   deliveryCharges: number;
   serviceCharges: number;
+  discount: number;
   total: number;
   breakdown: {
     items: Array<{
@@ -16,6 +17,7 @@ export interface OrderCalculationResult {
     charges: {
       delivery: number;
       service: number;
+      discount: number;
     };
     tax: {
       gstRate: number;
@@ -28,26 +30,30 @@ export const calculateOrderTotal = (
   items: Array<{ name: string; quantity: number; price: number }>,
   orderType: 'pickup' | 'delivery',
   customDeliveryCharges?: number,
-  customServiceCharges?: number
+  customServiceCharges?: number,
+  discount: number = 0
 ): OrderCalculationResult => {
   const { calculateOrderTotal: calculateTotal } = useSettingsStore.getState();
-  
+
   // Calculate subtotal from items
   const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  
+
   // Get delivery charges based on order type
   const deliveryCharges = orderType === 'delivery' ? (customDeliveryCharges ?? 0) : 0;
   const serviceCharges = customServiceCharges ?? 0;
-  
+
   // Calculate total with GST
   const calculation = calculateTotal(subtotal, deliveryCharges, serviceCharges);
-  
+
+  const finalTotal = Math.max(0, calculation.total - discount);
+
   return {
     subtotal: calculation.subtotal,
     gstAmount: calculation.gstAmount,
     deliveryCharges: calculation.deliveryCharges,
     serviceCharges: calculation.serviceCharges,
-    total: calculation.total,
+    discount,
+    total: finalTotal,
     breakdown: {
       items: items.map(item => ({
         name: item.name,
@@ -58,6 +64,7 @@ export const calculateOrderTotal = (
       charges: {
         delivery: calculation.deliveryCharges,
         service: calculation.serviceCharges,
+        discount,
       },
       tax: {
         gstRate: useSettingsStore.getState().settings.gstRate,

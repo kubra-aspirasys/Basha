@@ -10,6 +10,7 @@ interface OfferState {
   addOffer: (offer: Omit<Offer, 'id' | 'created_at'>) => Promise<void>;
   updateOffer: (id: string, offer: Partial<Offer>) => Promise<void>;
   deleteOffer: (id: string) => Promise<void>;
+  getPublicOffers: () => Promise<Offer[]>;
 }
 
 export const useOfferStore = create<OfferState>((set) => ({
@@ -80,6 +81,19 @@ export const useOfferStore = create<OfferState>((set) => ({
       console.error('Failed to delete offer:', error);
       set({ error: error.response?.data?.message || 'Failed to delete offer', loading: false });
       throw error;
+    }
+  },
+
+  getPublicOffers: async () => {
+    try {
+      const response = await api.get('/offers/available');
+      if (response.data.success) {
+        return response.data.data;
+      }
+      return [];
+    } catch (error: any) {
+      console.error('Failed to fetch public offers:', error);
+      return [];
     }
   },
 }));
