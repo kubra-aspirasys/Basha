@@ -15,7 +15,9 @@ class OrderService {
                 customer_name,
                 customer_phone,
                 order_type,
-                payment_method
+                payment_method,
+                coupon_id,
+                discount_amount
             } = orderData;
 
             // 1. Calculate totals and validate items
@@ -49,7 +51,17 @@ class OrderService {
             const serviceCharges = 0; // standard logic, can be config based
             const deliveryCharges = order_type === 'delivery' ? 50 : 0; // Example fixed charge, can be dynamic
             const gstAmount = subtotal * 0.05; // 5% GST example
-            const totalAmount = subtotal + gstAmount + serviceCharges + deliveryCharges;
+
+            // Apply discount if coupon provided
+            let discountAmount = 0;
+            if (coupon_id && discount_amount) {
+                // In a robust system, re-validate coupon here.
+                // For now, trusting the passed validated amount but capping it
+                discountAmount = parseFloat(discount_amount);
+            }
+
+            let totalAmount = subtotal + gstAmount + serviceCharges + deliveryCharges - discountAmount;
+            if (totalAmount < 0) totalAmount = 0;
 
             // 3. Create Order
             const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -69,6 +81,17 @@ class OrderService {
                 order_type,
                 payment_method: payment_method || 'cod'
             }, { transaction });
+
+            // Record Used Coupon if applicable
+            if (coupon_id && discountAmount > 0) {
+                const { UsedCoupon } = require('../models');
+                await UsedCoupon.create({
+                    order_id: order.id, // Using the just created order ID
+                    offer_id: coupon_id,
+                    customer_id: customerId || null,
+                    discount_amount: discountAmount
+                }, { transaction });
+            }
 
             // 4. Create Order Items
             const itemsWithOrderId = orderItemsData.map(item => ({

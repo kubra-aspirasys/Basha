@@ -19,7 +19,11 @@ export interface CreateOrderPayload {
     delivery_charges: number;
     service_charges: number;
     total_amount: number;
+    discount_amount?: number;
+    coupon_id?: string;
   };
+  coupon_id?: string;
+  discount_amount?: number;
   items: Array<{
     menu_item_id: string;
     menu_item_name: string;
@@ -89,6 +93,8 @@ export const useOrderStore = create<OrderState>((set) => ({
         customer_phone: payload.customer_phone,
         delivery_address: payload.delivery_address,
         order_type: payload.order_type,
+        coupon_id: payload.coupon_id,
+        discount_amount: payload.discount_amount,
         items: payload.items.map(item => ({
           menu_item_id: item.menu_item_id,
           quantity: item.quantity

@@ -1,6 +1,83 @@
 'use strict';
-const { Offer } = require('../models');
+const { Offer, UsedCoupon } = require('../models');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
+const { Op } = require('sequelize');
+
+/**
+ * Validate a coupon code
+ * @route POST /api/offers/validate
+ * @access Public
+ */
+exports.validateOffer = async (req, res, next) => {
+    try {
+        const { code, order_total } = req.body;
+
+        if (!code) {
+            return errorResponse(res, 'Coupon code is required', 400);
+        }
+
+        const offer = await Offer.findOne({
+            where: {
+                code: code.toUpperCase(),
+                is_active: true,
+                valid_from: { [Op.lte]: new Date() },
+                valid_to: { [Op.gte]: new Date() }
+            }
+        });
+
+        if (!offer) {
+            return errorResponse(res, 'Invalid or expired coupon code', 400);
+        }
+
+        let discount = 0;
+        if (offer.discount_type === 'percentage') {
+            discount = (parseFloat(order_total) * parseFloat(offer.discount_value)) / 100;
+        } else {
+            discount = parseFloat(offer.discount_value);
+        }
+
+        // Cap discount at order total if needed, or implement max discount logic
+        if (discount > parseFloat(order_total)) {
+            discount = parseFloat(order_total);
+        }
+
+        return successResponse(res, 'Coupon applied successfully', {
+            id: offer.id,
+            code: offer.code,
+            discount_type: offer.discount_type,
+            discount_value: offer.discount_value,
+            calculated_discount: discount.toFixed(2)
+        });
+
+    } catch (error) {
+        console.error('Error validating offer:', error);
+        return errorResponse(res, 'Failed to validate coupon', 500);
+    }
+};
+
+/**
+ * Get active publicly available offers
+ * @route GET /api/offers/available
+ * @access Public
+ */
+exports.getPublicOffers = async (req, res, next) => {
+    try {
+        const offers = await Offer.findAll({
+            where: {
+                is_active: true,
+                valid_from: { [Op.lte]: new Date() },
+                valid_to: { [Op.gte]: new Date() }
+            },
+            attributes: ['id', 'code', 'discount_type', 'discount_value', 'valid_to'], // Exclude internal fields if any
+            order: [['valid_to', 'ASC']] // Show expiring soon first
+        });
+
+        return successResponse(res, 'Available offers retrieved successfully', offers);
+    } catch (error) {
+        console.error('Error fetching public offers:', error);
+        return errorResponse(res, 'Failed to fetch offers', 500);
+    }
+};
 
 /**
  * Get all offers
