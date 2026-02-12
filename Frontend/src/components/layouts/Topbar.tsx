@@ -24,12 +24,24 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   useEffect(() => {
     fetchProfile();
-    fetchLatestUnread();
 
-    // Optional: Poll for new notifications every minute
-    const interval = setInterval(fetchLatestUnread, 60000);
+    // Scan for new activity and fetch unread count/list
+    // Note: generateFromActivity inside store already calls fetchLatestUnread
+    const refreshData = async () => {
+      if (user?.role === 'admin') {
+        const { generateFromActivity } = useNotificationStore.getState();
+        await generateFromActivity(true);
+      } else {
+        fetchLatestUnread();
+      }
+    };
+
+    refreshData();
+
+    // 15s Polling for live updates
+    const interval = setInterval(refreshData, 15000);
     return () => clearInterval(interval);
-  }, [fetchProfile, fetchLatestUnread]);
+  }, [fetchProfile, fetchLatestUnread, user?.role]);
 
   const admin = user && user.role === 'admin' ? user : null;
 

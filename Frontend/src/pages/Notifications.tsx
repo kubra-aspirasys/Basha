@@ -82,11 +82,20 @@ export default function Notifications() {
         loadData();
     }, [loadData]);
 
-    // Auto-generate on first load
+    // Auto-generate on first load and setup polling
     useEffect(() => {
-        generateFromActivity();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        const poll = async () => {
+            await generateFromActivity(true);
+            loadData();
+        };
+
+        poll();
+
+        // 15s Polling for live notification generation
+        const interval = setInterval(poll, 15000);
+
+        return () => clearInterval(interval);
+    }, [generateFromActivity, loadData]);
 
     const handleGenerate = async () => {
         setGenerating(true);

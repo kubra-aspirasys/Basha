@@ -46,7 +46,7 @@ interface NotificationState {
     markAllAsRead: () => Promise<void>;
     deleteNotification: (id: string) => Promise<void>;
     deleteAllRead: () => Promise<void>;
-    generateFromActivity: () => Promise<{ created: number }>;
+    generateFromActivity: (skipFetchNotifications?: boolean) => Promise<{ created: number }>;
 }
 
 export const useNotificationStore = create<NotificationState>((set, get) => ({
@@ -191,14 +191,18 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
         }
     },
 
-    generateFromActivity: async () => {
+    generateFromActivity: async (skipFetchNotifications = false) => {
         try {
             const response = await api.post('/notifications/generate');
             const result = response.data.data;
-            // Refresh data after generation
-            await get().fetchNotifications();
+            // Refresh unread and stats always
             await get().fetchLatestUnread();
             await get().fetchStats();
+
+            // Only refresh the main list if not skipped
+            if (!skipFetchNotifications) {
+                await get().fetchNotifications();
+            }
             return result;
         } catch (error) {
             console.error('Failed to generate notifications:', error);

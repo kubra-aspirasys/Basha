@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,11 +15,24 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [activeRole, setActiveRole] = useState<UserRole>('customer');
-  const [showPassword, setShowPassword] = useState(false);
-  const navigate = useNavigate();
   const login = useAuthStore((state) => state.login);
+  const { user, isAuthenticated } = useAuthStore();
   const { toast } = useToast();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Initialize role based on path
+  const [activeRole, setActiveRole] = useState<UserRole>(() => {
+    return location.pathname.startsWith('/admin') ? 'admin' : 'customer';
+  });
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate(user.role === 'admin' ? '/admin/dashboard' : '/');
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,11 +42,17 @@ export default function Login() {
     try {
       const success = await login(email, password, activeRole);
       if (success) {
+        // Get the latest user state from the store
+        const currentUser = useAuthStore.getState().user;
+        const actualRole = currentUser?.role || activeRole;
+
         toast({
           title: 'Login successful',
-          description: `Welcome back to Basha Biryani${activeRole === 'admin' ? ' Admin Panel' : ''}`,
+          description: `Welcome back to Basha Biryani${actualRole === 'admin' ? ' Admin Panel' : ''}`,
         });
-        navigate(activeRole === 'admin' ? '/admin/dashboard' : '/');
+
+        // Redirect based on ACTUAL role from server response
+        navigate(actualRole === 'admin' ? '/admin/dashboard' : '/');
       } else {
         setError('Invalid email or password');
       }
