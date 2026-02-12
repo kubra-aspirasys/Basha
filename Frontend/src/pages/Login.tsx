@@ -89,7 +89,7 @@ export default function Login() {
               <Input
                 id="email"
                 type="email"
-                placeholder={activeRole === 'admin' ? 'admin@bashabiryani.com' : 'your@email.com'}
+                placeholder={activeRole === 'admin' ? 'your@email.com' : 'your@email.com'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -156,7 +156,7 @@ export default function Login() {
                 </div>
               )}
 
-              <div className="mt-8 flex flex-col gap-3">
+              {/* <div className="mt-8 flex flex-col gap-3">
                 <div className={`p-4 rounded-2xl border transition-all duration-300 ${activeRole === 'customer' ? 'bg-blue-50 border-blue-100 dark:bg-blue-900/10 dark:border-blue-900/30' : 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/30'}`}>
                   <p className={`text-xs text-center font-medium ${activeRole === 'customer' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>
                     {activeRole === 'customer' ? (
@@ -166,7 +166,7 @@ export default function Login() {
                     )}
                   </p>
                 </div>
-              </div>
+              </div> */}
             </div>
           </form>
         </CardContent>

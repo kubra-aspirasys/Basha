@@ -4,11 +4,13 @@ import { useAuthStore } from '@/store/auth-store';
 import { ShoppingCart, User, Menu as MenuIcon, X, Phone, Mail, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
 import GlobalSearch from '@/components/GlobalSearch';
+import LogoutConfirmModal from '@/components/LogoutConfirmModal';
 
 export default function CustomerLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const { isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -51,6 +53,13 @@ export default function CustomerLayout() {
   }, [userMenuOpen]);
 
   const handleLogout = () => {
+    setUserMenuOpen(false);
+    setMobileMenuOpen(false);
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
     logout();
     navigate('/login');
   };
@@ -131,7 +140,6 @@ export default function CustomerLayout() {
                         </Link>
                         <button
                           onClick={() => {
-                            setUserMenuOpen(false);
                             handleLogout();
                           }}
                           className="w-full text-left px-4 py-3 text-red-400 hover:bg-red-900/20 transition-colors"
@@ -301,6 +309,14 @@ export default function CustomerLayout() {
           </div>
         </div>
       </footer>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+        variant="customer"
+      />
     </div>
   );
 }

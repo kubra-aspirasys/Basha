@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { User, Mail, Phone, MapPin, Edit2, Save, X, Camera, Lock, Shield, Eye, EyeOff } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import LogoutConfirmModal from '@/components/LogoutConfirmModal';
 
 export default function Account() {
   const { user, logout, updateProfile, changePassword } = useAuthStore();
@@ -14,6 +15,7 @@ export default function Account() {
   const [isEditing, setIsEditing] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -118,6 +120,11 @@ export default function Account() {
   };
 
   const handleLogout = () => {
+    setShowLogoutConfirm(true);
+  };
+
+  const confirmLogout = () => {
+    setShowLogoutConfirm(false);
     logout();
     navigate('/login');
   };
@@ -381,6 +388,14 @@ export default function Account() {
           </div>
         </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <LogoutConfirmModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={confirmLogout}
+        variant="customer"
+      />
     </div>
   );
 }
