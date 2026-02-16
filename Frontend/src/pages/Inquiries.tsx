@@ -5,8 +5,11 @@ import {
   Search, Eye, Mail, Phone, Clock,
   CheckCircle, XCircle, Trash2,
   MessageSquare,
-  RefreshCw
+  RefreshCw,
+  AlertCircle
 } from 'lucide-react';
+import { useDebounce } from '@/hooks/use-debounce';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -245,10 +248,11 @@ function InquiryDetailModal({ inquiry }: { inquiry: Inquiry }) {
 
 export default function Inquiries() {
   const {
-    inquiries, isLoading, total, totalPages, fetchInquiries, deleteInquiry
+    inquiries, isLoading, total, totalPages, fetchInquiries, deleteInquiry, error
   } = useInquiryStore();
 
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [statusFilter, setStatusFilter] = useState<'all' | Inquiry['status']>('all');
   const [eventTypeFilter, setEventTypeFilter] = useState<string>('all');
   const [subjectFilter, setSubjectFilter] = useState<string>('all');
@@ -262,14 +266,14 @@ export default function Inquiries() {
 
   const performFetch = useCallback(() => {
     fetchInquiries({
-      search: searchTerm,
+      search: debouncedSearchTerm,
       status: statusFilter,
       eventType: eventTypeFilter,
       subject: subjectFilter,
       page: currentPage,
       limit: itemsPerPage
     });
-  }, [searchTerm, statusFilter, eventTypeFilter, subjectFilter, currentPage, itemsPerPage, fetchInquiries]);
+  }, [debouncedSearchTerm, statusFilter, eventTypeFilter, subjectFilter, currentPage, itemsPerPage, fetchInquiries]);
 
   useEffect(() => {
     performFetch();
@@ -324,6 +328,16 @@ export default function Inquiries() {
           </CardContent>
         </Card>
       </div>
+
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {error}
+          </AlertDescription>
+        </Alert>
+      )}
 
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
         <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700">

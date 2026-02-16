@@ -129,13 +129,14 @@ class OrderService {
     }
 
     /**
-     * Get all orders (Admin) with filters
+     * Get all orders (Admin) with filters and pagination
      */
     async getAllOrders(filters = {}) {
-        const { status, startDate, endDate, customer_id, order_number } = filters;
+        const { status, startDate, endDate, customer_id, order_number, page = 1, limit = 10 } = filters;
+        const offset = (page - 1) * limit;
         const whereClause = {};
 
-        if (status) whereClause.status = status;
+        if (status && status !== 'all') whereClause.status = status;
         if (customer_id) whereClause.customer_id = customer_id;
         if (order_number) whereClause.order_number = { [Op.like]: `%${order_number}%` };
 
@@ -145,12 +146,15 @@ class OrderService {
             };
         }
 
-        return await Order.findAll({
+        return await Order.findAndCountAll({
             where: whereClause,
             include: [
                 { model: OrderItem, as: 'items' }
             ],
-            order: [['createdAt', 'DESC']]
+            order: [['createdAt', 'DESC']],
+            limit: parseInt(limit),
+            offset: parseInt(offset),
+            distinct: true
         });
     }
 
@@ -192,6 +196,27 @@ class OrderService {
     }
 
     /**
+     * Validate status transition
+     */
+    validateStatusTransition(currentStatus, newStatus) {
+        const validTransitions = {
+            'pending': ['confirmed', 'cancelled'],
+            'confirmed': ['preparing', 'cancelled'],
+            'preparing': ['ready_for_pickup', 'out_for_delivery', 'cancelled'], // Depending on order type
+            'ready_for_pickup': ['completed', 'delivered', 'cancelled'], // Completed for pickup
+            'out_for_delivery': ['delivered', 'cancelled'],
+            'delivered': [],
+            'completed': [],
+            'cancelled': []
+        };
+
+        const allowed = validTransitions[currentStatus] || [];
+        if (!allowed.includes(newStatus)) {
+            throw new Error(`Invalid status transition from ${currentStatus} to ${newStatus}`);
+        }
+    }
+
+    /**
      * Update order status (Admin)
      */
     async updateOrderStatus(orderId, newStatus) {
@@ -201,10 +226,8 @@ class OrderService {
             throw new Error('Order not found');
         }
 
-        // Invalid transitions check
-        if (order.status === 'delivered' || order.status === 'cancelled') {
-            throw new Error(`Cannot update status. Order is already ${order.status}`);
-        }
+        // Validate transition
+        this.validateStatusTransition(order.status, newStatus);
 
         order.status = newStatus;
         await order.save();

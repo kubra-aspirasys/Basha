@@ -34,7 +34,7 @@ const createNotification = async (req, res) => {
         res.status(201).json({ success: true, message: 'Notification created successfully', data: notification });
     } catch (error) {
         console.error('Error creating notification:', error);
-        res.status(500).json({ success: false, message: 'Internal server error' });
+        res.status(500).json({ success: false, message: 'Internal server error', error: error.message });
     }
 };
 

@@ -27,12 +27,22 @@ const createOrder = async (req, res, next) => {
 const getAllOrders = async (req, res, next) => {
     try {
         const filters = req.query;
-        const orders = await orderService.getAllOrders(filters);
+        // Default to page 1, limit 10 if not provided
+        const page = parseInt(filters.page, 10) || 1;
+        const limit = parseInt(filters.limit, 10) || 10;
+
+        const { count, rows } = await orderService.getAllOrders({ ...filters, page, limit });
 
         res.status(200).json({
             success: true,
             message: 'Orders retrieved successfully',
-            data: orders
+            data: rows,
+            pagination: {
+                totalOrders: count,
+                totalPages: Math.ceil(count / limit),
+                currentPage: page,
+                limit: limit
+            }
         });
     } catch (error) {
         next(error);

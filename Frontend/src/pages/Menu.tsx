@@ -3,6 +3,9 @@ import { useMenuStore } from '@/store/menu-store';
 import { useOfferStore } from '@/store/offer-store';
 import { Plus, Pencil, Trash2, Search, Upload, Link as LinkIcon, X, Star, Tag, CheckCircle, AlertCircle } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { ScrollArea } from '@/components/ui/scroll-area';
 // Removed mock import
 // import { categoryNames, typeNames } from '@/lib/menu-mock-data';
 
@@ -809,23 +812,17 @@ export default function Menu() {
       </div>
 
       {/* Add/Edit Modal */}
-      {isOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                {editingItem ? 'Edit Menu Item' : 'Add New Menu Item'}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setIsOpen(false)}
-                className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
-              >
-                <X className="w-6 h-6" />
-              </button>
-            </div>
+      {/* Add/Edit Modal */}
+      <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 flex flex-col bg-white dark:bg-slate-800">
+          <DialogHeader className="p-6 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 z-10 shrink-0 rounded-t-xl">
+            <DialogTitle className="text-xl font-bold text-slate-900 dark:text-white">
+              {editingItem ? 'Edit Menu Item' : 'Add New Menu Item'}
+            </DialogTitle>
+          </DialogHeader>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <ScrollArea className="flex-1">
+            <form id="menu-form" onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column */}
                 <div className="space-y-6">
@@ -919,8 +916,8 @@ export default function Menu() {
                       <input
                         type="number"
                         required
-                        min="0"
-                        step="0.01"
+                        min="1"
+                        step="1"
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
@@ -1152,25 +1149,28 @@ export default function Menu() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-4 pt-6 border-t border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="px-6 py-2 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-lg hover:shadow-lg transition-all"
-                >
-                  {editingItem ? 'Save Changes' : 'Add Item'}
-                </button>
-              </div>
             </form>
-          </div>
-        </div>
-      )}
+          </ScrollArea>
+
+          <DialogFooter className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-b-xl z-10 shrink-0 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsOpen(false)}
+              className="px-6 border-slate-300 dark:border-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              form="menu-form"
+              className="px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-white hover:shadow-lg transition-all border-0"
+            >
+              {editingItem ? 'Save Changes' : 'Add Item'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* List View Details Modal */}
       {isListViewOpen && selectedItem && (

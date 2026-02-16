@@ -9,41 +9,45 @@ import {
     AlertTriangle, Info, Package, X, Sparkles,
     Clock, CheckCircle2, XCircle, Zap
 } from 'lucide-react';
+import { useDebounce } from '@/hooks/use-debounce';
 
-// ─── Helpers ────────────────────────────────────────────────────────────────
-const typeConfig: Record<string, { icon: any; color: string; bg: string; label: string }> = {
+const timeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+    return Math.floor(seconds) + " seconds ago";
+};
+
+const typeConfig: Record<string, any> = {
     new_order: { icon: ShoppingBag, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/30', label: 'New Order' },
-    order_status: { icon: Package, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-900/30', label: 'Order Status' },
+    order_status: { icon: Package, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-900/30', label: 'Order Update' },
     order_cancelled: { icon: XCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/30', label: 'Order Cancelled' },
     new_payment: { icon: CreditCard, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/30', label: 'Payment' },
     payment_failed: { icon: AlertTriangle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/30', label: 'Payment Failed' },
-    new_customer: { icon: Users, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-900/30', label: 'New Customer' },
-    new_inquiry: { icon: MessageSquare, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/30', label: 'New Inquiry' },
+    new_customer: { icon: Users, color: 'text-indigo-600 dark:text-indigo-400', bg: 'bg-indigo-100 dark:bg-indigo-900/30', label: 'New Customer' },
+    new_inquiry: { icon: MessageSquare, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-100 dark:bg-amber-900/30', label: 'Inquiry' },
     low_stock: { icon: AlertTriangle, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-100 dark:bg-orange-900/30', label: 'Low Stock' },
     system: { icon: Zap, color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800', label: 'System' },
     info: { icon: Info, color: 'text-sky-600 dark:text-sky-400', bg: 'bg-sky-100 dark:bg-sky-900/30', label: 'Info' },
 };
 
-const priorityConfig: Record<string, { color: string; bg: string; dot: string }> = {
-    low: { color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800', dot: 'bg-slate-400' },
-    medium: { color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/20', dot: 'bg-blue-500' },
-    high: { color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/20', dot: 'bg-amber-500' },
-    urgent: { color: 'text-red-600 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/20', dot: 'bg-red-500 animate-pulse' },
+const priorityConfig: Record<string, any> = {
+    low: { color: 'text-slate-600 dark:text-slate-400', bg: 'bg-slate-100 dark:bg-slate-800', dot: 'bg-slate-500' },
+    medium: { color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/30', dot: 'bg-blue-500' },
+    high: { color: 'text-orange-600 dark:text-orange-400', bg: 'bg-orange-100 dark:bg-orange-900/30', dot: 'bg-orange-500' },
+    urgent: { color: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/30', dot: 'bg-red-500' },
 };
-
-function timeAgo(dateStr: string) {
-    const now = new Date();
-    const date = new Date(dateStr);
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-    if (seconds < 60) return 'Just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    if (days < 7) return `${days}d ago`;
-    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
 
 // ─── Main Component ─────────────────────────────────────────────────────────
 export default function Notifications() {
@@ -55,6 +59,7 @@ export default function Notifications() {
     const { toast } = useToast();
 
     const [search, setSearch] = useState('');
+    const debouncedSearch = useDebounce(search, 500); // 500ms debounce
     const [typeFilter, setTypeFilter] = useState('all');
     const [priorityFilter, setPriorityFilter] = useState('all');
     const [readFilter, setReadFilter] = useState('all');
@@ -68,7 +73,7 @@ export default function Notifications() {
 
     const loadData = useCallback(() => {
         fetchNotifications({
-            search: search || undefined,
+            search: debouncedSearch || undefined, // Use debounced search
             type: typeFilter !== 'all' ? typeFilter : undefined,
             priority: priorityFilter !== 'all' ? priorityFilter : undefined,
             is_read: readFilter !== 'all' ? readFilter : undefined,
@@ -76,7 +81,7 @@ export default function Notifications() {
             limit,
         });
         fetchStats();
-    }, [search, typeFilter, priorityFilter, readFilter, page, fetchNotifications, fetchStats]);
+    }, [debouncedSearch, typeFilter, priorityFilter, readFilter, page, fetchNotifications, fetchStats]);
 
     useEffect(() => {
         loadData();
@@ -85,17 +90,32 @@ export default function Notifications() {
     // Auto-generate on first load and setup polling
     useEffect(() => {
         const poll = async () => {
+            // Only generate, don't force a full re-fetch here since loadData will handle it slightly after or independently if needed.
+            // But to ensure fresh data, we can re-fetch stats specifically or let the next interval handle it.
+            // Actually, the requirement was to avoid "redundant calls". 
+            // generateFromActivity(true) skips the internal fetchNotifications call in the store if we pass true?
+            // Let's check the store. Yes, skipFetchNotifications=false by default.
+            // We'll trust the polling to keep things fresh.
             await generateFromActivity(true);
-            loadData();
+            // We don't need to call loadData() here immediately if we just want background generation.
+            // However, to see results immediately on mount:
+            fetchStats();
         };
 
         poll();
 
-        // 15s Polling for live notification generation
-        const interval = setInterval(poll, 15000);
+        // 30s Polling for live notification generation (increased from 15s to reduce load)
+        const interval = setInterval(async () => {
+            await generateFromActivity(true);
+            fetchStats(); // Refresh stats to show new badges
+            // Optionally refresh list if user is on page 1 and not searching
+            if (page === 1 && !search) {
+                fetchNotifications({ page: 1, limit });
+            }
+        }, 30000);
 
         return () => clearInterval(interval);
-    }, [generateFromActivity, loadData]);
+    }, [generateFromActivity, fetchStats, fetchNotifications, page, search, limit]);
 
     const handleGenerate = async () => {
         setGenerating(true);
@@ -186,6 +206,7 @@ export default function Notifications() {
         <div className="min-h-screen p-3 sm:p-4 md:p-6 lg:p-8 space-y-6 animate-fade-in">
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                {/* ... (title) */}
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-600 dark:from-white dark:via-slate-200 dark:to-slate-400 bg-clip-text text-transparent flex items-center gap-3">
                         <div className="p-2.5 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow-lg">
@@ -201,21 +222,23 @@ export default function Notifications() {
                     <button
                         onClick={handleGenerate}
                         disabled={generating}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium text-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] disabled:opacity-50"
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-600 text-white font-medium text-sm hover:shadow-lg transition-all duration-300 hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Sparkles className={`w-4 h-4 ${generating ? 'animate-spin' : ''}`} />
                         {generating ? 'Scanning...' : 'Scan Activity'}
                     </button>
                     <button
                         onClick={handleMarkAllRead}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all duration-300"
+                        disabled={!stats || stats.unread === 0}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-medium text-sm hover:bg-slate-200 dark:hover:bg-slate-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <CheckCheck className="w-4 h-4" />
                         Mark All Read
                     </button>
                     <button
                         onClick={handleClearRead}
-                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-300"
+                        disabled={!stats || stats.read === 0}
+                        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 font-medium text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Trash2 className="w-4 h-4" />
                         Clear Read
@@ -224,54 +247,56 @@ export default function Notifications() {
             </div>
 
             {/* Stats Cards */}
-            {stats && (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-                    <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30">
-                                <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            {
+                stats && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+                        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/30">
+                                    <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Total</p>
+                                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.total}</p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Total</p>
-                                <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.total}</p>
+                        </div>
+                        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+                                    <BellRing className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Unread</p>
+                                    <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.unread}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-green-100 dark:bg-green-900/30">
+                                    <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Read</p>
+                                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.read}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-900/30">
+                                    <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Today</p>
+                                    <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.todayCount}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
-                    <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-amber-100 dark:bg-amber-900/30">
-                                <BellRing className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Unread</p>
-                                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.unread}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-green-100 dark:bg-green-900/30">
-                                <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Read</p>
-                                <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.read}</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 p-4 sm:p-5 shadow-sm hover:shadow-md transition-all duration-300">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-900/30">
-                                <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                            </div>
-                            <div>
-                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">Today</p>
-                                <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.todayCount}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
+                )
+            }
 
             {/* Search & Filters */}
             <div className="rounded-2xl bg-white dark:bg-slate-800/80 border border-slate-200/60 dark:border-slate-700/60 p-4 sm:p-5 shadow-sm space-y-4">
@@ -301,6 +326,7 @@ export default function Notifications() {
                         className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 text-sm font-medium hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
                     >
                         <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                        Refresh
                     </button>
                 </div>
 
@@ -348,27 +374,29 @@ export default function Notifications() {
             </div>
 
             {/* Batch Actions */}
-            {selectedIds.length > 0 && (
-                <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 animate-fade-in">
-                    <CheckCheck className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-                    <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                        {selectedIds.length} selected
-                    </span>
-                    <div className="flex-1" />
-                    <button
-                        onClick={handleBatchRead}
-                        className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors"
-                    >
-                        Mark Read
-                    </button>
-                    <button
-                        onClick={() => setSelectedIds([])}
-                        className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-                    >
-                        Cancel
-                    </button>
-                </div>
-            )}
+            {
+                selectedIds.length > 0 && (
+                    <div className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 animate-fade-in">
+                        <CheckCheck className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                        <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                            {selectedIds.length} selected
+                        </span>
+                        <div className="flex-1" />
+                        <button
+                            onClick={handleBatchRead}
+                            className="px-3 py-1.5 rounded-lg bg-amber-500 text-white text-xs font-semibold hover:bg-amber-600 transition-colors"
+                        >
+                            Mark Read
+                        </button>
+                        <button
+                            onClick={() => setSelectedIds([])}
+                            className="px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                )
+            }
 
             {/* Notifications List + Detail */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
@@ -650,6 +678,6 @@ export default function Notifications() {
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

@@ -19,10 +19,11 @@ const getAllInquiries = async ({ search, status, eventType, subject, startDate, 
     const where = {};
 
     if (search) {
+        const searchTerm = search.trim();
         where[Op.or] = [
-            { name: { [Op.like]: `%${search}%` } },
-            { phone: { [Op.like]: `%${search}%` } },
-            { email: { [Op.like]: `%${search}%` } }
+            { name: { [Op.like]: `%${searchTerm}%` } },
+            { phone: { [Op.like]: `%${searchTerm}%` } },
+            { email: { [Op.like]: `%${searchTerm}%` } }
         ];
     }
 
@@ -35,6 +36,9 @@ const getAllInquiries = async ({ search, status, eventType, subject, startDate, 
     }
 
     if (subject && subject !== 'all') {
+        // Use LIKE for subject to handle minor differences if strict equality fails,
+        // but for now strict equality is safer for exact filtering unless we know it varies.
+        // Given the bug report, let's keep it strict but ensure we match what front-end sends.
         where.subject = subject;
     }
 

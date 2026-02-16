@@ -22,9 +22,10 @@ const getAllNotifications = async ({ search, type, priority, is_read, sort, page
     const where = {};
 
     if (search) {
+        const searchTerm = search.trim();
         where[Op.or] = [
-            { title: { [Op.like]: `%${search}%` } },
-            { message: { [Op.like]: `%${search}%` } }
+            { title: { [Op.like]: `%${searchTerm}%` } },
+            { message: { [Op.like]: `%${searchTerm}%` } }
         ];
     }
 

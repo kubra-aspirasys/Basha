@@ -89,85 +89,60 @@ class CustomerService {
             } else if (status === 'blocked') {
                 whereClause.is_blocked = true;
             } else if (status === 'new') {
-                // Example: Joined in last 30 days
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                whereClause.createdAt = { [Op.gte]: thirtyDaysAgo };
+                whereClause.created_at = { [Op.gte]: thirtyDaysAgo };
             }
-            // Add more status logic as needed
         }
 
-        // Sorting
-        let orderClause = [['created_at', 'DESC']]; // Default
-        const validColumns = ['name', 'email', 'created_at', 'is_blocked', 'is_active'];
+        // Sorting Logic
+        let orderClause;
 
-        if (validColumns.includes(sort)) {
+        // Subqueries for complex sorting
+        const totalSpentLiteral = sequelize.literal(`(
+            SELECT COALESCE(SUM(total_amount), 0)
+            FROM orders AS o
+            WHERE o.customer_id = Customer.id AND o.status != 'cancelled'
+        )`);
+
+        const ordersCountLiteral = sequelize.literal(`(
+            SELECT COUNT(*)
+            FROM orders AS o
+            WHERE o.customer_id = Customer.id
+        )`);
+
+        if (sort === 'total_spent' || sort === 'spending') {
+            orderClause = [[totalSpentLiteral, order.toUpperCase()]];
+        } else if (sort === 'orders_count' || sort === 'orders') {
+            orderClause = [[ordersCountLiteral, order.toUpperCase()]];
+        } else if (['name', 'email', 'created_at', 'is_blocked', 'is_active'].includes(sort)) {
             orderClause = [[sort, order.toUpperCase()]];
-        } else if (sort === 'total_spent' || sort === 'orders_count') {
-            // These are handled after fetching enriched data
-            orderClause = [['created_at', order.toUpperCase()]]; // Temporary SQL sort
-        } else if (sort === 'orders') {
-            // Map frontend 'orders' to backend 'orders_count'
-            orderClause = [['created_at', order.toUpperCase()]];
-        } else if (sort === 'spending') {
-            // Map frontend 'spending' to backend 'total_spent'
-            orderClause = [['created_at', order.toUpperCase()]];
+        } else {
+            orderClause = [['created_at', 'DESC']];
         }
 
         const { count, rows } = await Customer.findAndCountAll({
             where: whereClause,
+            attributes: {
+                include: [
+                    [ordersCountLiteral, 'orders_count'],
+                    [totalSpentLiteral, 'total_spent']
+                ]
+            },
             limit: parseInt(limit),
             offset: parseInt(offset),
-            order: orderClause
+            order: orderClause,
+            subQuery: false // Important for limit/offset with includes/literals in some sequelize versions, though here we don't have many-to-many includes
         });
 
-        // Enrich rows with stats if needed (like total spent)
-        // Doing this efficiently: fetch aggregate order stats for these customer IDs
-        const customerIds = rows.map(c => c.id);
-        const orderStats = await Order.findAll({
-            attributes: [
-                'customer_id',
-                [sequelize.fn('COUNT', sequelize.col('id')), 'orderCount'],
-                [sequelize.fn('SUM', sequelize.col('total_amount')), 'totalSpent']
-            ],
-            where: {
-                customer_id: { [Op.in]: customerIds },
-                status: { [Op.ne]: 'cancelled' }
-            },
-            group: ['customer_id'],
-            raw: true
-        });
-
-        const statsMap = {};
-        orderStats.forEach(stat => {
-            statsMap[stat.customer_id] = {
-                orderCount: parseInt(stat.orderCount || 0),
-                totalSpent: parseFloat(stat.totalSpent || 0)
-            };
-        });
-
+        // Normalize data
         const enrichedRows = rows.map(customer => {
-            const stats = statsMap[customer.id] || { orderCount: 0, totalSpent: 0 };
-            return {
-                ...customer.toJSON(),
-                orders_count: stats.orderCount,
-                total_spent: stats.totalSpent
-            };
+            const plain = customer.toJSON();
+            // Ensure numbers are numbers (MySQL subqueries might return strings)
+            plain.orders_count = parseInt(plain.orders_count || 0);
+            plain.total_spent = parseFloat(plain.total_spent || 0);
+            return plain;
         });
-
-        // If sorting was by total_spent, we sort the page results (approximation)
-        // or for full accuracy we would need a different approach. For now, page-level sort is acceptable fallback
-        // If sorting was by total_spent or orders_count, we sort the page results
-        if (['total_spent', 'orders_count', 'orders', 'spending'].includes(sort)) {
-            const sortKey = sort === 'orders' ? 'orders_count' : (sort === 'spending' ? 'total_spent' : sort);
-            enrichedRows.sort((a, b) => {
-                const valA = a[sortKey] || 0;
-                const valB = b[sortKey] || 0;
-                return order.toUpperCase() === 'DESC'
-                    ? valB - valA
-                    : valA - valB;
-            });
-        }
 
         return {
             total: count,

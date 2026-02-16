@@ -14,6 +14,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Customer, Order } from '@/types';
 import { toast } from 'sonner';
+import { useDebounce } from '@/hooks/use-debounce';
+import { Loader2 } from 'lucide-react';
 
 // const ITEMS_PER_PAGE = 10;
 
@@ -756,26 +758,31 @@ export default function Users() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const debouncedSearch = useDebounce(searchTerm, 500);
 
   useEffect(() => {
     fetchStats();
-    fetchOrders(); // Fetch orders to populate history in modals
+    fetchOrders();
   }, []);
 
   useEffect(() => {
-    const delayDebounceFn = setTimeout(() => {
-      fetchCustomers({
+    const fetchData = async () => {
+      setIsLoading(true);
+      await fetchCustomers({
         page: currentPage,
         limit: itemsPerPage,
-        search: searchTerm,
+        search: debouncedSearch,
         status: statusFilter === 'all' ? undefined : statusFilter,
         sort: sortBy,
         order: sortOrder
       });
-    }, 500); // Debounce search
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [currentPage, itemsPerPage, searchTerm, statusFilter, sortBy, sortOrder]);
+      setIsLoading(false);
+    };
+    fetchData();
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, sortBy, sortOrder]);
 
   const handleToggleBlock = (id: string, currentStatus: boolean) => {
     updateCustomerStatus(id, !currentStatus);
@@ -791,8 +798,9 @@ export default function Users() {
   };
 
   const handleExport = async () => {
+    setIsExporting(true);
     const blob = await exportCustomers({
-      search: searchTerm,
+      search: debouncedSearch,
       status: statusFilter === 'all' ? undefined : statusFilter,
       sort: sortBy,
       order: sortOrder
@@ -804,6 +812,7 @@ export default function Users() {
       a.download = `customers_export_${new Date().toISOString()}.csv`;
       a.click();
     }
+    setIsExporting(false);
   };
 
   const paginatedCustomers = customers; // Backend already paginates
@@ -818,69 +827,79 @@ export default function Users() {
       </div>
 
       {/* Summary Statistics */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <Card>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+      {isLoading ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="p-4 sm:p-6 h-24 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                  <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Total Customers</p>
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{stats?.totalCustomers || 0}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Total Customers</p>
-                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">{stats?.totalCustomers || 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                  <Check className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Active Customers</p>
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                    {stats?.activeCustomers || 0}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Active Customers</p>
-                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                  {stats?.activeCustomers || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                <Ban className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
+                  <Ban className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Blocked Customers</p>
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                    {stats?.blockedCustomers || 0}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Blocked Customers</p>
-                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                  {stats?.blockedCustomers || 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card>
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+          <Card>
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">Total Revenue</p>
+                  <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                    ₹{(stats?.totalRevenue || 0).toLocaleString()}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-slate-600 dark:text-slate-400">Total Revenue</p>
-                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                  ₹{(stats?.totalRevenue || 0).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
         <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700">
@@ -888,9 +907,15 @@ export default function Users() {
             <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Customer Management</h3>
             <div className="flex flex-col sm:flex-row gap-2">
               <AddUserModal />
-              <Button variant="outline" size="sm" className="flex items-center gap-2" onClick={handleExport}>
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export</span>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex items-center gap-2"
+                onClick={handleExport}
+                disabled={isExporting}
+              >
+                {isExporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+                <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export'}</span>
               </Button>
               <SendMessageModal customers={customers} />
             </div>
@@ -976,98 +1001,113 @@ export default function Users() {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-slate-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {paginatedCustomers.map((customer) => {
-                const totalSpent = customer.total_spent || 0;
-                const orderCount = customer.orders_count || 0;
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                    <Loader2 className="w-8 h-8 animate-spin mx-auto mb-2" />
+                    Loading customers...
+                  </td>
+                </tr>
+              ) : paginatedCustomers.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-8 text-center text-slate-500">
+                    No customers found matching your criteria.
+                  </td>
+                </tr>
+              ) : (
+                paginatedCustomers.map((customer) => {
+                  const totalSpent = customer.total_spent || 0;
+                  const orderCount = customer.orders_count || 0;
 
-                return (
-                  <tr key={customer.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gradient-to-r from-[#E63946] to-[#E63946]/80 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                          {customer.name.charAt(0).toUpperCase()}
+                  return (
+                    <tr key={customer.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-gradient-to-r from-[#E63946] to-[#E63946]/80 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                            {customer.name.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-medium text-slate-900 dark:text-white">{customer.name}</div>
+                            <div className="text-sm text-slate-500">ID: {customer.id}</div>
+                          </div>
                         </div>
-                        <div>
-                          <div className="font-medium text-slate-900 dark:text-white">{customer.name}</div>
-                          <div className="text-sm text-slate-500">ID: {customer.id}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-slate-900 dark:text-white">{customer.email}</div>
+                        <div className="text-sm text-slate-500">{customer.phone || 'No phone'}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-blue-500" />
+                          <span className="font-medium">{orderCount}</span>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-slate-900 dark:text-white">{customer.email}</div>
-                      <div className="text-sm text-slate-500">{customer.phone || 'No phone'}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="w-4 h-4 text-blue-500" />
-                        <span className="font-medium">{orderCount}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <DollarSign className="w-4 h-4 text-green-500" />
-                        <span className="font-medium">₹{totalSpent.toLocaleString()}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {customer.is_blocked ? (
-                        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                          Blocked
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                          Active
-                        </Badge>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400">
-                      {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setSelectedCustomer(customer)}
-                              className="flex items-center gap-1"
-                            >
-                              <Eye className="w-4 h-4" />
-                              View
-                            </Button>
-                          </DialogTrigger>
-                          {selectedCustomer && (
-                            <CustomerDetailModal customer={selectedCustomer} orders={orders} />
-                          )}
-                        </Dialog>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-green-500" />
+                          <span className="font-medium">₹{totalSpent.toLocaleString()}</span>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {customer.is_blocked ? (
+                          <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
+                            Blocked
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
+                            Active
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-slate-600 dark:text-slate-400">
+                        {customer.created_at ? new Date(customer.created_at).toLocaleDateString() : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setSelectedCustomer(customer)}
+                                className="flex items-center gap-1"
+                              >
+                                <Eye className="w-4 h-4" />
+                                View
+                              </Button>
+                            </DialogTrigger>
+                            {selectedCustomer && (
+                              <CustomerDetailModal customer={selectedCustomer} orders={orders} />
+                            )}
+                          </Dialog>
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleToggleBlock(customer.id, customer.is_blocked ?? false)}
-                          className={`flex items-center gap-1 ${customer.is_blocked
-                            ? 'text-green-700 hover:text-green-800'
-                            : 'text-red-700 hover:text-red-800'
-                            }`}
-                        >
-                          {customer.is_blocked ? (
-                            <>
-                              <Check className="w-4 h-4" />
-                              Unblock
-                            </>
-                          ) : (
-                            <>
-                              <Ban className="w-4 h-4" />
-                              Block
-                            </>
-                          )}
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleBlock(customer.id, customer.is_blocked ?? false)}
+                            className={`flex items-center gap-1 ${customer.is_blocked
+                              ? 'text-green-700 hover:text-green-800'
+                              : 'text-red-700 hover:text-red-800'
+                              }`}
+                          >
+                            {customer.is_blocked ? (
+                              <>
+                                <Check className="w-4 h-4" />
+                                Unblock
+                              </>
+                            ) : (
+                              <>
+                                <Ban className="w-4 h-4" />
+                                Block
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
