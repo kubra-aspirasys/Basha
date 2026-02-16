@@ -26,23 +26,14 @@ const createOrder = async (req, res, next) => {
 // @access  Private (Admin)
 const getAllOrders = async (req, res, next) => {
     try {
-        const filters = req.query;
-        // Default to page 1, limit 10 if not provided
-        const page = parseInt(filters.page, 10) || 1;
-        const limit = parseInt(filters.limit, 10) || 10;
-
-        const { count, rows } = await orderService.getAllOrders({ ...filters, page, limit });
+        const { status, startDate, endDate, customer_id, order_number, search } = req.query;
+        const filters = { status, startDate, endDate, customer_id, order_number, search };
+        const orders = await orderService.getAllOrders(filters);
 
         res.status(200).json({
             success: true,
             message: 'Orders retrieved successfully',
-            data: rows,
-            pagination: {
-                totalOrders: count,
-                totalPages: Math.ceil(count / limit),
-                currentPage: page,
-                limit: limit
-            }
+            data: orders
         });
     } catch (error) {
         next(error);

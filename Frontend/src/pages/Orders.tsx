@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-
+import { useSearchParams } from 'react-router-dom';
 import { useOrderStore } from '@/store/order-store';
 import { useMenuStore } from '@/store/menu-store';
 import { useCustomerStore } from '@/store/customer-store';
@@ -47,59 +47,71 @@ const statusConfig = {
 };
 
 export default function Orders() {
-  const { orders, pagination, updateOrderStatus, deleteOrder, fetchOrders, loading } = useOrderStore();
+  const { orders, updateOrderStatus, deleteOrder, fetchOrders, loading } = useOrderStore();
   const { menuItems } = useMenuStore();
   const { customers } = useCustomerStore();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Initialize state from URL params
+  const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
+  const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1'));
+  const [itemsPerPage, setItemsPerPage] = useState(parseInt(searchParams.get('limit') || '10'));
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  // Filter states from URL
+  const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>((searchParams.get('status') as Order['status'] | 'all') || 'all');
+  const [typeFilter, setTypeFilter] = useState<Order['order_type'] | 'all'>((searchParams.get('type') as Order['order_type'] | 'all') || 'all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>((searchParams.get('date') as any) || 'all');
+  const [customDateFrom, setCustomDateFrom] = useState(searchParams.get('from') || '');
+  const [customDateTo, setCustomDateTo] = useState(searchParams.get('to') || '');
+
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [viewMode, setViewMode] = useState<'view' | 'edit' | null>(null);
   const [editStatus, setEditStatus] = useState<Order['status']>('pending');
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
-
-
-
-  // Filter states
-  const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>('all');
-  const [typeFilter, setTypeFilter] = useState<Order['order_type'] | 'all'>('all');
-  const [dateFilter, setDateFilter] = useState<'all' | 'today' | 'week' | 'month' | 'custom'>('all');
-  const [customDateFrom, setCustomDateFrom] = useState('');
-  const [customDateTo, setCustomDateTo] = useState('');
   const [showFilters, setShowFilters] = useState(false);
   const [tempStatus, setTempStatus] = useState<Order['status']>('pending');
 
-  // Debounce search term & Polling moved here to access state
+  // Sync state to URL params
   useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchOrders({
-        page: currentPage,
-        limit: itemsPerPage,
-        status: statusFilter,
-        order_type: typeFilter,
-        order_number: searchTerm,
-        startDate: dateFilter === 'custom' ? customDateFrom : getDateRange(dateFilter)?.from?.toISOString(),
-        endDate: dateFilter === 'custom' ? customDateTo : getDateRange(dateFilter)?.to?.toISOString()
-      });
-    }, 500);
-    return () => clearTimeout(timer);
-  }, [fetchOrders, currentPage, itemsPerPage, statusFilter, typeFilter, dateFilter, customDateFrom, customDateTo, searchTerm]);
+    const params: any = {};
+    if (searchTerm) params.search = searchTerm;
+    if (currentPage > 1) params.page = currentPage.toString();
+    if (itemsPerPage !== 10) params.limit = itemsPerPage.toString();
+    if (statusFilter !== 'all') params.status = statusFilter;
+    if (typeFilter !== 'all') params.type = typeFilter;
+    if (dateFilter !== 'all') params.date = dateFilter;
+    if (customDateFrom) params.from = customDateFrom;
+    if (customDateTo) params.to = customDateTo;
+
+    setSearchParams(params);
+  }, [searchTerm, currentPage, itemsPerPage, statusFilter, typeFilter, dateFilter, customDateFrom, customDateTo, setSearchParams]);
 
   useEffect(() => {
+    fetchOrders();
+
+    // 15s Polling for live updates
     const interval = setInterval(() => {
-      fetchOrders({
-        page: currentPage,
-        limit: itemsPerPage,
-        status: statusFilter,
-        order_type: typeFilter,
-        order_number: searchTerm,
-        startDate: dateFilter === 'custom' ? customDateFrom : getDateRange(dateFilter)?.from?.toISOString(),
-        endDate: dateFilter === 'custom' ? customDateTo : getDateRange(dateFilter)?.to?.toISOString()
-      });
+      fetchOrders();
     }, 15000);
+
     return () => clearInterval(interval);
-  }, [fetchOrders, currentPage, itemsPerPage, statusFilter, typeFilter, dateFilter, customDateFrom, customDateTo, searchTerm]);
+  }, [fetchOrders]);
+
+  // Handle URL parameter to open specific order
+  useEffect(() => {
+    const openOrderId = searchParams.get('openOrder');
+    if (openOrderId) {
+      const order = orders.find(o => o.id === openOrderId);
+      if (order) {
+        setSelectedOrder(order);
+        setViewMode('view');
+        // Remove the parameter from URL after opening
+        // Note: We should preserves other params!
+        const newParams = new URLSearchParams(searchParams);
+        newParams.delete('openOrder');
+        setSearchParams(newParams);
+      }
+    }
+  }, [searchParams, orders, setSearchParams]);
 
   // Date filtering helper
   const getDateRange = (filter: string) => {
@@ -127,8 +139,40 @@ export default function Orders() {
     }
   };
 
-  // No need for client side pagination slicing
-  const paginatedOrders = orders; // Orders from store are already paginated
+  const filteredOrders = orders.filter((order) => {
+    // Search filter
+    const matchesSearch = order.order_number.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_name.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || order.status === statusFilter;
+
+    // Type filter
+    const matchesType = typeFilter === 'all' || order.order_type === typeFilter;
+
+    // Date filter
+    let matchesDate = true;
+    if (dateFilter !== 'all') {
+      const dateRange = getDateRange(dateFilter);
+      if (dateRange) {
+        const dateStr = order.created_at || order.createdAt;
+        if (dateStr) {
+          const orderDate = new Date(dateStr);
+          if (dateRange.from && orderDate < dateRange.from) matchesDate = false;
+          if (dateRange.to && orderDate >= dateRange.to) matchesDate = false;
+        } else {
+          matchesDate = false;
+        }
+      }
+    }
+
+    return matchesSearch && matchesStatus && matchesType && matchesDate;
+  });
+
+  const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrders = filteredOrders.slice(startIndex, endIndex);
 
   const getMenuItemDetails = (menuItemId: string) => {
     return menuItems.find((item) => item.id === menuItemId);
@@ -361,7 +405,7 @@ export default function Orders() {
           {/* Results Summary */}
           <div className="flex items-center justify-between text-sm text-slate-600 dark:text-slate-400">
             <span>
-              Showing {orders.length} of {pagination.totalOrders} orders
+              Showing {filteredOrders.length} of {orders.length} orders
               {(statusFilter !== 'all' || typeFilter !== 'all' || dateFilter !== 'all' || searchTerm) && (
                 <span className="text-slate-500 dark:text-slate-500"> (filtered)</span>
               )}
@@ -580,7 +624,7 @@ export default function Orders() {
                         <div className="space-y-3">
                           <select
                             value={tempStatus}
-                            onChange={(e) => setTempStatus(e.target.value as any)}
+                            onChange={(e) => setTempStatus(e.target.value as Order['status'])}
                             className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
                           >
                             <option value="pending">Pending</option>
@@ -650,12 +694,12 @@ export default function Orders() {
           </>
         )}
 
-        {orders.length > 0 && (
+        {filteredOrders.length > 0 && (
           <Pagination
-            currentPage={pagination.currentPage}
-            totalPages={pagination.totalPages}
-            totalItems={pagination.totalOrders}
-            itemsPerPage={pagination.limit}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredOrders.length}
+            itemsPerPage={itemsPerPage}
             onPageChange={handlePageChange}
             onItemsPerPageChange={handleItemsPerPageChange}
             itemName="orders"

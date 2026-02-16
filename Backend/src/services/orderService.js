@@ -1,6 +1,17 @@
 const { Order, OrderItem, MenuItem, Payment, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
+// Define allowed status transitions (Strict Workflow)
+const ALLOWED_TRANSITIONS = {
+    'pending': ['confirmed', 'cancelled'],
+    'confirmed': ['preparing', 'cancelled'],
+    'preparing': ['ready_for_pickup', 'cancelled'],
+    'ready_for_pickup': ['out_for_delivery', 'delivered', 'cancelled'], // Delivery -> Out, Pickup -> Delivered
+    'out_for_delivery': ['delivered', 'cancelled'],
+    'delivered': [], // Terminal status
+    'cancelled': []  // Terminal status
+};
+
 class OrderService {
     /**
      * Create a new order for a customer
@@ -129,32 +140,46 @@ class OrderService {
     }
 
     /**
-     * Get all orders (Admin) with filters and pagination
+     * Get all orders (Admin) with filters
      */
     async getAllOrders(filters = {}) {
-        const { status, startDate, endDate, customer_id, order_number, page = 1, limit = 10 } = filters;
-        const offset = (page - 1) * limit;
+        const { status, startDate, endDate, customer_id, order_number, search } = filters;
         const whereClause = {};
 
-        if (status && status !== 'all') whereClause.status = status;
-        if (customer_id) whereClause.customer_id = customer_id;
-        if (order_number) whereClause.order_number = { [Op.like]: `%${order_number}%` };
+        // Status Filter
+        if (status && status !== 'all') {
+            whereClause.status = status;
+        }
 
+        // Customer ID Filter
+        if (customer_id) whereClause.customer_id = customer_id;
+
+        // Search (Order Number OR Customer Name)
+        if (search) {
+            whereClause[Op.or] = [
+                { order_number: { [Op.like]: `%${search}%` } },
+                { customer_name: { [Op.like]: `%${search}%` } }
+            ];
+        } else if (order_number) {
+            whereClause.order_number = { [Op.like]: `%${order_number}%` };
+        }
+
+        // Date Range Filter
         if (startDate && endDate) {
-            whereClause.createdAt = {
-                [Op.between]: [new Date(startDate), new Date(endDate)]
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999); // Include the entire end day
+
+            whereClause.created_at = {
+                [Op.between]: [new Date(startDate), end]
             };
         }
 
-        return await Order.findAndCountAll({
+        return await Order.findAll({
             where: whereClause,
             include: [
                 { model: OrderItem, as: 'items' }
             ],
-            order: [['createdAt', 'DESC']],
-            limit: parseInt(limit),
-            offset: parseInt(offset),
-            distinct: true
+            order: [['created_at', 'DESC']]
         });
     }
 
@@ -167,7 +192,7 @@ class OrderService {
             include: [
                 { model: OrderItem, as: 'items' }
             ],
-            order: [['createdAt', 'DESC']]
+            order: [['created_at', 'DESC']]
         });
     }
 
@@ -196,28 +221,7 @@ class OrderService {
     }
 
     /**
-     * Validate status transition
-     */
-    validateStatusTransition(currentStatus, newStatus) {
-        const validTransitions = {
-            'pending': ['confirmed', 'cancelled'],
-            'confirmed': ['preparing', 'cancelled'],
-            'preparing': ['ready_for_pickup', 'out_for_delivery', 'cancelled'], // Depending on order type
-            'ready_for_pickup': ['completed', 'delivered', 'cancelled'], // Completed for pickup
-            'out_for_delivery': ['delivered', 'cancelled'],
-            'delivered': [],
-            'completed': [],
-            'cancelled': []
-        };
-
-        const allowed = validTransitions[currentStatus] || [];
-        if (!allowed.includes(newStatus)) {
-            throw new Error(`Invalid status transition from ${currentStatus} to ${newStatus}`);
-        }
-    }
-
-    /**
-     * Update order status (Admin)
+     * Update order status (Admin) with STRICT VALIDATION
      */
     async updateOrderStatus(orderId, newStatus) {
         const order = await Order.findByPk(orderId);
@@ -226,8 +230,19 @@ class OrderService {
             throw new Error('Order not found');
         }
 
-        // Validate transition
-        this.validateStatusTransition(order.status, newStatus);
+        const currentStatus = order.status;
+
+        // If status is same, do nothing
+        if (currentStatus === newStatus) {
+            return order;
+        }
+
+        // Check if transition is allowed
+        const allowedNextStatuses = ALLOWED_TRANSITIONS[currentStatus] || [];
+
+        if (!allowedNextStatuses.includes(newStatus)) {
+            throw new Error(`Invalid status transition from '${currentStatus}' to '${newStatus}'. Allowed: ${allowedNextStatuses.join(', ')}`);
+        }
 
         order.status = newStatus;
         await order.save();

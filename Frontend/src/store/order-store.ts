@@ -32,27 +32,11 @@ export interface CreateOrderPayload {
   }>;
 }
 
-interface PaginationState {
-  totalOrders: number;
-  totalPages: number;
-  currentPage: number;
-  limit: number;
-}
-
 interface OrderState {
   orders: Order[];
-  pagination: PaginationState;
   loading: boolean;
   error: string | null;
-  fetchOrders: (params?: {
-    page?: number;
-    limit?: number;
-    status?: string;
-    order_type?: string;
-    order_number?: string; // search term
-    startDate?: string;
-    endDate?: string;
-  }) => Promise<void>;
+  fetchOrders: (params?: any) => Promise<void>;
   createOrder: (payload: CreateOrderPayload) => Promise<Order | null>;
   updateOrderStatus: (id: string, status: Order['status']) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
@@ -60,16 +44,10 @@ interface OrderState {
 
 export const useOrderStore = create<OrderState>((set) => ({
   orders: [],
-  pagination: {
-    totalOrders: 0,
-    totalPages: 1,
-    currentPage: 1,
-    limit: 10
-  },
   loading: false,
   error: null,
 
-  fetchOrders: async (params = {}) => {
+  fetchOrders: async (params?: any) => {
     set({ loading: true, error: null });
     try {
       // Determine if we should call admin or customer endpoint
@@ -79,10 +57,8 @@ export const useOrderStore = create<OrderState>((set) => ({
       const response = await api.get(endpoint, { params });
 
       if (response.data.success) {
-        const { data, pagination } = response.data;
-
         // Parse decimal strings to numbers
-        const orders = data.map((order: any) => ({
+        const orders = response.data.data.map((order: any) => ({
           ...order,
           total_amount: typeof order.total_amount === 'string' ? parseFloat(order.total_amount) : order.total_amount,
           subtotal: typeof order.subtotal === 'string' ? parseFloat(order.subtotal) : order.subtotal,
@@ -94,17 +70,7 @@ export const useOrderStore = create<OrderState>((set) => ({
             price: typeof item.price === 'string' ? parseFloat(item.price) : item.price
           })) || []
         }));
-
-        set({
-          orders,
-          pagination: pagination || {
-            totalOrders: orders.length,
-            totalPages: 1,
-            currentPage: 1,
-            limit: orders.length
-          },
-          loading: false
-        });
+        set({ orders, loading: false });
       } else {
         set({ error: 'Failed to fetch orders', loading: false });
       }
