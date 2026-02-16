@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useSettingsStore } from '@/store/settings-store';
 
 import { calculateOrderTotal, formatCurrency } from '@/utils/orderCalculations';
-import { Pencil, Plus, Minus, ShoppingBag, CheckCircle, QrCode, Ticket } from 'lucide-react';
+import { Pencil, Plus, Minus, ShoppingBag, CheckCircle, QrCode } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 

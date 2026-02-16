@@ -115,6 +115,11 @@ export interface Payment {
   createdAt?: string;
   updated_at?: string;
   updatedAt?: string;
+  order?: {
+    order_number: string;
+    order_type: 'pickup' | 'delivery';
+    status: string;
+  };
 }
 
 export interface Inquiry {
