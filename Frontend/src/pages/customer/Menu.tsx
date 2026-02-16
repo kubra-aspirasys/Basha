@@ -6,6 +6,7 @@ import { Search, ShoppingCart, Filter, X } from 'lucide-react';
 import MenuItemDetailModal from '@/components/MenuItemDetailModal';
 import AuthModal from '@/components/AuthModal';
 import { MenuItem } from '@/types';
+import { useToast } from '@/hooks/use-toast';
 
 // Helper to construct full image URL
 const getImageUrl = (url?: string) => {
@@ -28,6 +29,7 @@ export default function CustomerMenu() {
   } = useMenuStore();
   const { addItem } = useCartStore();
   const { user } = useAuthStore();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -83,6 +85,10 @@ export default function CustomerMenu() {
       quantity,
     });
     setAddedToCart(item.id);
+    toast({
+      title: "Added to Cart!",
+      description: `${item.name} has been added to your basket.`,
+    });
     setTimeout(() => setAddedToCart(null), 2000);
   };
 

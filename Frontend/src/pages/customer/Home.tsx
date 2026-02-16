@@ -8,6 +8,7 @@ import { MenuItem } from '@/types';
 import MenuItemDetailModal from '@/components/MenuItemDetailModal';
 import AuthModal from '@/components/AuthModal';
 import { formatCurrency } from '@/utils/orderCalculations';
+import { useToast } from '@/hooks/use-toast';
 
 
 const IconMap: Record<string, any> = { Clock, Phone, MapPin };
@@ -26,6 +27,7 @@ export default function Home() {
   const { addItem } = useCartStore();
   const { user } = useAuthStore();
   const { homepageHero, fetchHomepageHero } = useCMSEnhancedStore();
+  const { toast } = useToast();
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -148,7 +150,11 @@ export default function Home() {
       unit_type: item.unit_type,
       quantity: quantity,
     });
-  }, [addItem]);
+    toast({
+      title: "Added to Cart!",
+      description: `${item.name} has been added to your basket.`,
+    });
+  }, [addItem, toast]);
 
   const handleAddToCart = (quantity: number) => {
     if (!selectedItem) return;
