@@ -55,10 +55,15 @@ export default function Orders() {
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!orders.length) {
+    fetchOrders();
+
+    // 15s Polling for live updates
+    const interval = setInterval(() => {
       fetchOrders();
-    }
-  }, [fetchOrders, orders.length]);
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [fetchOrders]);
 
   // Handle URL parameter to open specific order
   useEffect(() => {

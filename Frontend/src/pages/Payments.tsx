@@ -378,7 +378,12 @@ export default function Payments() {
       }
     }
 
+
     await fetchPayments(filters);
+    await fetchPaymentStats({
+      startDate: filters.startDate,
+      endDate: filters.endDate
+    });
   };
 
   // Reload on filter changes
@@ -464,6 +469,8 @@ export default function Payments() {
           title: 'Payment Deleted',
           description: 'Payment has been deleted successfully',
         });
+        // Refresh both list and stats
+        loadPayments();
       }
     }
   };
@@ -475,6 +482,8 @@ export default function Payments() {
         title: 'Status Updated',
         description: `Payment status changed to ${newStatus}`,
       });
+      // Refresh both list and stats
+      loadPayments();
     }
   };
 

@@ -11,6 +11,15 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 
+// Helper to construct full image URL
+const getImageUrl = (url?: string) => {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  // Remove /api from base if present to get root
+  const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+  return `${baseUrl}${url}`;
+};
+
 const statusConfig = {
   pending: {
     color: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border-amber-200 dark:border-amber-800',
@@ -69,12 +78,13 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchStats = async (showLoading = true) => {
       try {
-        setLoading(true);
+        if (showLoading) setLoading(true);
         const response = await api.get('/dashboard/stats');
         if (response.data.success) {
           setStats(response.data.data);
+          setError(null);
         } else {
           setError('Failed to load dashboard data');
         }
@@ -82,11 +92,18 @@ export default function Dashboard() {
         console.error('Error fetching dashboard stats:', err);
         setError(err.response?.data?.message || 'Failed to connect to server');
       } finally {
-        setLoading(false);
+        if (showLoading) setLoading(false);
       }
     };
 
-    fetchStats();
+    fetchStats(true);
+
+    // 15s Polling for live dashboard updates
+    const interval = setInterval(() => {
+      fetchStats(false);
+    }, 15000);
+
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
@@ -425,9 +442,27 @@ export default function Dashboard() {
                     <div className="w-8 h-8 bg-gold-100 dark:bg-gold-900/30 rounded-full flex items-center justify-center">
                       <span className="text-sm font-bold text-gold-600 dark:text-gold-400">#{index + 1}</span>
                     </div>
-                    {item.image_url ? (
-                      <img src={item.image_url} alt={item.name} className="w-10 h-10 rounded-full object-cover" />
-                    ) : null}
+                    <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-700 overflow-hidden flex items-center justify-center border border-slate-200 dark:border-slate-600">
+                      {item.image_url ? (
+                        <img
+                          src={getImageUrl(item.image_url) || ''}
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              const icon = document.createElement('div');
+                              icon.className = 'w-full h-full flex items-center justify-center bg-orange-50 dark:bg-orange-900/20';
+                              icon.innerHTML = '<svg class="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z"/><path d="M8.5 12h7"/><path d="m12 8.5 3.5 3.5-3.5 3.5"/></svg>';
+                              parent.appendChild(icon);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <UtensilsCrossed className="w-5 h-5 text-slate-400" />
+                      )}
+                    </div>
                     <div>
                       <p className="font-medium text-slate-900 dark:text-white">{item.name}</p>
                       <p className="text-sm text-slate-500 dark:text-slate-400">₹{item.price}</p>
@@ -508,15 +543,13 @@ export default function Dashboard() {
                 onClick={() => navigate(`/admin/orders?openOrder=${order.id}`)}
                 className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all cursor-pointer hover:shadow-md"
               >
-                <div className="flex -space-x-2">
-                  {(order.items || []).slice(0, 3).map((_, idx) => (
-                    <div key={idx} className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 border-2 border-white dark:border-slate-800 flex items-center justify-center">
-                      <UtensilsCrossed className="w-6 h-6 text-orange-500" />
-                    </div>
-                  ))}
-                  {(order.items || []).length > 3 && (
-                    <div className="w-12 h-12 rounded-lg bg-slate-300 dark:bg-slate-700 border-2 border-white dark:border-slate-800 flex items-center justify-center text-sm font-medium text-slate-700 dark:text-slate-300">
-                      +{(order.items || []).length - 3}
+                <div className="flex items-center gap-2">
+                  <div className="w-12 h-12 rounded-lg bg-orange-100 dark:bg-orange-900/30 border-2 border-white dark:border-slate-800 flex items-center justify-center">
+                    <UtensilsCrossed className="w-6 h-6 text-orange-500" />
+                  </div>
+                  {(order.items || []).length > 1 && (
+                    <div className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                      +{(order.items || []).length - 1}
                     </div>
                   )}
                 </div>

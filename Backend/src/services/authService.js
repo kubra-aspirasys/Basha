@@ -65,11 +65,26 @@ class AuthService {
             user = await User.findOne({
                 where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
             });
+            // Fallback check: maybe they are on the wrong tab
+            if (!user) {
+                user = await Customer.findOne({
+                    where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
+                });
+                if (user) role = 'customer';
+            }
         } else if (role === 'customer') {
             user = await Customer.findOne({
                 where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
             });
+            // Fallback check: maybe they are on the wrong tab
+            if (!user) {
+                user = await User.findOne({
+                    where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
+                });
+                if (user) role = 'admin';
+            }
         } else {
+            // General fallback search
             user = await User.findOne({
                 where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
             });
