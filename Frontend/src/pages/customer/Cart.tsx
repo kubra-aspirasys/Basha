@@ -178,6 +178,8 @@ export default function Cart() {
         discount_amount: totals.discount || 0,
         coupon_id: appliedCoupon?.id
       },
+      discount_amount: totals.discount || 0,
+      coupon_id: appliedCoupon?.id,
       items: items.map((item) => ({
         menu_item_id: item.id,
         menu_item_name: item.name,

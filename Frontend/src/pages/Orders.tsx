@@ -24,6 +24,11 @@ const statusConfig = {
     icon: Package,
     label: 'Preparing'
   },
+  ready_for_pickup: {
+    color: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800',
+    icon: Store,
+    label: 'Ready for Pickup'
+  },
   out_for_delivery: {
     color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200 dark:border-orange-800',
     icon: Truck,
@@ -306,6 +311,7 @@ export default function Orders() {
                   <option value="pending">Pending</option>
                   <option value="confirmed">Confirmed</option>
                   <option value="preparing">Preparing</option>
+                  <option value="ready_for_pickup">Ready for Pickup</option>
                   <option value="out_for_delivery">Out for Delivery</option>
                   <option value="delivered">Delivered</option>
                   <option value="cancelled">Cancelled</option>
@@ -479,6 +485,7 @@ export default function Orders() {
                                 <option value="pending">Pending</option>
                                 <option value="confirmed">Confirmed</option>
                                 <option value="preparing">Preparing</option>
+                                <option value="ready_for_pickup">Ready for Pickup</option>
                                 <option value="out_for_delivery">Out for Delivery</option>
                                 <option value="delivered">Delivered</option>
                                 <option value="cancelled">Cancelled</option>
@@ -603,6 +610,7 @@ export default function Orders() {
                             <option value="pending">Pending</option>
                             <option value="confirmed">Confirmed</option>
                             <option value="preparing">Preparing</option>
+                            <option value="ready_for_pickup">Ready for Pickup</option>
                             <option value="out_for_delivery">Out for Delivery</option>
                             <option value="delivered">Delivered</option>
                             <option value="cancelled">Cancelled</option>

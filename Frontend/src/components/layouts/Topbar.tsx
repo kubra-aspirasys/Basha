@@ -157,7 +157,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
         </div>
 
         {/* Centered Search Bar - only icon shows until hover/focus */}
-        <div className="hidden md:flex flex-1 justify-center px-4">
+        <div className="hidden md:flex flex-1 justify-end px-4">
           <GlobalSearch />
         </div>
 

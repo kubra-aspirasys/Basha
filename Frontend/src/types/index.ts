@@ -62,7 +62,7 @@ export interface Order {
   gst_amount: number;
   delivery_charges: number;
   service_charges: number;
-  status: 'pending' | 'confirmed' | 'preparing' | 'out_for_delivery' | 'delivered' | 'cancelled';
+  status: 'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled';
   order_type: 'pickup' | 'delivery';
   delivery_address: string;
   items: OrderItem[];

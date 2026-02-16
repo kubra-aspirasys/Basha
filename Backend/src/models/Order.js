@@ -25,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
         delivery_charges: DataTypes.DECIMAL(10, 2),
         service_charges: DataTypes.DECIMAL(10, 2),
         status: {
-            type: DataTypes.ENUM('pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'),
+            type: DataTypes.ENUM('pending', 'confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'),
             defaultValue: 'pending'
         },
         order_type: {

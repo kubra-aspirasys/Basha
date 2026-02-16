@@ -25,7 +25,7 @@ const createOrderValidator = [
 
 const updateStatusValidator = [
     param('id').isUUID().withMessage('Invalid order ID'),
-    body('status').isIn(['pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled']).withMessage('Invalid status value'),
+    body('status').isIn(['pending', 'confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled']).withMessage('Invalid status value'),
     validate
 ];
 

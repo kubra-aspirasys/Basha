@@ -68,10 +68,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     };
   },
 
-  calculateOrderTotal: (subtotal, deliveryCharges = 0, serviceCharges = 0) => {
+  calculateOrderTotal: (subtotal, deliveryCharges, serviceCharges) => {
     const { gstRate, deliveryCharges: defaultDelivery, serviceCharges: defaultService } = get().settings;
-    const finalDeliveryCharges = deliveryCharges || defaultDelivery;
-    const finalServiceCharges = serviceCharges || defaultService;
+
+    const finalDeliveryCharges = deliveryCharges !== undefined ? deliveryCharges : defaultDelivery;
+    const finalServiceCharges = serviceCharges !== undefined ? serviceCharges : defaultService;
 
     const taxableAmount = subtotal + finalDeliveryCharges + finalServiceCharges;
     const gstAmount = (taxableAmount * gstRate) / 100;

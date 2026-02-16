@@ -50,7 +50,8 @@ class OrderService {
             // 2. Calculate charges
             const serviceCharges = 0; // standard logic, can be config based
             const deliveryCharges = order_type === 'delivery' ? 50 : 0; // Example fixed charge, can be dynamic
-            const gstAmount = subtotal * 0.05; // 5% GST example
+            const gstRate = 0.18; // 18% GST to match frontend
+            const gstAmount = subtotal * gstRate;
 
             // Apply discount if coupon provided
             let discountAmount = 0;

@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Download, X, Plus, RefreshCw, Loader2, Trash2, Eye } from 'lucide-react';
+import { Search, Download, X, Plus, RefreshCw, Loader2, Trash2, Eye, Store, Truck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Payment } from '@/types';
 
@@ -253,6 +253,25 @@ function PaymentDetailsModal({ payment, onClose }: { payment: Payment; onClose: 
               <p className="font-bold text-lg">₹{payment.amount.toLocaleString()}</p>
             </div>
           </div>
+
+          {payment.order && (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Order ID</p>
+                <p className="font-mono font-medium">{payment.order.order_number}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">Order Type</p>
+                <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${payment.order.order_type === 'delivery'
+                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                    : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                  }`}>
+                  {payment.order.order_type === 'delivery' ? <Truck className="w-3 h-3" /> : <Store className="w-3 h-3" />}
+                  <span className="capitalize">{payment.order.order_type}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4">
             <div>
@@ -754,6 +773,7 @@ export default function Payments() {
                     <TableRow>
                       <TableHead>Transaction ID</TableHead>
                       <TableHead>Customer</TableHead>
+                      <TableHead>Order Type</TableHead>
                       <TableHead>Amount</TableHead>
                       <TableHead>Payment Mode</TableHead>
                       <TableHead>Status</TableHead>
@@ -768,6 +788,19 @@ export default function Payments() {
                           {payment.transaction_id}
                         </TableCell>
                         <TableCell>{payment.customer_name}</TableCell>
+                        <TableCell>
+                          {payment.order ? (
+                            <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${payment.order.order_type === 'delivery'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
+                                : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
+                              }`}>
+                              {payment.order.order_type === 'delivery' ? <Truck className="w-3 h-3" /> : <Store className="w-3 h-3" />}
+                              <span className="capitalize">{payment.order.order_type}</span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 text-xs">-</span>
+                          )}
+                        </TableCell>
                         <TableCell>₹{payment.amount.toLocaleString()}</TableCell>
                         <TableCell>
                           <Badge className={paymentModeColors[payment.payment_mode]}>
