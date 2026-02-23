@@ -89,6 +89,8 @@ export interface Offer {
   valid_from: string;
   valid_to: string;
   is_active: boolean;
+  applicable_to?: 'all' | 'specific';
+  specific_users?: string[];
   created_at: string;
 }
 

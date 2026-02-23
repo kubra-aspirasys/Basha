@@ -156,6 +156,30 @@ class AuthService {
         const result = customer.toJSON();
         delete result.password_hash;
 
+        try {
+            const { Offer } = require('../models');
+            let offer = await Offer.findOne({ where: { code: 'WELCOME30' } });
+            if (!offer) {
+                offer = await Offer.create({
+                    code: 'WELCOME30',
+                    discount_type: 'percentage',
+                    discount_value: 30,
+                    valid_from: new Date(),
+                    valid_to: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+                    is_active: true,
+                    applicable_to: 'specific',
+                    specific_users: [customer.id]
+                });
+            } else if (offer.applicable_to === 'specific') {
+                const specificUsers = offer.specific_users || [];
+                if (!specificUsers.includes(customer.id)) {
+                    await offer.update({ specific_users: [...specificUsers, customer.id] });
+                }
+            }
+        } catch (err) {
+            console.error('Failed to assign WELCOME30 offer:', err);
+        }
+
         return {
             token,
             user: { ...result, role: 'customer' }

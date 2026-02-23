@@ -38,6 +38,15 @@ module.exports = (sequelize, DataTypes) => {
         is_active: {
             type: DataTypes.BOOLEAN,
             defaultValue: true
+        },
+        applicable_to: {
+            type: DataTypes.ENUM('all', 'specific'),
+            allowNull: false,
+            defaultValue: 'all'
+        },
+        specific_users: {
+            type: DataTypes.JSON,
+            allowNull: true
         }
     }, {
         sequelize,

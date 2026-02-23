@@ -56,11 +56,11 @@ export default function Cart() {
 
   useEffect(() => {
     const loadCoupons = async () => {
-      const coupons = await getPublicOffers();
+      const coupons = await getPublicOffers(user?.id);
       setAvailableCoupons(coupons);
     };
     loadCoupons();
-  }, [getPublicOffers]);
+  }, [getPublicOffers, user?.id]);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
@@ -75,7 +75,8 @@ export default function Cart() {
 
       const response = await api.post('/offers/validate', {
         code: couponCode,
-        order_total: currentTotal
+        order_total: currentTotal,
+        customer_id: user?.id
       });
 
       if (response.data.success) {

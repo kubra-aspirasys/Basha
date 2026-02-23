@@ -1,5 +1,4 @@
-
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useOrderStore } from '@/store/order-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -8,8 +7,12 @@ import { ShoppingBag, Clock, MapPin, Package } from 'lucide-react';
 
 export default function Orders() {
     const navigate = useNavigate();
-    const { orders, fetchOrders, loading } = useOrderStore();
+    const { orders, fetchOrders, loading, cancelOrder } = useOrderStore();
     const { isAuthenticated } = useAuthStore();
+
+    // State for Cancel Modal
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [orderToCancel, setOrderToCancel] = useState<{ id: string, order_number: string } | null>(null);
 
     useEffect(() => {
         fetchOrders();
@@ -132,12 +135,60 @@ export default function Orders() {
                                             <p className="text-gray-300 text-sm">{order.delivery_address}</p>
                                         </div>
                                     )}
+
+                                    {/* Actions */}
+                                    {order.status === 'pending' && (
+                                        <div className="mt-6 pt-4 border-t border-[#2a2a2a] flex justify-end">
+                                            <button
+                                                onClick={() => {
+                                                    setOrderToCancel({ id: order.id, order_number: order.order_number });
+                                                    setIsCancelModalOpen(true);
+                                                }}
+                                                className="px-6 py-2 border border-red-900/50 text-red-500 hover:bg-red-900/20 hover:border-red-500 rounded-lg font-bold text-sm uppercase tracking-wider transition-all duration-300 shadow-sm"
+                                            >
+                                                Cancel Order
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
             </div>
+
+            {/* Cancel Confirmation Modal */}
+            {isCancelModalOpen && orderToCancel && (
+                <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-[#1a1a1a] border border-[#F2A900]/30 rounded-2xl p-6 max-w-md w-full shadow-2xl">
+                        <h3 className="text-2xl font-bold text-white mb-4">Cancel Order?</h3>
+                        <p className="text-gray-400 mb-8">
+                            Are you sure you want to cancel order <span className="text-[#F2A900] font-mono">#{orderToCancel.order_number}</span>? This action cannot be undone.
+                        </p>
+                        <div className="flex gap-4 justify-end">
+                            <button
+                                onClick={() => {
+                                    setIsCancelModalOpen(false);
+                                    setOrderToCancel(null);
+                                }}
+                                className="px-6 py-2 bg-[#2a2a2a] hover:bg-[#3a3a3a] text-white font-bold uppercase tracking-wider rounded-lg transition-colors border border-gray-700 hover:border-gray-500"
+                            >
+                                Keep Order
+                            </button>
+                            <button
+                                onClick={() => {
+                                    cancelOrder(orderToCancel.id);
+                                    setIsCancelModalOpen(false);
+                                    setOrderToCancel(null);
+                                }}
+                                className="px-6 py-2 bg-red-900/80 hover:bg-red-600 text-white font-bold uppercase tracking-wider rounded-lg transition-colors shadow-lg shadow-red-900/20 border border-red-700"
+                            >
+                                Yes, Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
