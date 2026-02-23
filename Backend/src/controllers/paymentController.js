@@ -220,6 +220,42 @@ const generateTransactionId = async (req, res, next) => {
     }
 };
 
+// @desc    Export payments to CSV
+// @route   GET /api/payments/export
+// @access  Private (Admin)
+const exportPayments = async (req, res, next) => {
+    try {
+        const filters = req.query;
+        const payments = await paymentService.exportPayments(filters);
+
+        // Convert to CSV
+        const headers = ['Transaction ID', 'Customer', 'Amount', 'Payment Mode', 'Status', 'Date', 'Order ID', 'Order Type'];
+        const csvRows = [headers.join(',')];
+
+        payments.forEach(payment => {
+            csvRows.push([
+                payment.transaction_id,
+                `"${payment.customer_name}"`,
+                payment.amount,
+                payment.payment_mode,
+                payment.status,
+                new Date(payment.createdAt).toISOString(),
+                payment.order ? payment.order.order_number : '',
+                payment.order ? payment.order.order_type : ''
+            ].join(','));
+        });
+
+        const csvContent = csvRows.join('\n');
+
+        res.header('Content-Type', 'text/csv');
+        res.attachment(`payments-${new Date().toISOString().split('T')[0]}.csv`);
+        res.send(csvContent);
+
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createPayment,
     getAllPayments,
@@ -232,5 +268,6 @@ module.exports = {
     updatePayment,
     deletePayment,
     getPaymentStats,
-    generateTransactionId
+    generateTransactionId,
+    exportPayments
 };

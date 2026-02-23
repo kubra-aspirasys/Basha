@@ -246,7 +246,9 @@ class OrderService {
 
         order.status = newStatus;
         await order.save();
-        return order;
+
+        // Return full details including items so frontend doesn't lose them
+        return await this.getOrderDetails(order.id);
     }
 
     /**

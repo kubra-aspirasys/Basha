@@ -217,21 +217,81 @@ class PaymentService {
      * Update payment status
      */
     async updatePaymentStatus(paymentId, newStatus) {
-        const payment = await Payment.findByPk(paymentId);
+        const transaction = await sequelize.transaction();
 
-        if (!payment) {
-            throw new Error('Payment not found');
+        try {
+            const payment = await Payment.findByPk(paymentId, { transaction, lock: transaction.LOCK.UPDATE });
+
+            if (!payment) {
+                throw new Error('Payment not found');
+            }
+
+            // Prevent updating finished payments
+            if (['completed', 'failed', 'refunded'].includes(payment.status)) {
+                throw new Error(`Cannot update status. Payment is already ${payment.status}`);
+            }
+
+            payment.status = newStatus;
+            await payment.save({ transaction });
+
+            await transaction.commit();
+            return await this.getPaymentById(paymentId);
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
+    }
+
+    /**
+     * Export all payments to CSV compatible format (returns array of objects)
+     */
+    async exportPayments(filters = {}) {
+        const {
+            status,
+            payment_mode,
+            customer_id,
+            order_id,
+            startDate,
+            endDate,
+            transaction_id,
+            customer_name
+        } = filters;
+
+        const whereClause = {};
+
+        if (status && status !== 'all') whereClause.status = status;
+        if (payment_mode && payment_mode !== 'all') whereClause.payment_mode = payment_mode;
+        if (customer_id) whereClause.customer_id = customer_id;
+        if (order_id) whereClause.order_id = order_id;
+        if (transaction_id) whereClause.transaction_id = { [Op.like]: `%${transaction_id}%` };
+        if (customer_name) whereClause.customer_name = { [Op.like]: `%${customer_name}%` };
+
+        if (startDate && endDate) {
+            whereClause.createdAt = {
+                [Op.between]: [new Date(startDate), new Date(endDate)]
+            };
+        } else if (startDate) {
+            whereClause.createdAt = {
+                [Op.gte]: new Date(startDate)
+            };
+        } else if (endDate) {
+            whereClause.createdAt = {
+                [Op.lte]: new Date(endDate)
+            };
         }
 
-        // Prevent updating completed/refunded payments
-        if (['refunded'].includes(payment.status)) {
-            throw new Error(`Cannot update status. Payment is already ${payment.status}`);
-        }
+        const payments = await Payment.findAll({
+            where: whereClause,
+            include: [
+                { model: Order, as: 'order', required: false, attributes: ['order_number', 'order_type'] },
+                { model: Customer, as: 'customer', required: false, attributes: ['name', 'phone'] }
+            ],
+            order: [['createdAt', 'DESC']],
+            raw: true,
+            nest: true
+        });
 
-        payment.status = newStatus;
-        await payment.save();
-
-        return await this.getPaymentById(paymentId);
+        return payments;
     }
 
     /**

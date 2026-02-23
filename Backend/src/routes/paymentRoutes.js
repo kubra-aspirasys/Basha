@@ -20,6 +20,9 @@ router.get('/generate-txn-id', authorize('admin'), paymentController.generateTra
 // Get payment statistics (Admin only)
 router.get('/stats', authorize('admin'), paymentController.getPaymentStats);
 
+// Export payments (Admin only)
+router.get('/export', authorize('admin'), validatePaymentFilters, paymentController.exportPayments);
+
 // Get my payments (Customer only)
 router.get('/my', authorize('customer'), paymentController.getMyPayments);
 

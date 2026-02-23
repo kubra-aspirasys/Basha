@@ -263,8 +263,8 @@ function PaymentDetailsModal({ payment, onClose }: { payment: Payment; onClose: 
               <div>
                 <p className="text-sm text-slate-500 dark:text-slate-400">Order Type</p>
                 <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium ${payment.order.order_type === 'delivery'
-                    ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
-                    : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
+                  ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300'
+                  : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300'
                   }`}>
                   {payment.order.order_type === 'delivery' ? <Truck className="w-3 h-3" /> : <Store className="w-3 h-3" />}
                   <span className="capitalize">{payment.order.order_type}</span>
@@ -335,6 +335,7 @@ export default function Payments() {
     fetchPaymentStats,
     updatePaymentStatus,
     deletePayment,
+    exportPayments,
     clearError
   } = usePaymentStore();
 
@@ -358,11 +359,8 @@ export default function Payments() {
     fetchPaymentStats();
   }, []);
 
-  const loadPayments = async () => {
-    const filters: any = {
-      page: currentPage,
-      limit: itemsPerPage,
-    };
+  const getFilters = () => {
+    const filters: any = {};
 
     if (modeFilter !== 'all') filters.payment_mode = modeFilter;
     if (statusFilter !== 'all') filters.status = statusFilter;
@@ -396,7 +394,13 @@ export default function Payments() {
           break;
       }
     }
+    return filters;
+  };
 
+  const loadPayments = async () => {
+    const filters = getFilters();
+    filters.page = currentPage;
+    filters.limit = itemsPerPage;
 
     await fetchPayments(filters);
     await fetchPaymentStats({
@@ -431,32 +435,12 @@ export default function Payments() {
     .filter((p) => p.status === 'completed')
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const handleExportCSV = () => {
-    const headers = ['Transaction ID', 'Customer', 'Amount', 'Payment Mode', 'Status', 'Reference', 'Date'];
-    const rows = payments.map((payment) => [
-      payment.transaction_id,
-      payment.customer_name,
-      payment.amount,
-      payment.payment_mode,
-      payment.status,
-      payment.payment_reference || '',
-      new Date(payment.created_at || payment.createdAt || Date.now()).toLocaleString(),
-    ]);
-
-    const csvContent = [
-      headers.join(','),
-      ...rows.map((row) => row.map(cell => `"${cell}"`).join(',')),
-    ].join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `payments-${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
+  const handleExportCSV = async () => {
+    const filters = getFilters();
+    await exportPayments(filters);
 
     toast({
-      title: 'Export successful',
+      title: 'Export Successful',
       description: 'Payment data has been exported to CSV',
     });
   };
@@ -791,8 +775,8 @@ export default function Payments() {
                         <TableCell>
                           {payment.order ? (
                             <div className={`inline-flex items-center gap-1.5 px-2 py-1 rounded text-xs font-medium border ${payment.order.order_type === 'delivery'
-                                ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
-                                : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
+                              ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-300 dark:border-blue-800'
+                              : 'bg-green-50 text-green-700 border-green-200 dark:bg-green-900/20 dark:text-green-300 dark:border-green-800'
                               }`}>
                               {payment.order.order_type === 'delivery' ? <Truck className="w-3 h-3" /> : <Store className="w-3 h-3" />}
                               <span className="capitalize">{payment.order.order_type}</span>

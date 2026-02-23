@@ -53,6 +53,7 @@ interface PaymentState {
   updatePayment: (id: string, data: Partial<Payment>) => Promise<Payment | null>;
   deletePayment: (id: string) => Promise<boolean>;
   generateTransactionId: () => Promise<string | null>;
+  exportPayments: (filters?: PaymentFilters) => Promise<void>;
   clearError: () => void;
 }
 
@@ -257,6 +258,41 @@ export const usePaymentStore = create<PaymentState>((set) => ({
       const timestamp = Date.now().toString().slice(-6);
       const random = Math.random().toString(36).substring(2, 8).toUpperCase();
       return `TXN${timestamp}${random}`;
+    }
+  },
+
+  exportPayments: async (filters = {}) => {
+    try {
+      const params = new URLSearchParams();
+
+      if (filters.status && filters.status !== 'all') {
+        params.append('status', filters.status);
+      }
+      if (filters.payment_mode && filters.payment_mode !== 'all') {
+        params.append('payment_mode', filters.payment_mode);
+      }
+      if (filters.customer_id) params.append('customer_id', filters.customer_id);
+      if (filters.order_id) params.append('order_id', filters.order_id);
+      if (filters.startDate) params.append('startDate', filters.startDate);
+      if (filters.endDate) params.append('endDate', filters.endDate);
+      if (filters.transaction_id) params.append('transaction_id', filters.transaction_id);
+      if (filters.customer_name) params.append('customer_name', filters.customer_name);
+
+      const response = await api.get(`/payments/export?${params.toString()}`, {
+        responseType: 'blob',
+      });
+
+      // Create blob link to download
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `payments-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (error: any) {
+      console.error('Failed to export payments:', error);
+      set({ error: 'Failed to export payments. Please try again.' });
     }
   },
 
