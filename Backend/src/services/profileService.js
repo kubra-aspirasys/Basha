@@ -72,6 +72,12 @@ class ProfileService {
             throw new Error('Incorrect current password');
         }
 
+        // Prevent reuse of old password
+        const isSameAsOld = await bcrypt.compare(newPassword, user.password_hash);
+        if (isSameAsOld) {
+            throw new Error('New password cannot be the same as the old password');
+        }
+
         const password_hash = await bcrypt.hash(newPassword, 10);
         await user.update({ password_hash });
 

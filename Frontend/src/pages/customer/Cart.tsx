@@ -62,6 +62,16 @@ export default function Cart() {
     loadCoupons();
   }, [getPublicOffers, user?.id]);
 
+  const bestOffer = useMemo(() => {
+    if (!availableCoupons.length) return null;
+    const currentTotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+    return [...availableCoupons].sort((a, b) => {
+      const valA = a.discount_type === 'percentage' ? (currentTotal * a.discount_value / 100) : a.discount_value;
+      const valB = b.discount_type === 'percentage' ? (currentTotal * b.discount_value / 100) : b.discount_value;
+      return valB - valA;
+    })[0];
+  }, [availableCoupons, items]);
+
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) {
       toast({ title: 'Error', description: 'Please enter a coupon code', variant: 'destructive' });
@@ -483,13 +493,12 @@ export default function Cart() {
                   Cash on Delivery
                 </button>
                 <button
-                  onClick={() => setPaymentMethod('online')}
-                  className={`flex-1 px-3 py-2 rounded border transition-colors ${paymentMethod === 'online'
-                    ? 'border-[#F2A900] bg-[#F2A900]/10 text-[#F2A900]'
-                    : 'border-[#F2A900]/20 text-gray-300 hover:border-[#F2A900]/40'
-                    }`}
+                  type="button"
+                  disabled
+                  className="flex-1 px-3 py-2 rounded border border-gray-800 bg-gray-900/50 text-gray-500 cursor-not-allowed flex flex-col items-center justify-center gap-0.5"
                 >
-                  Online Payment
+                  <span className="text-sm">Online Payment</span>
+                  <span className="text-[10px] text-[#F2A900] font-medium uppercase tracking-tighter">Coming Soon</span>
                 </button>
               </div>
             </div>
@@ -509,6 +518,7 @@ export default function Cart() {
               />
               {!appliedCoupon ? (
                 <button
+                  id="apply-coupon-btn"
                   onClick={handleApplyCoupon}
                   disabled={isValidatingCoupon || !couponCode}
                   className="bg-[#F2A900]/20 text-[#F2A900] px-4 py-2 rounded hover:bg-[#F2A900]/30 transition disabled:opacity-50"
@@ -533,33 +543,80 @@ export default function Cart() {
 
             {/* Suggested Coupons */}
             {!appliedCoupon && availableCoupons.length > 0 && (
-              <div className="mt-3 space-y-2">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wider">Available Coupons</p>
-                <div className="grid gap-2">
+              <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Available Offers</p>
+                  <span className="text-[10px] bg-[#F2A900]/10 text-[#F2A900] px-2 py-0.5 rounded-full border border-[#F2A900]/20">
+                    {availableCoupons.length} coupons found
+                  </span>
+                </div>
+
+                <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
                   {availableCoupons.map((coupon) => (
                     <div
                       key={coupon.id}
-                      className="border border-dashed border-[#F2A900]/30 bg-[#F2A900]/5 rounded-lg p-3 flex justify-between items-center group hover:bg-[#F2A900]/10 transition-colors"
+                      className={`relative overflow-hidden border bg-[#0f0f0f] rounded-xl p-4 flex flex-col gap-3 transition-all duration-300 group hover:scale-[1.02] cursor-default ${bestOffer?.id === coupon.id
+                        ? 'border-[#F2A900] shadow-[0_0_15px_rgba(242,169,0,0.15)] ring-1 ring-[#F2A900]/30'
+                        : 'border-white/10 hover:border-[#F2A900]/40'
+                        }`}
                     >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-[#F2A900]">{coupon.code}</span>
-                          <span className="text-xs bg-[#F2A900]/20 text-[#F2A900] px-1.5 py-0.5 rounded">
-                            {coupon.discount_type === 'percentage' ? `${coupon.discount_value}% OFF` : `₹${coupon.discount_value} OFF`}
+                      {bestOffer?.id === coupon.id && (
+                        <div className="absolute top-0 right-0">
+                          <div className="bg-[#F2A900] text-black text-[9px] font-black px-3 py-1 rounded-bl-lg flex items-center gap-1 shadow-lg">
+                            <QrCode className="w-2.5 h-2.5" />
+                            BEST VALUE
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="flex items-center gap-2 mb-1">
+                            <div className="bg-[#F2A900]/10 p-1.5 rounded-lg">
+                              <ShoppingBag className="w-4 h-4 text-[#F2A900]" />
+                            </div>
+                            <span className="font-mono font-bold text-white text-lg tracking-tight group-hover:text-[#F2A900] transition-colors">
+                              {coupon.code}
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-500 line-clamp-1">{coupon.description || 'Valid on all items'}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[#F2A900] font-black text-xl leading-none">
+                            {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
+                            <span className="text-[10px] text-gray-500 font-normal ml-0.5 block">OFF</span>
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
+                        <div className="flex flex-col">
+                          <span className="text-[10px] text-gray-500 uppercase tracking-tighter">Valid Until</span>
+                          <span className="text-xs text-white/70 font-medium">
+                            {new Date(coupon.valid_to).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-400 mt-1">Valid until {new Date(coupon.valid_to).toLocaleDateString()}</p>
+                        <button
+                          onClick={() => {
+                            setCouponCode(coupon.code);
+                            // Auto-triggering apply logic
+                            setTimeout(() => {
+                              const applyBtn = document.getElementById('apply-coupon-btn');
+                              if (applyBtn) applyBtn.click();
+                            }, 50);
+                          }}
+                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 ${bestOffer?.id === coupon.id
+                            ? 'bg-[#F2A900] text-black hover:bg-[#D99700] hover:shadow-[0_0_10px_rgba(242,169,0,0.3)]'
+                            : 'bg-white/5 text-white hover:bg-[#F2A900] hover:text-black'
+                            }`}
+                        >
+                          APPLY NOW
+                        </button>
                       </div>
-                      <button
-                        onClick={() => {
-                          setCouponCode(coupon.code);
-                          // Optional: Auto apply
-                          // handleApplyCoupon(); // Would need to extract logic or call via effect
-                        }}
-                        className="text-xs font-semibold text-white bg-[#F2A900]/20 hover:bg-[#F2A900] hover:text-black px-3 py-1.5 rounded transition-all"
-                      >
-                        Use
-                      </button>
+
+                      {/* Decorative elements */}
+                      <div className="absolute top-1/2 -left-2 w-4 h-4 rounded-full bg-[#0a0a0a] border border-white/5" />
+                      <div className="absolute top-1/2 -right-2 w-4 h-4 rounded-full bg-[#0a0a0a] border border-white/5" />
                     </div>
                   ))}
                 </div>
@@ -611,25 +668,6 @@ export default function Cart() {
             </div>
           )}
 
-          {paymentMethod === 'online' && (
-            <div className="bg-[#0f0f0f] border border-[#F2A900]/20 rounded-lg p-4 mt-2 mb-2 animate-in fade-in slide-in-from-top-2">
-              <div className="flex items-start gap-4">
-                <div className="bg-white p-2 rounded-lg shrink-0">
-                  {/* Placeholder for QR Code - In a real app, generate a real QR or use an image */}
-                  <div className="w-24 h-24 bg-gray-100 flex items-center justify-center rounded">
-                    <QrCode className="w-12 h-12 text-gray-800" />
-                  </div>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-[#F2A900] font-semibold text-sm">Scan to Pay</p>
-                  <p className="text-white font-mono text-sm">UPI ID: basha@okicici</p>
-                  <p className="text-gray-400 text-xs mt-1">
-                    Please complete the payment and place the order. We will verify the transaction upon receipt.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
 
           <button
             onClick={handlePlaceOrder}
@@ -638,11 +676,6 @@ export default function Cart() {
           >
             {isPlacing ? 'Placing order...' : `Place Order (${formatCurrency(totals.total)})`}
           </button>
-          {paymentMethod === 'online' && (
-            <p className="text-xs text-center text-gray-500 mt-2">
-              * You will be redirected to payment gateway after placing order.
-            </p>
-          )}
         </div>
       </div>
     </div >

@@ -1,6 +1,7 @@
 'use strict';
 const { Payment, Order, Customer, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const { sanitizeObject } = require('../utils/sanitizer');
 
 class PaymentService {
     /**
@@ -29,7 +30,7 @@ class PaymentService {
                 status,
                 notes,
                 payment_reference
-            } = paymentData;
+            } = sanitizeObject(paymentData);
 
             // Generate transaction ID if not provided
             const txnId = transaction_id || this.generateTransactionId();
@@ -48,6 +49,10 @@ class PaymentService {
                 if (!customer) {
                     throw new Error('Customer not found');
                 }
+            }
+
+            if (['upi', 'card', 'netbanking'].includes(payment_mode)) {
+                throw new Error('Online payment modes are temporarily unavailable.');
             }
 
             const payment = await Payment.create({

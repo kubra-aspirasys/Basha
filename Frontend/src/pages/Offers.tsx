@@ -57,8 +57,6 @@ export default function Offers() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-<<<<<<< HEAD
-
     // Validation
     if (new Date(formData.valid_to) <= new Date(formData.valid_from)) {
       toast({
@@ -88,29 +86,11 @@ export default function Offers() {
       return;
     }
 
-    if (editingOffer) {
-      updateOffer(editingOffer, {
-        ...formData,
-        discount_value: discountVal,
-      });
-      toast({
-        title: 'Offer updated',
-        description: 'The offer has been updated successfully',
-      });
-    } else {
-      addOffer({
-        ...formData,
-        discount_value: discountVal,
-      });
-      toast({
-        title: 'Offer added',
-        description: 'The offer has been added successfully',
-=======
     try {
       if (editingOffer) {
         await updateOffer(editingOffer, {
           ...formData,
-          discount_value: parseFloat(formData.discount_value) || 0,
+          discount_value: discountVal,
         });
         toast({
           title: 'Offer updated',
@@ -119,7 +99,7 @@ export default function Offers() {
       } else {
         await addOffer({
           ...formData,
-          discount_value: parseFloat(formData.discount_value) || 0,
+          discount_value: discountVal,
         });
         toast({
           title: 'Offer added',
@@ -129,12 +109,10 @@ export default function Offers() {
       setIsOpen(false);
       resetForm();
     } catch (error: any) {
-      // The store already sets error state, but we can also show a toast
       toast({
         title: 'Error',
         description: error?.response?.data?.message || error.message || 'Something went wrong',
         variant: 'destructive',
->>>>>>> a358315f21061266ec595f2e8066dae6e0294d76
       });
     }
   };

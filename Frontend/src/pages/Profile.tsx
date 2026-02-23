@@ -27,6 +27,8 @@ export default function Profile() {
     new: false,
     confirm: false,
   });
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
@@ -36,13 +38,24 @@ export default function Profile() {
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    const success = await updateProfile(formData);
-    if (success) {
-      setIsEditing(false);
+    setIsSavingProfile(true);
+    try {
+      const success = await updateProfile(formData);
+      if (success) {
+        setIsEditing(false);
+        toast({
+          title: 'Profile updated',
+          description: 'Your profile has been updated successfully',
+        });
+      }
+    } catch (error) {
       toast({
-        title: 'Profile updated',
-        description: 'Your profile has been updated successfully',
+        title: 'Update failed',
+        description: 'Failed to update profile. Please try again.',
+        variant: 'destructive',
       });
+    } finally {
+      setIsSavingProfile(false);
     }
   };
 
@@ -57,28 +70,44 @@ export default function Profile() {
       return;
     }
 
-    const success = await changePassword({
-      currentPassword: passwordData.currentPassword,
-      newPassword: passwordData.newPassword,
-      confirmPassword: passwordData.confirmPassword,
-    });
-
-    if (success) {
+    if (passwordData.newPassword.length < 8) {
       toast({
-        title: 'Password changed',
-        description: 'Your password has been changed successfully',
-      });
-      setPasswordData({
-        currentPassword: '',
-        newPassword: '',
-        confirmPassword: '',
-      });
-    } else {
-      toast({
-        title: 'Error',
-        description: 'Failed to change password. Please check your current password.',
+        title: 'Weak password',
+        description: 'Password must be at least 8 characters long',
         variant: 'destructive',
       });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      const success = await changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword,
+      });
+
+      if (success) {
+        toast({
+          title: 'Password changed',
+          description: 'Your password has been changed successfully',
+        });
+        setPasswordData({
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: '',
+        });
+      } else {
+        throw new Error('Password change failed');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to change password. Please check your current password.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -357,8 +386,8 @@ export default function Profile() {
                 />
               </div>
               <div className="flex space-x-2">
-                <Button type="submit" className="bg-gold-500 hover:bg-gold-600">
-                  Save Changes
+                <Button type="submit" className="bg-gold-500 hover:bg-gold-600" disabled={isSavingProfile}>
+                  {isSavingProfile ? 'Saving...' : 'Save Changes'}
                 </Button>
                 <Button
                   type="button"
@@ -475,8 +504,8 @@ export default function Profile() {
                 </button>
               </div>
             </div>
-            <Button type="submit" className="bg-gold-500 hover:bg-gold-600">
-              Change Password
+            <Button type="submit" className="bg-gold-500 hover:bg-gold-600" disabled={isChangingPassword}>
+              {isChangingPassword ? 'Changing...' : 'Change Password'}
             </Button>
           </form>
         </CardContent>
