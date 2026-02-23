@@ -7,7 +7,8 @@ const {
     updateOffer,
     deleteOffer,
     validateOffer,
-    getPublicOffers
+    getPublicOffers,
+    bulkDeleteOffers
 } = require('../controllers/offerController');
 
 // Public route for validation and listing available
@@ -19,6 +20,7 @@ router.use(admin);
 
 router.get('/', getAllOffers);
 router.post('/', createOffer);
+router.post('/bulk-delete', bulkDeleteOffers);
 router.put('/:id', updateOffer);
 router.delete('/:id', deleteOffer);
 
