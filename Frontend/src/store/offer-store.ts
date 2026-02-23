@@ -10,10 +10,11 @@ interface OfferState {
   addOffer: (offer: Omit<Offer, 'id' | 'created_at'>) => Promise<void>;
   updateOffer: (id: string, offer: Partial<Offer>) => Promise<void>;
   deleteOffer: (id: string) => Promise<void>;
-  getPublicOffers: () => Promise<Offer[]>;
+  bulkDeleteOffers: (ids: string[]) => Promise<void>;
+  getPublicOffers: (customerId?: string) => Promise<Offer[]>;
 }
 
-export const useOfferStore = create<OfferState>((set) => ({
+export const useOfferStore = create<OfferState>((set, get) => ({
   offers: [],
   loading: false,
   error: null,
@@ -76,6 +77,7 @@ export const useOfferStore = create<OfferState>((set) => ({
           offers: state.offers.filter((offer) => offer.id !== id),
           loading: false
         }));
+        await get().fetchOffers();
       }
     } catch (error: any) {
       console.error('Failed to delete offer:', error);
@@ -84,9 +86,28 @@ export const useOfferStore = create<OfferState>((set) => ({
     }
   },
 
-  getPublicOffers: async () => {
+  bulkDeleteOffers: async (ids) => {
+    set({ loading: true, error: null });
     try {
-      const response = await api.get('/offers/available');
+      const response = await api.post('/offers/bulk-delete', { ids });
+      if (response.data.success) {
+        set((state) => ({
+          offers: state.offers.filter((offer) => !ids.includes(offer.id)),
+          loading: false
+        }));
+        await get().fetchOffers();
+      }
+    } catch (error: any) {
+      console.error('Failed to bulk delete offers:', error);
+      set({ error: error.response?.data?.message || 'Failed to bulk delete offers', loading: false });
+      throw error;
+    }
+  },
+
+  getPublicOffers: async (customerId?: string) => {
+    try {
+      const url = customerId ? `/offers/available?customer_id=${customerId}` : '/offers/available';
+      const response = await api.get(url);
       if (response.data.success) {
         return response.data.data;
       }

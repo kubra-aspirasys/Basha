@@ -40,6 +40,7 @@ interface OrderState {
   createOrder: (payload: CreateOrderPayload) => Promise<Order | null>;
   updateOrderStatus: (id: string, status: Order['status']) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
+  cancelOrder: (id: string) => Promise<void>;
 }
 
 export const useOrderStore = create<OrderState>((set) => ({
@@ -170,6 +171,37 @@ export const useOrderStore = create<OrderState>((set) => ({
     } catch (error: any) {
       console.error('Failed to delete order', error);
       set({ error: error.response?.data?.message });
+    }
+  },
+
+  cancelOrder: async (id) => {
+    try {
+      const response = await api.put(`/customer/orders/${id}/cancel`);
+
+      if (response.data.success) {
+        const updatedOrderData = response.data.data;
+        const updatedOrder = {
+          ...updatedOrderData,
+          total_amount: typeof updatedOrderData.total_amount === 'string' ? parseFloat(updatedOrderData.total_amount) : updatedOrderData.total_amount,
+          subtotal: typeof updatedOrderData.subtotal === 'string' ? parseFloat(updatedOrderData.subtotal) : updatedOrderData.subtotal,
+          gst_amount: typeof updatedOrderData.gst_amount === 'string' ? parseFloat(updatedOrderData.gst_amount) : updatedOrderData.gst_amount,
+          delivery_charges: typeof updatedOrderData.delivery_charges === 'string' ? parseFloat(updatedOrderData.delivery_charges) : updatedOrderData.delivery_charges,
+          service_charges: typeof updatedOrderData.service_charges === 'string' ? parseFloat(updatedOrderData.service_charges) : updatedOrderData.service_charges,
+          items: updatedOrderData.items?.map((item: any) => ({
+            ...item,
+            price: typeof item.price === 'string' ? parseFloat(item.price) : item.price
+          })) || []
+        };
+        set((state) => ({
+          orders: state.orders.map((order) =>
+            order.id === id ? updatedOrder : order
+          ),
+        }));
+      }
+    } catch (error: any) {
+      console.error('Failed to cancel order:', error);
+      set({ error: error.response?.data?.message || 'Failed to cancel order' });
+      alert(error.response?.data?.message || 'Failed to cancel order. Please try again.');
     }
   },
 

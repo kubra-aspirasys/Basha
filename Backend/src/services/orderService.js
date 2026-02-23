@@ -62,7 +62,8 @@ class OrderService {
             const serviceCharges = 0; // standard logic, can be config based
             const deliveryCharges = order_type === 'delivery' ? 50 : 0; // Example fixed charge, can be dynamic
             const gstRate = 0.18; // 18% GST to match frontend
-            const gstAmount = subtotal * gstRate;
+            const taxableAmount = subtotal + deliveryCharges + serviceCharges;
+            const gstAmount = taxableAmount * gstRate;
 
             // Apply discount if coupon provided
             let discountAmount = 0;
@@ -72,7 +73,7 @@ class OrderService {
                 discountAmount = parseFloat(discount_amount);
             }
 
-            let totalAmount = subtotal + gstAmount + serviceCharges + deliveryCharges - discountAmount;
+            let totalAmount = taxableAmount + gstAmount - discountAmount;
             if (totalAmount < 0) totalAmount = 0;
 
             // 3. Create Order
@@ -96,13 +97,21 @@ class OrderService {
 
             // Record Used Coupon if applicable
             if (coupon_id && discountAmount > 0) {
-                const { UsedCoupon } = require('../models');
+                const { UsedCoupon, Offer } = require('../models');
                 await UsedCoupon.create({
                     order_id: order.id, // Using the just created order ID
                     offer_id: coupon_id,
                     customer_id: customerId || null,
                     discount_amount: discountAmount
                 }, { transaction });
+
+                // If this is a specific offer, we optionally remove the user from the specific_users array
+                const offerToUpdate = await Offer.findByPk(coupon_id, { transaction });
+                if (offerToUpdate && offerToUpdate.applicable_to === 'specific' && customerId) {
+                    const users = offerToUpdate.specific_users || [];
+                    const updatedUsers = users.filter(id => id !== customerId);
+                    await offerToUpdate.update({ specific_users: updatedUsers }, { transaction });
+                }
             }
 
             // 4. Create Order Items

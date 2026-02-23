@@ -7,7 +7,8 @@ const {
     updateOffer,
     deleteOffer,
     validateOffer,
-    getPublicOffers
+    getPublicOffers,
+    bulkDeleteOffers
 } = require('../controllers/offerController');
 
 const {
@@ -23,8 +24,8 @@ router.use(protect);
 router.use(admin);
 
 router.get('/', getAllOffers);
-router.post('/', validateCreateOffer, createOffer);
-router.put('/:id', validateUpdateOffer, updateOffer);
+router.post('/', createOffer);
+router.put('/:id', updateOffer);
 router.delete('/:id', deleteOffer);
 
 module.exports = router;
