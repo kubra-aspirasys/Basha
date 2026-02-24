@@ -494,11 +494,13 @@ export default function Cart() {
                 </button>
                 <button
                   type="button"
-                  disabled
-                  className="flex-1 px-3 py-2 rounded border border-gray-800 bg-gray-900/50 text-gray-500 cursor-not-allowed flex flex-col items-center justify-center gap-0.5"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    toast({ description: "Online payment will be available soon" });
+                  }}
+                  className="flex-1 px-3 py-2 rounded border border-gray-800 bg-gray-900/50 text-gray-400 hover:bg-gray-800/80 transition-colors flex flex-col items-center justify-center gap-0.5 group"
                 >
-                  <span className="text-sm">Online Payment</span>
-                  <span className="text-[10px] text-[#F2A900] font-medium uppercase tracking-tighter">Coming Soon</span>
+                  <span className="text-sm group-hover:text-gray-300 transition-colors">Online Payment</span>
                 </button>
               </div>
             </div>
@@ -543,57 +545,56 @@ export default function Cart() {
 
             {/* Suggested Coupons */}
             {!appliedCoupon && availableCoupons.length > 0 && (
-              <div className="mt-4 space-y-3 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Available Offers</p>
-                  <span className="text-[10px] bg-[#F2A900]/10 text-[#F2A900] px-2 py-0.5 rounded-full border border-[#F2A900]/20">
+              <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-xl border border-[#F2A900]/40 bg-gradient-to-b from-[#F2A900]/[0.07] to-[#0a0a0a] p-4 shadow-[0_0_25px_rgba(242,169,0,0.08)]">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <div className="w-1 h-5 rounded-full bg-[#F2A900]" />
+                    <p className="text-sm text-[#F2A900] font-bold uppercase tracking-widest">Available Offers</p>
+                  </div>
+                  <span className="text-[10px] bg-[#F2A900] text-black font-bold px-2.5 py-1 rounded-full">
                     {availableCoupons.length} coupons found
                   </span>
                 </div>
-
-                <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1 custom-scrollbar">
+                <div className="space-y-3 max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-hide w-full">
                   {availableCoupons.map((coupon) => (
                     <div
                       key={coupon.id}
-                      className={`relative overflow-hidden border bg-[#0f0f0f] rounded-xl p-4 flex flex-col gap-3 transition-all duration-300 group hover:scale-[1.02] cursor-default ${bestOffer?.id === coupon.id
-                        ? 'border-[#F2A900] shadow-[0_0_15px_rgba(242,169,0,0.15)] ring-1 ring-[#F2A900]/30'
-                        : 'border-white/10 hover:border-[#F2A900]/40'
+                      className={`relative overflow-hidden border rounded-xl p-4 flex flex-col gap-3 transition-all duration-300 group hover:scale-[1.01] cursor-default ${bestOffer?.id === coupon.id
+                        ? 'bg-gradient-to-br from-[#F2A900]/10 to-[#F2A900]/[0.03] border-[#F2A900] shadow-[0_0_25px_rgba(242,169,0,0.2),inset_0_1px_0_rgba(242,169,0,0.15)] ring-1 ring-[#F2A900]/60'
+                        : 'bg-[#141414] border-[#F2A900]/25 hover:border-[#F2A900]/60 hover:bg-[#1a1a1a] hover:shadow-[0_0_15px_rgba(242,169,0,0.1)]'
                         }`}
                     >
-                      {bestOffer?.id === coupon.id && (
-                        <div className="absolute top-0 right-0">
-                          <div className="bg-[#F2A900] text-black text-[9px] font-black px-3 py-1 rounded-bl-lg flex items-center gap-1 shadow-lg">
-                            <QrCode className="w-2.5 h-2.5" />
-                            BEST VALUE
-                          </div>
-                        </div>
-                      )}
-
                       <div className="flex justify-between items-start">
-                        <div>
+                        <div className="flex-1 pr-2">
                           <div className="flex items-center gap-2 mb-1">
-                            <div className="bg-[#F2A900]/10 p-1.5 rounded-lg">
+                            <div className={`p-1.5 rounded-lg ${bestOffer?.id === coupon.id ? 'bg-[#F2A900]/25 shadow-[0_0_8px_rgba(242,169,0,0.2)]' : 'bg-[#F2A900]/15'}`}>
                               <ShoppingBag className="w-4 h-4 text-[#F2A900]" />
                             </div>
-                            <span className="font-mono font-bold text-white text-lg tracking-tight group-hover:text-[#F2A900] transition-colors">
+                            <span className={`font-mono font-bold text-lg tracking-tight transition-colors ${bestOffer?.id === coupon.id ? 'text-[#F2A900]' : 'text-white group-hover:text-[#F2A900]'}`}>
                               {coupon.code}
                             </span>
                           </div>
-                          <p className="text-xs text-gray-500 line-clamp-1">{coupon.description || 'Valid on all items'}</p>
+                          <p className="text-xs text-gray-400 line-clamp-1 ml-0.5">{coupon.description || 'Valid on all items'}</p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-[#F2A900] font-black text-xl leading-none">
+                        <div className="text-right flex flex-col items-end gap-1.5">
+                          {bestOffer?.id === coupon.id && (
+                            <div className="bg-[#F2A900] text-black text-[9px] font-black px-2 py-0.5 rounded flex items-center gap-1 shadow-[0_2px_8px_rgba(242,169,0,0.4)] uppercase">
+                              <QrCode className="w-2.5 h-2.5" />
+                              BEST VALUE
+                            </div>
+                          )}
+                          <p className={`text-[#F2A900] font-black justify-end text-xl flex items-baseline gap-1 ${bestOffer?.id !== coupon.id ? 'mt-1' : ''}`}>
                             {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
-                            <span className="text-[10px] text-gray-500 font-normal ml-0.5 block">OFF</span>
+                            <span className="text-[10px] text-[#F2A900]/60 font-semibold mb-1">OFF</span>
                           </p>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between pt-2 border-t border-white/5 mt-1">
+                      <div className="flex items-center justify-between pt-3 border-t border-dashed border-[#F2A900]/30 mt-1 relative">
                         <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-tighter">Valid Until</span>
-                          <span className="text-xs text-white/70 font-medium">
-                            {new Date(coupon.valid_to).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Valid Until</span>
+                          <span className="text-xs text-white/90 font-medium">
+                            {new Date(coupon.valid_to).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                           </span>
                         </div>
                         <button
@@ -606,17 +607,17 @@ export default function Cart() {
                             }, 50);
                           }}
                           className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 ${bestOffer?.id === coupon.id
-                            ? 'bg-[#F2A900] text-black hover:bg-[#D99700] hover:shadow-[0_0_10px_rgba(242,169,0,0.3)]'
-                            : 'bg-white/5 text-white hover:bg-[#F2A900] hover:text-black'
+                            ? 'bg-[#F2A900] text-black hover:bg-[#D99700] shadow-[0_4px_12px_rgba(242,169,0,0.4)] hover:shadow-[0_6px_18px_rgba(242,169,0,0.5)] hover:-translate-y-0.5'
+                            : 'bg-[#F2A900]/15 text-[#F2A900] hover:bg-[#F2A900] hover:text-black border border-[#F2A900]/30 hover:border-transparent hover:shadow-[0_4px_12px_rgba(242,169,0,0.3)]'
                             }`}
                         >
                           APPLY NOW
                         </button>
                       </div>
 
-                      {/* Decorative elements */}
-                      <div className="absolute top-1/2 -left-2 w-4 h-4 rounded-full bg-[#0a0a0a] border border-white/5" />
-                      <div className="absolute top-1/2 -right-2 w-4 h-4 rounded-full bg-[#0a0a0a] border border-white/5" />
+                      {/* Decorative ticket cutouts */}
+                      <div className={`absolute bottom-[44px] -left-3 w-6 h-6 rounded-full border-r ${bestOffer?.id === coupon.id ? 'bg-[#0d0d0a] border-[#F2A900]' : 'bg-[#0a0a0a] border-[#F2A900]/25 group-hover:border-[#F2A900]/60'}`} />
+                      <div className={`absolute bottom-[44px] -right-3 w-6 h-6 rounded-full border-l ${bestOffer?.id === coupon.id ? 'bg-[#0d0d0a] border-[#F2A900]' : 'bg-[#0a0a0a] border-[#F2A900]/25 group-hover:border-[#F2A900]/60'}`} />
                     </div>
                   ))}
                 </div>

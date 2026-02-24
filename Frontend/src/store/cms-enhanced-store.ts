@@ -395,6 +395,7 @@ export const useCMSEnhancedStore = create<CMSEnhancedState>((set) => ({
       set({ homepageHero: response.data.data, loading: false });
     } catch (error: any) {
       set({ error: error.response?.data?.message || error.message, loading: false });
+      throw error;
     }
   },
 

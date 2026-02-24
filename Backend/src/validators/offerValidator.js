@@ -29,8 +29,8 @@ const createOfferSchema = Joi.object({
         'date.base': 'Valid from must be a valid date',
         'any.required': 'Start date is required'
     }),
-    valid_to: Joi.date().iso().greater(Joi.ref('valid_from')).required().messages({
-        'date.greater': 'End date must be after start date',
+    valid_to: Joi.date().iso().min(Joi.ref('valid_from')).required().messages({
+        'date.min': 'End date cannot be before start date',
         'any.required': 'End date is required'
     }),
     is_active: Joi.boolean().default(true)
@@ -42,7 +42,7 @@ const updateOfferSchema = Joi.object({
     discount_type: Joi.string().valid('percentage', 'fixed').optional(),
     discount_value: Joi.number().positive().precision(2).optional().custom(discountValueCheck),
     valid_from: Joi.date().iso().optional(),
-    valid_to: Joi.date().iso().greater(Joi.ref('valid_from')).optional(),
+    valid_to: Joi.date().iso().min(Joi.ref('valid_from')).optional(),
     is_active: Joi.boolean().optional()
 }).min(1);
 

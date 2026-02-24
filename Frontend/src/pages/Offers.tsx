@@ -58,10 +58,10 @@ export default function Offers() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // Validation
-    if (new Date(formData.valid_to) <= new Date(formData.valid_from)) {
+    if (new Date(formData.valid_to) < new Date(formData.valid_from)) {
       toast({
         title: 'Invalid Date Range',
-        description: 'End date must be after start date',
+        description: 'End date cannot be before start date',
         variant: 'destructive',
       });
       return;
@@ -225,14 +225,14 @@ export default function Offers() {
 
   const handleEdit = (offer: typeof offers[0]) => {
     setFormData({
-      code: offer.code,
-      discount_type: offer.discount_type,
-      discount_value: offer.discount_value.toString(),
-      valid_from: offer.valid_from.split('T')[0],
-      valid_to: offer.valid_to.split('T')[0],
-      is_active: offer.is_active,
+      code: offer.code || '',
+      discount_type: offer.discount_type || 'percentage',
+      discount_value: offer.discount_value ? String(offer.discount_value) : '',
+      valid_from: offer.valid_from ? String(offer.valid_from).split('T')[0] : '',
+      valid_to: offer.valid_to ? String(offer.valid_to).split('T')[0] : '',
+      is_active: offer.is_active ?? true,
       applicable_to: offer.applicable_to || 'all',
-      specific_users: offer.specific_users || [],
+      specific_users: typeof offer.specific_users === 'string' ? JSON.parse(offer.specific_users) : (offer.specific_users || []),
     });
     setEditingOffer(offer.id);
     setIsOpen(true);

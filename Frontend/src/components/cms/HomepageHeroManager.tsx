@@ -25,13 +25,40 @@ export default function HomepageHeroManager() {
   const [activeTab, setActiveTab] = useState<'hero' | 'about' | 'heritage' | 'menu' | 'features' | 'cta'>('hero');
   const { toast } = useToast();
 
+  const defaultConfig = {
+    hero: { enabled: true, tagline: '', description: '', video_url: '', logo_url: '', button_text: '' },
+    about: { enabled: true, badge: '', title_line1: '', title_line2: '', image_url: '', description: '', feature1_title: '', feature1_desc: '', feature2_title: '', feature2_desc: '', button_text: '' },
+    heritage: { enabled: true, title: '', text_block1: '', text_block2: '', text_block3: '', video_url: '', charminar_image: '', nizam_image: '' },
+    menu: { enabled: true, badge: '', title: '', description: '' },
+    features: { enabled: true, list: [{ title: '', desc: '' }, { title: '', desc: '' }, { title: '', desc: '' }] },
+    cta: { enabled: true, stroke_title: '', tagline: '', button_text: '' },
+  };
+
   useEffect(() => {
     fetchHomepageHero();
   }, [fetchHomepageHero]);
 
   useEffect(() => {
     if (storeHero) {
-      setConfig(storeHero);
+      // Deep-merge storeHero with defaults so every section key is guaranteed to exist
+      const merged: any = {};
+      for (const section of Object.keys(defaultConfig) as (keyof typeof defaultConfig)[]) {
+        const defaults = defaultConfig[section];
+        const incoming = storeHero[section] || {};
+        if (section === 'features') {
+          merged[section] = {
+            ...defaults,
+            ...incoming,
+            list: incoming.list && incoming.list.length > 0 ? incoming.list : (defaults as any).list,
+          };
+        } else {
+          merged[section] = { ...defaults, ...incoming };
+        }
+      }
+      setConfig(merged);
+    } else {
+      // If no data in DB yet, seed with defaults
+      setConfig(defaultConfig);
     }
   }, [storeHero]);
 
@@ -54,7 +81,7 @@ export default function HomepageHeroManager() {
   const updateSection = (section: string, data: any) => {
     setConfig((prev: any) => ({
       ...prev,
-      [section]: { ...prev[section], ...data }
+      [section]: { ...(prev?.[section] || {}), ...data }
     }));
   };
 
@@ -120,21 +147,21 @@ export default function HomepageHeroManager() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="font-bold">Tagline (Gold Text)</Label>
-                    <Input value={config.hero.tagline} onChange={(e) => updateSection('hero', { tagline: e.target.value })} />
+                    <Input value={config.hero?.tagline || ''} onChange={(e) => updateSection('hero', { tagline: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Main Description</Label>
-                    <Textarea value={config.hero.description} onChange={(e) => updateSection('hero', { description: e.target.value })} rows={4} />
+                    <Textarea value={config.hero?.description || ''} onChange={(e) => updateSection('hero', { description: e.target.value })} rows={4} />
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="font-bold">Video URL (Background)</Label>
-                    <Input value={config.hero.video_url} onChange={(e) => updateSection('hero', { video_url: e.target.value })} placeholder="/Videos/hero.mp4" />
+                    <Input value={config.hero?.video_url || ''} onChange={(e) => updateSection('hero', { video_url: e.target.value })} placeholder="/Videos/hero.mp4" />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Logo/Banner Image URL</Label>
-                    <Input value={config.hero.logo_url} onChange={(e) => updateSection('hero', { logo_url: e.target.value })} />
+                    <Input value={config.hero?.logo_url || ''} onChange={(e) => updateSection('hero', { logo_url: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Button Text</Label>
@@ -161,43 +188,43 @@ export default function HomepageHeroManager() {
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="font-bold">Badge Text (Top Small Text)</Label>
-                    <Input value={config.about.badge} onChange={(e) => updateSection('about', { badge: e.target.value })} />
+                    <Input value={config.about?.badge || ''} onChange={(e) => updateSection('about', { badge: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Title Line 1</Label>
-                    <Input value={config.about.title_line1} onChange={(e) => updateSection('about', { title_line1: e.target.value })} />
+                    <Input value={config.about?.title_line1 || ''} onChange={(e) => updateSection('about', { title_line1: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Title Line 2 (Colored Gold)</Label>
-                    <Input value={config.about.title_line2} onChange={(e) => updateSection('about', { title_line2: e.target.value })} />
+                    <Input value={config.about?.title_line2 || ''} onChange={(e) => updateSection('about', { title_line2: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Section Image URL</Label>
-                    <Input value={config.about.image_url} onChange={(e) => updateSection('about', { image_url: e.target.value })} />
+                    <Input value={config.about?.image_url || ''} onChange={(e) => updateSection('about', { image_url: e.target.value })} />
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="font-bold">Description Paragraph</Label>
-                    <Textarea value={config.about.description} onChange={(e) => updateSection('about', { description: e.target.value })} rows={5} />
+                    <Textarea value={config.about?.description || ''} onChange={(e) => updateSection('about', { description: e.target.value })} rows={5} />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg space-y-2">
                       <Label className="text-xs">Feature 1 Title</Label>
-                      <Input value={config.about.feature1_title} onChange={(e) => updateSection('about', { feature1_title: e.target.value })} />
+                      <Input value={config.about?.feature1_title || ''} onChange={(e) => updateSection('about', { feature1_title: e.target.value })} />
                       <Label className="text-xs">Feature 1 Desc</Label>
-                      <Input value={config.about.feature1_desc} onChange={(e) => updateSection('about', { feature1_desc: e.target.value })} />
+                      <Input value={config.about?.feature1_desc || ''} onChange={(e) => updateSection('about', { feature1_desc: e.target.value })} />
                     </div>
                     <div className="p-3 bg-slate-50 dark:bg-slate-900 rounded-lg space-y-2">
                       <Label className="text-xs">Feature 2 Title</Label>
-                      <Input value={config.about.feature2_title} onChange={(e) => updateSection('about', { feature2_title: e.target.value })} />
+                      <Input value={config.about?.feature2_title || ''} onChange={(e) => updateSection('about', { feature2_title: e.target.value })} />
                       <Label className="text-xs">Feature 2 Desc</Label>
-                      <Input value={config.about.feature2_desc} onChange={(e) => updateSection('about', { feature2_desc: e.target.value })} />
+                      <Input value={config.about?.feature2_desc || ''} onChange={(e) => updateSection('about', { feature2_desc: e.target.value })} />
                     </div>
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Button Text</Label>
-                    <Input value={config.about.button_text} onChange={(e) => updateSection('about', { button_text: e.target.value })} />
+                    <Input value={config.about?.button_text || ''} onChange={(e) => updateSection('about', { button_text: e.target.value })} />
                   </div>
                 </div>
               </div>
@@ -218,27 +245,27 @@ export default function HomepageHeroManager() {
             <CardContent className="space-y-6 pt-4">
               <div className="space-y-2">
                 <Label className="font-bold">Section Center Title</Label>
-                <Input value={config.heritage.title} onChange={(e) => updateSection('heritage', { title: e.target.value })} />
+                <Input value={config.heritage?.title || ''} onChange={(e) => updateSection('heritage', { title: e.target.value })} />
               </div>
               <div className="grid md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <Label className="font-bold">Description Text Blocks</Label>
-                  <Textarea placeholder="Block 1" value={config.heritage.text_block1} onChange={(e) => updateSection('heritage', { text_block1: e.target.value })} rows={2} />
-                  <Textarea placeholder="Block 2" value={config.heritage.text_block2} onChange={(e) => updateSection('heritage', { text_block2: e.target.value })} rows={2} />
-                  <Textarea placeholder="Block 3" value={config.heritage.text_block3} onChange={(e) => updateSection('heritage', { text_block3: e.target.value })} rows={2} />
+                  <Textarea placeholder="Block 1" value={config.heritage?.text_block1 || ''} onChange={(e) => updateSection('heritage', { text_block1: e.target.value })} rows={2} />
+                  <Textarea placeholder="Block 2" value={config.heritage?.text_block2 || ''} onChange={(e) => updateSection('heritage', { text_block2: e.target.value })} rows={2} />
+                  <Textarea placeholder="Block 3" value={config.heritage?.text_block3 || ''} onChange={(e) => updateSection('heritage', { text_block3: e.target.value })} rows={2} />
                 </div>
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label className="font-bold">Video URL</Label>
-                    <Input value={config.heritage.video_url} onChange={(e) => updateSection('heritage', { video_url: e.target.value })} />
+                    <Input value={config.heritage?.video_url || ''} onChange={(e) => updateSection('heritage', { video_url: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Charminar Overlay Image</Label>
-                    <Input value={config.heritage.charminar_image} onChange={(e) => updateSection('heritage', { charminar_image: e.target.value })} />
+                    <Input value={config.heritage?.charminar_image || ''} onChange={(e) => updateSection('heritage', { charminar_image: e.target.value })} />
                   </div>
                   <div className="space-y-2">
                     <Label className="font-bold">Nizam Overlay Image</Label>
-                    <Input value={config.heritage.nizam_image} onChange={(e) => updateSection('heritage', { nizam_image: e.target.value })} />
+                    <Input value={config.heritage?.nizam_image || ''} onChange={(e) => updateSection('heritage', { nizam_image: e.target.value })} />
                   </div>
                 </div>
               </div>
@@ -259,15 +286,15 @@ export default function HomepageHeroManager() {
             <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label className="font-bold">Badge Text</Label>
-                <Input value={config.menu.badge} onChange={(e) => updateSection('menu', { badge: e.target.value })} />
+                <Input value={config.menu?.badge || ''} onChange={(e) => updateSection('menu', { badge: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label className="font-bold">Main Title</Label>
-                <Input value={config.menu.title} onChange={(e) => updateSection('menu', { title: e.target.value })} />
+                <Input value={config.menu?.title || ''} onChange={(e) => updateSection('menu', { title: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label className="font-bold">Description</Label>
-                <Input value={config.menu.description} onChange={(e) => updateSection('menu', { description: e.target.value })} />
+                <Input value={config.menu?.description || ''} onChange={(e) => updateSection('menu', { description: e.target.value })} />
               </div>
             </CardContent>
           </Card>
@@ -284,7 +311,7 @@ export default function HomepageHeroManager() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-4">
-              {config.features.list.map((feature: any, idx: number) => (
+              {(config.features?.list || []).map((feature: any, idx: number) => (
                 <div key={idx} className="p-4 border rounded-xl space-y-4 bg-slate-50 dark:bg-slate-900/50 hover:bg-white dark:hover:bg-slate-800 transition-all border-dashed">
                   <div className="flex items-center justify-between border-b pb-2 mb-2">
                     <h4 className="font-bold uppercase tracking-widest text-xs flex items-center gap-2">
@@ -337,15 +364,15 @@ export default function HomepageHeroManager() {
             <CardContent className="space-y-4 pt-4">
               <div className="space-y-2">
                 <Label className="font-bold">Transparent Outline Title (e.g. Biryani @ Basha)</Label>
-                <Input value={config.cta.stroke_title} onChange={(e) => updateSection('cta', { stroke_title: e.target.value })} />
+                <Input value={config.cta?.stroke_title || ''} onChange={(e) => updateSection('cta', { stroke_title: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label className="font-bold">Large Tagline</Label>
-                <Input value={config.cta.tagline} onChange={(e) => updateSection('cta', { tagline: e.target.value })} />
+                <Input value={config.cta?.tagline || ''} onChange={(e) => updateSection('cta', { tagline: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <Label className="font-bold">Button Text</Label>
-                <Input value={config.cta.button_text} onChange={(e) => updateSection('cta', { button_text: e.target.value })} />
+                <Input value={config.cta?.button_text || ''} onChange={(e) => updateSection('cta', { button_text: e.target.value })} />
               </div>
             </CardContent>
           </Card>
