@@ -1,5 +1,6 @@
 const { MenuItem, MenuCategory, MenuItemImage, Sequelize } = require('../models');
 const { Op } = Sequelize;
+const { sanitizeObject } = require('../utils/sanitizer');
 
 const listMenuItems = async ({ page = 1, limit = 10, search, category, type, available, sortBy = 'created_at', sortOrder = 'DESC' }) => {
     const offset = (page - 1) * limit;
@@ -80,8 +81,9 @@ const createMenuItem = async (data, imageFile) => {
             mainImageUrl = data.image_url;
         }
 
+        const sanitizedData = sanitizeObject(data);
         const menuItem = await MenuItem.create({
-            ...data,
+            ...sanitizedData,
             image_url: mainImageUrl // Legacy support or main image
         }, { transaction });
 
@@ -111,7 +113,7 @@ const updateMenuItem = async (id, data, imageFile) => {
     try {
         transaction = await MenuItem.sequelize.transaction();
 
-        const updates = { ...data };
+        const updates = sanitizeObject({ ...data });
 
         if (imageFile) {
             updates.image_url = `/uploads/${imageFile.filename}`;
@@ -195,10 +197,9 @@ const getAllTypes = async () => {
 };
 
 const createCategory = async (data) => {
-    // Generate slug from name
-    const slug = data.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+    const sanitizedData = sanitizeObject(data);
     return await MenuCategory.create({
-        ...data,
+        ...sanitizedData,
         slug
     });
 };

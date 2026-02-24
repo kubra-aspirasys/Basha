@@ -11,6 +11,11 @@ const {
     bulkDeleteOffers
 } = require('../controllers/offerController');
 
+const {
+    validateCreateOffer,
+    validateUpdateOffer
+} = require('../validators/offerValidator');
+
 // Public route for validation and listing available
 router.post('/validate', validateOffer);
 router.get('/available', getPublicOffers);
@@ -20,7 +25,6 @@ router.use(admin);
 
 router.get('/', getAllOffers);
 router.post('/', createOffer);
-router.post('/bulk-delete', bulkDeleteOffers);
 router.put('/:id', updateOffer);
 router.delete('/:id', deleteOffer);
 

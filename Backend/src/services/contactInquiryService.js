@@ -1,15 +1,17 @@
 const { ContactInquiry } = require('../models');
 const { Op } = require('sequelize');
+const { sanitizeObject } = require('../utils/sanitizer');
 
 const createInquiry = async (data) => {
+    const sanitizedData = sanitizeObject(data);
     return await ContactInquiry.create({
-        name: data.name,
-        phone: data.phone,
-        email: data.email,
-        subject: data.subject,
-        message: data.message,
-        event_type: data.eventType,
-        guest_count: data.guestCount,
+        name: sanitizedData.name,
+        phone: sanitizedData.phone,
+        email: sanitizedData.email,
+        subject: sanitizedData.subject,
+        message: sanitizedData.message,
+        event_type: sanitizedData.eventType,
+        guest_count: sanitizedData.guestCount,
         status: 'Pending'
     });
 };

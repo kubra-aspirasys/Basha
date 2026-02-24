@@ -1,5 +1,6 @@
 const { Order, OrderItem, MenuItem, Payment, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const { sanitizeObject, sanitizeString } = require('../utils/sanitizer');
 
 // Define allowed status transitions (Strict Workflow)
 const ALLOWED_TRANSITIONS = {
@@ -29,7 +30,7 @@ class OrderService {
                 payment_method,
                 coupon_id,
                 discount_amount
-            } = orderData;
+            } = sanitizeObject(orderData);
 
             // 1. Calculate totals and validate items
             let subtotal = 0;
@@ -122,11 +123,14 @@ class OrderService {
 
             await OrderItem.bulkCreate(itemsWithOrderId, { transaction });
 
-            // 5. Create Payment Record (Pending)
             const paymentModeMap = {
                 'cod': 'cash',
-                'online': 'upi' // Defaulting online to UPI for now, or could vary
+                'online': 'upi'
             };
+
+            if (payment_method === 'online') {
+                throw new Error('Online payment is temporarily unavailable. Please use Cash on Delivery.');
+            }
 
             await Payment.create({
                 transaction_id: `TXN-${order.order_number}`, // Temporary transaction ID
@@ -255,7 +259,9 @@ class OrderService {
 
         order.status = newStatus;
         await order.save();
-        return order;
+
+        // Return full details including items so frontend doesn't lose them
+        return await this.getOrderDetails(order.id);
     }
 
     /**

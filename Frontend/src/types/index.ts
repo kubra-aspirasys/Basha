@@ -86,6 +86,7 @@ export interface Offer {
   code: string;
   discount_type: 'percentage' | 'fixed';
   discount_value: number;
+  description?: string;
   valid_from: string;
   valid_to: string;
   is_active: boolean;

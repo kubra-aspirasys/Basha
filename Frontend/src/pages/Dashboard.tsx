@@ -7,9 +7,11 @@ import { Badge } from '@/components/ui/badge';
 import {
   Users, ShoppingBag, DollarSign, UtensilsCrossed, TrendingUp, Clock, CheckCircle,
   Package, Truck, AlertCircle, Plus, Calendar, ChefHat, MessageSquare, Phone, Mail,
-  Loader2, XCircle, Layers
+  Loader2, XCircle, Layers, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 // Helper to construct full image URL
 const getImageUrl = (url?: string) => {
@@ -75,12 +77,14 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async (showLoading = true) => {
       try {
         if (showLoading) setLoading(true);
+        else setIsRefreshing(true);
         const response = await api.get('/dashboard/stats');
         if (response.data.success) {
           setStats(response.data.data);
@@ -92,7 +96,8 @@ export default function Dashboard() {
         console.error('Error fetching dashboard stats:', err);
         setError(err.response?.data?.message || 'Failed to connect to server');
       } finally {
-        if (showLoading) setLoading(false);
+        setLoading(false);
+        setIsRefreshing(false);
       }
     };
 
@@ -108,10 +113,26 @@ export default function Dashboard() {
 
   if (loading) {
     return (
-      <div className="flex bg-slate-50 dark:bg-slate-950 items-center justify-center min-h-[500px]">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="w-10 h-10 animate-spin text-primary-500" />
-          <p className="text-slate-500 dark:text-slate-400">Loading dashboard...</p>
+      <div className="space-y-6 animate-in fade-in duration-500">
+        <div className="flex justify-between items-end">
+          <div className="space-y-2">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-4 w-64" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+
+        <Skeleton className="h-48 w-full rounded-xl" />
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="h-[400px] rounded-xl" />
+          <Skeleton className="h-[400px] rounded-xl" />
+          <Skeleton className="h-[400px] rounded-xl" />
         </div>
       </div>
     );
@@ -144,13 +165,22 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-          Dashboard
-        </h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Overview of your restaurant management
-        </p>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+            Dashboard
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Overview of your restaurant management
+          </p>
+        </div>
+        <div className={cn(
+          "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300",
+          isRefreshing ? "bg-primary-50 text-primary-600 dark:bg-primary-900/30 opacity-100" : "opacity-0"
+        )}>
+          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+          <span>Refreshing live data...</span>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
