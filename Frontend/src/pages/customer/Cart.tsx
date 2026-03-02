@@ -19,6 +19,7 @@ const getImageUrl = (url?: string) => {
 };
 
 import { useOfferStore } from '@/store/offer-store';
+import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
 import { Offer } from '@/types';
 
 export default function Cart() {
@@ -29,15 +30,40 @@ export default function Cart() {
   const { settings } = useSettingsStore();
   const { toast } = useToast();
   const { getPublicOffers } = useOfferStore();
+  const { siteSettings, fetchSiteSettings } = useCMSEnhancedStore();
 
   useEffect(() => {
     if (user) {
       fetchCart();
     }
-  }, [user, fetchCart]);
+    fetchSiteSettings();
+  }, [user, fetchCart, fetchSiteSettings]);
+
+  // CMS-controlled toggles with safe fallbacks (default to true if not specified)
+  const isDeliveryEnabled = siteSettings.find(s => s.key === 'payment_method_delivery')?.value !== 'false';
+  const isPickupEnabled = siteSettings.find(s => s.key === 'payment_method_pickup')?.value !== 'false';
+  const isCodEnabled = siteSettings.find(s => s.key === 'payment_method_cod')?.value !== 'false';
+  const isOnlineEnabled = siteSettings.find(s => s.key === 'payment_method_online')?.value === 'true'; // Default offline to false 
 
   const [orderType, setOrderType] = useState<'pickup' | 'delivery'>('delivery');
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'online'>('cod');
+
+  // Set initial state based on available options
+  useEffect(() => {
+    if (siteSettings.length > 0) {
+      if (!isDeliveryEnabled && isPickupEnabled) {
+        setOrderType('pickup');
+      } else if (isDeliveryEnabled && !isPickupEnabled) {
+        setOrderType('delivery');
+      }
+
+      if (!isCodEnabled && isOnlineEnabled) {
+        setPaymentMethod('online');
+      } else if (isCodEnabled && !isOnlineEnabled) {
+        setPaymentMethod('cod');
+      }
+    }
+  }, [siteSettings, isDeliveryEnabled, isPickupEnabled, isCodEnabled, isOnlineEnabled]);
   const [isPlacing, setIsPlacing] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState<{ id: string, number: string } | null>(null);
@@ -466,42 +492,56 @@ export default function Cart() {
             </label>
 
             <div className="flex gap-3 text-sm">
-              {(['delivery', 'pickup'] as const).map((type) => (
+              {isDeliveryEnabled && (
                 <button
-                  key={type}
-                  onClick={() => setOrderType(type)}
-                  className={`flex-1 px-3 py-2 rounded border transition-colors ${orderType === type
+                  onClick={() => setOrderType('delivery')}
+                  className={`flex-1 px-3 py-2 rounded border transition-colors ${orderType === 'delivery'
                     ? 'border-[#F2A900] bg-[#F2A900]/10 text-[#F2A900]'
                     : 'border-[#F2A900]/20 text-gray-300 hover:border-[#F2A900]/40'
                     }`}
                 >
-                  {type === 'delivery' ? 'Delivery' : 'Pickup'}
+                  Delivery
                 </button>
-              ))}
+              )}
+              {isPickupEnabled && (
+                <button
+                  onClick={() => setOrderType('pickup')}
+                  className={`flex-1 px-3 py-2 rounded border transition-colors ${orderType === 'pickup'
+                    ? 'border-[#F2A900] bg-[#F2A900]/10 text-[#F2A900]'
+                    : 'border-[#F2A900]/20 text-gray-300 hover:border-[#F2A900]/40'
+                    }`}
+                >
+                  Pickup
+                </button>
+              )}
             </div>
 
             <div className="space-y-2">
               <p className="text-gray-400 text-sm">Payment Method</p>
               <div className="flex gap-3 text-sm">
-                <button
-                  onClick={() => setPaymentMethod('cod')}
-                  className={`flex-1 px-3 py-2 rounded border transition-colors ${paymentMethod === 'cod'
-                    ? 'border-[#F2A900] bg-[#F2A900]/10 text-[#F2A900]'
-                    : 'border-[#F2A900]/20 text-gray-300 hover:border-[#F2A900]/40'
-                    }`}
-                >
-                  Cash on Delivery
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    toast({ description: "Online payment will be available soon" });
-                  }}
-                  className="flex-1 px-3 py-2 rounded border border-gray-800 bg-gray-900/50 text-gray-400 hover:bg-gray-800/80 transition-colors flex flex-col items-center justify-center gap-0.5 group"
-                >
-                  <span className="text-sm group-hover:text-gray-300 transition-colors">Online Payment</span>
-                </button>
+                {isCodEnabled && (
+                  <button
+                    onClick={() => setPaymentMethod('cod')}
+                    className={`flex-1 px-3 py-2 rounded border transition-colors ${paymentMethod === 'cod'
+                      ? 'border-[#F2A900] bg-[#F2A900]/10 text-[#F2A900]'
+                      : 'border-[#F2A900]/20 text-gray-300 hover:border-[#F2A900]/40'
+                      }`}
+                  >
+                    Cash on Delivery
+                  </button>
+                )}
+                {isOnlineEnabled && (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod('online')}
+                    className={`flex-1 px-3 py-2 rounded border transition-colors ${paymentMethod === 'online'
+                      ? 'border-[#F2A900] bg-[#F2A900]/10 text-[#F2A900]'
+                      : 'border-[#F2A900]/20 text-gray-300 hover:border-[#F2A900]/40'
+                      }`}
+                  >
+                    Online Payment
+                  </button>
+                )}
               </div>
             </div>
           </div>
@@ -625,38 +665,40 @@ export default function Cart() {
             )}
           </div>
 
-          <div className="border-t border-[#F2A900]/20 pt-4 space-y-2 text-sm text-gray-300">
-            <div className="flex justify-between">
-              <span>Subtotal</span>
-              <span>{formatCurrency(totals.subtotal)}</span>
-            </div>
-            {totals.deliveryCharges > 0 && (
+          {items.length > 0 && (
+            <div className="border-t border-[#F2A900]/20 pt-4 space-y-2 text-sm text-gray-300">
               <div className="flex justify-between">
-                <span>Delivery</span>
-                <span>{formatCurrency(totals.deliveryCharges)}</span>
+                <span>Subtotal</span>
+                <span>{formatCurrency(totals.subtotal)}</span>
               </div>
-            )}
-            {totals.serviceCharges > 0 && (
+              {totals.deliveryCharges > 0 && (
+                <div className="flex justify-between">
+                  <span>Delivery</span>
+                  <span>{formatCurrency(totals.deliveryCharges)}</span>
+                </div>
+              )}
+              {totals.serviceCharges > 0 && (
+                <div className="flex justify-between">
+                  <span>Service</span>
+                  <span>{formatCurrency(totals.serviceCharges)}</span>
+                </div>
+              )}
+              {totals.discount > 0 && (
+                <div className="flex justify-between text-green-400">
+                  <span>Discount</span>
+                  <span>-{formatCurrency(totals.discount)}</span>
+                </div>
+              )}
               <div className="flex justify-between">
-                <span>Service</span>
-                <span>{formatCurrency(totals.serviceCharges)}</span>
+                <span>GST</span>
+                <span>{formatCurrency(totals.gstAmount)}</span>
               </div>
-            )}
-            {totals.discount > 0 && (
-              <div className="flex justify-between text-green-400">
-                <span>Discount</span>
-                <span>-{formatCurrency(totals.discount)}</span>
+              <div className="flex justify-between text-white font-semibold text-lg pt-2">
+                <span>Total</span>
+                <span>{formatCurrency(totals.total)}</span>
               </div>
-            )}
-            <div className="flex justify-between">
-              <span>GST</span>
-              <span>{formatCurrency(totals.gstAmount)}</span>
             </div>
-            <div className="flex justify-between text-white font-semibold text-lg pt-2">
-              <span>Total</span>
-              <span>{formatCurrency(totals.total)}</span>
-            </div>
-          </div>
+          )}
 
           {message && (
             <div
@@ -675,7 +717,7 @@ export default function Cart() {
             disabled={isPlacing || !items.length}
             className="w-full py-3 rounded bg-[#F2A900] hover:bg-[#D99700] text-black font-semibold transition-colors disabled:opacity-50"
           >
-            {isPlacing ? 'Placing order...' : `Place Order (${formatCurrency(totals.total)})`}
+            {isPlacing ? 'Placing order...' : `Place Order ${items.length > 0 ? `(${formatCurrency(totals.total)})` : ''}`}
           </button>
         </div>
       </div>

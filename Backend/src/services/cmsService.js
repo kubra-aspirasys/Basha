@@ -105,6 +105,9 @@ class CMSService {
     async getSiteSettingByKey(key) {
         return await this.models.SiteSetting.findOne({ where: { key } });
     }
+    async createSiteSetting(data) {
+        return await this.models.SiteSetting.create(data);
+    }
 
     // --- Product Categories (MenuCategory) ---
     async getProductCategories(query = {}) {

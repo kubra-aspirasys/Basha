@@ -34,6 +34,7 @@ interface CMSEnhancedState {
 
   fetchSiteSettings: () => Promise<void>;
   updateSiteSetting: (id: string, value: string) => Promise<void>;
+  addSiteSetting: (setting: Omit<SiteSetting, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
 
   fetchProductCategories: () => Promise<void>;
   addProductCategory: (category: Omit<ProductCategory, 'id' | 'created_at' | 'updated_at'>) => Promise<void>;
@@ -52,7 +53,7 @@ interface CMSEnhancedState {
   getSiteSettingByKey: (key: string) => SiteSetting | undefined;
 }
 
-export const useCMSEnhancedStore = create<CMSEnhancedState>((set) => ({
+export const useCMSEnhancedStore = create<CMSEnhancedState>(((set, get) => ({
   galleryImages: [],
   contentPages: [],
   faqs: [],
@@ -202,7 +203,7 @@ export const useCMSEnhancedStore = create<CMSEnhancedState>((set) => ({
     try {
       const response = await api.post('/cms/blog-posts', post);
       set((state) => ({
-        blogPosts: [response.data.data, ...state.blogPosts],
+        blogPosts: [...state.blogPosts, response.data.data],
         loading: false
       }));
     } catch (error: any) {
@@ -236,17 +237,15 @@ export const useCMSEnhancedStore = create<CMSEnhancedState>((set) => ({
     }
   },
 
-  uploadImage: async (file, bucket) => {
+  uploadImage: async (file: File, bucket: string) => {
     set({ loading: true, error: null });
     try {
       const formData = new FormData();
-      formData.append('image', file);
+      formData.append('file', file);
       formData.append('bucket', bucket);
 
       const response = await api.post('/cms/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       set({ loading: false });
@@ -277,6 +276,21 @@ export const useCMSEnhancedStore = create<CMSEnhancedState>((set) => ({
       }));
     } catch (error: any) {
       set({ error: error.response?.data?.message || error.message, loading: false });
+      throw error;
+    }
+  },
+
+  addSiteSetting: async (setting) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.post('/cms/site-settings', setting);
+      set((state) => ({
+        siteSettings: [...state.siteSettings, response.data.data],
+        loading: false
+      }));
+    } catch (error: any) {
+      set({ error: error.response?.data?.message || error.message, loading: false });
+      throw error;
     }
   },
 
@@ -308,7 +322,9 @@ export const useCMSEnhancedStore = create<CMSEnhancedState>((set) => ({
     try {
       const response = await api.put(`/cms/product-categories/${id}`, category);
       set((state) => ({
-        productCategories: state.productCategories.map((c) => c.id === id ? response.data.data : c),
+        productCategories: state.productCategories.map((c) =>
+          c.id === id ? response.data.data : c
+        ),
         loading: false
       }));
     } catch (error: any) {
@@ -399,8 +415,7 @@ export const useCMSEnhancedStore = create<CMSEnhancedState>((set) => ({
     }
   },
 
-  getSiteSettingByKey: (key: string) => {
-    const { siteSettings } = useCMSEnhancedStore.getState();
-    return siteSettings.find(s => s.key === key);
-  },
-}));
+  getSiteSettingByKey: (key) => {
+    return get().siteSettings.find((s) => s.key === key);
+  }
+})));

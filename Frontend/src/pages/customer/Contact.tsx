@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { useCMSEnhancedStore } from '@/store/cms-enhanced-store';
 import { MapPin, Phone, Mail, Send, CheckCircle, Clock } from 'lucide-react';
 
@@ -9,6 +10,7 @@ export default function Contact() {
     // const { addInquiry } = useInquiryStore(); // Removed as per requirement
     const { siteSettings, fetchSiteSettings } = useCMSEnhancedStore();
     const { toast } = useToast();
+    const location = useLocation();
 
     const [submitted, setSubmitted] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -16,7 +18,7 @@ export default function Contact() {
         name: '',
         email: '',
         phone: '',
-        subject: 'General Inquiry',
+        subject: location.state?.subject || 'General Inquiry',
         message: '',
         eventType: '',
         guestCount: ''

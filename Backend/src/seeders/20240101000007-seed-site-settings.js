@@ -66,7 +66,11 @@ module.exports = {
                 'contact_address',
                 'contact_phone',
                 'contact_email',
-                'contact_opening_hours'
+                'contact_opening_hours',
+                'payment_method_delivery',
+                'payment_method_pickup',
+                'payment_method_cod',
+                'payment_method_online'
             ]
         });
 
@@ -138,6 +142,46 @@ module.exports = {
                 type: 'text',
                 category: 'contact',
                 description: 'Store opening hours',
+                created_at: new Date(),
+                updated_at: new Date()
+            },
+            {
+                id: uuidv4(),
+                key: 'payment_method_delivery',
+                value: 'true',
+                type: 'boolean',
+                category: 'payment',
+                description: 'Enable/Disable Delivery mode',
+                created_at: new Date(),
+                updated_at: new Date()
+            },
+            {
+                id: uuidv4(),
+                key: 'payment_method_pickup',
+                value: 'true',
+                type: 'boolean',
+                category: 'payment',
+                description: 'Enable/Disable Pickup mode',
+                created_at: new Date(),
+                updated_at: new Date()
+            },
+            {
+                id: uuidv4(),
+                key: 'payment_method_cod',
+                value: 'true',
+                type: 'boolean',
+                category: 'payment',
+                description: 'Enable/Disable Cash on Delivery',
+                created_at: new Date(),
+                updated_at: new Date()
+            },
+            {
+                id: uuidv4(),
+                key: 'payment_method_online',
+                value: 'false',
+                type: 'boolean',
+                category: 'payment',
+                description: 'Enable/Disable Online Payment',
                 created_at: new Date(),
                 updated_at: new Date()
             }

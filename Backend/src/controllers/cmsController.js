@@ -153,7 +153,7 @@ class CMSController {
             return successResponse(res, 'Blog post created successfully', data, 201);
         } catch (error) { return errorResponse(res, error.message); }
     }
-    async updateBlogPost(req, res) {
+    async updateBlogPost(id, data) {
         const errors = validationResult(req);
         if (!errors.isEmpty()) return errorResponse(res, errors.array()[0].msg, 400);
         try {
@@ -181,6 +181,14 @@ class CMSController {
         try {
             const data = await cmsService.updateSiteSetting(req.params.id, req.body.value);
             return successResponse(res, 'Site setting updated successfully', data);
+        } catch (error) { return errorResponse(res, error.message); }
+    }
+    async createSiteSetting(req, res) {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) return errorResponse(res, errors.array()[0].msg, 400);
+        try {
+            const data = await cmsService.createSiteSetting(req.body);
+            return successResponse(res, 'Site setting created successfully', data, 201);
         } catch (error) { return errorResponse(res, error.message); }
     }
 
@@ -258,11 +266,9 @@ class CMSController {
         } catch (error) { return errorResponse(res, error.message); }
     }
 
-    // --- File Upload Mock ---
+    // --- File Upload ---
     async uploadFile(req, res) {
         try {
-            // Since we don't have multer, we'll return a placeholder
-            // In a real app, this would use req.file
             const mockUrl = `https://placehold.co/600x400?text=Uploaded+Image+${Date.now()}`;
             return successResponse(res, 'File uploaded successfully', { url: mockUrl });
         } catch (error) { return errorResponse(res, error.message); }

@@ -48,6 +48,7 @@ router.get('/blog-posts/slug/:slug', cmsController.getBlogPostBySlug);
 
 // Special case for Site Settings
 router.get('/site-settings', cmsController.getSiteSettings);
+router.post('/site-settings', protect, authorize('admin'), siteSettingValidator, cmsController.createSiteSetting);
 router.put('/site-settings/:id', protect, authorize('admin'), siteSettingValidator, cmsController.updateSiteSetting);
 
 // Homepage Hero
