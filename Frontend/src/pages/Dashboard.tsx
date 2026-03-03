@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import {
   Users, ShoppingBag, DollarSign, UtensilsCrossed, TrendingUp, Clock, CheckCircle,
   Package, Truck, AlertCircle, Plus, Calendar, ChefHat, MessageSquare, Phone, Mail,
-  Loader2, XCircle, Layers, RefreshCw
+  XCircle, Layers, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';

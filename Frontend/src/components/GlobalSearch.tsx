@@ -192,7 +192,7 @@ export default function GlobalSearch() {
 
       {/* Results Dropdown - appears when expanded and has query */}
       {isExpanded && query && (
-        <div className={`absolute top-full left-0 right-0 mt-2 rounded-lg overflow-hidden shadow-2xl z-50 transform transition-all duration-300 origin-top ${isAdminPath
+        <div className={`absolute top-full -right-[110px] w-[300px] max-w-[calc(100vw-24px)] sm:right-0 sm:w-[350px] lg:w-auto lg:left-0 lg:right-0 mt-2 rounded-lg overflow-hidden shadow-2xl z-50 transform transition-all duration-300 origin-top-right lg:origin-top ${isAdminPath
           ? 'bg-white border border-slate-200 text-slate-900'
           : 'bg-[#1a1a1a] border border-[#F2A900]/30 text-white'
           }`}>

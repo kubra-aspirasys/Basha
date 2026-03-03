@@ -137,7 +137,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
   return (
     <>
-      <header className="h-24 glass-effect border-b border-slate-200/60 dark:border-slate-700/60 backdrop-blur-xl px-3 sm:px-4 lg:px-8 flex items-center justify-between premium-shadow relative z-[10000]">
+      <header className="h-[70px] lg:h-24 glass-effect border-b border-slate-200/60 dark:border-slate-700/60 backdrop-blur-xl px-3 sm:px-4 lg:px-8 flex items-center justify-between premium-shadow relative z-[10000]">
         <div className="flex items-center space-x-2 sm:space-x-3 lg:space-x-6 flex-1 min-w-0">
           <button
             onClick={onMenuClick}
