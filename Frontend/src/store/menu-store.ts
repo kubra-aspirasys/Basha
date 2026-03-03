@@ -64,6 +64,8 @@ interface MenuState {
     type?: string;
     available?: boolean;
     featured?: boolean;
+    sortBy?: string;
+    sortOrder?: 'ASC' | 'DESC';
   }) => Promise<void>;
 
   fetchAllMenuItems: () => Promise<void>;
@@ -100,6 +102,8 @@ export const useMenuStore = create<MenuState>((set, get) => ({
       if (params.type && params.type !== 'all') queryParams.append('type', params.type);
       if (params.available !== undefined) queryParams.append('available', params.available.toString());
       if (params.featured !== undefined) queryParams.append('featured', params.featured.toString());
+      if (params.sortBy) queryParams.append('sortBy', params.sortBy);
+      if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
 
       const response = await api.get(`/menu?${queryParams.toString()}`);
       // Based on controller response: { success: true, message, data: items, pagination }

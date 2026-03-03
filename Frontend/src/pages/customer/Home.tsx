@@ -38,12 +38,10 @@ export default function Home() {
 
   // Fetch menu items and CMS content on mount
   useEffect(() => {
-    if (!menuItems.length) {
-      fetchAllMenuItems();
-    }
+    fetchAllMenuItems();
     fetchCategories();
     fetchHomepageHero();
-  }, [fetchAllMenuItems, fetchCategories, menuItems.length, fetchHomepageHero]);
+  }, [fetchAllMenuItems, fetchCategories, fetchHomepageHero]);
 
   // Create lookup map for category names
   const categoryLookup = useMemo(() => {
@@ -130,8 +128,8 @@ export default function Home() {
     }
   };
 
-  // Get unique categories from menu items
-  const categories = ['all', ...Array.from(new Set(menuItems.map(item => item.category_id).filter(Boolean)))];
+  // Get unique categories from store (keeps manual order)
+  const categories = ['all', ...storeCategories.map(c => c.id)];
 
   // Get filtered items by category for new tabbed menu
   const filteredMenuItems = selectedCategory === 'all'

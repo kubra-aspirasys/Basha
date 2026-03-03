@@ -25,7 +25,8 @@ const getImageUrl = (url?: string) => {
 export default function GlobalSearch() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { menuItems, fetchMenuItems } = useMenuStore();
+  // Fetch menu items if not loaded
+  const { menuItems, fetchAllMenuItems } = useMenuStore();
   const [isExpanded, setIsExpanded] = useState(false);
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -34,12 +35,11 @@ export default function GlobalSearch() {
   const isAdminPath = location.pathname.startsWith('/admin');
   const [isFocused, setIsFocused] = useState(false);
 
-  // Fetch menu items if not loaded
   useEffect(() => {
     if (!menuItems.length) {
-      fetchMenuItems();
+      fetchAllMenuItems();
     }
-  }, [fetchMenuItems, menuItems.length]);
+  }, [fetchAllMenuItems, menuItems.length]);
 
   // Close search when clicking outside (always collapse)
   useEffect(() => {

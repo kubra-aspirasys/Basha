@@ -33,7 +33,7 @@ export default function Menu() {
   } = useMenuStore();
   const { offers, fetchOffers } = useOfferStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(100);
   const [isOpen, setIsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [imageMode, setImageMode] = useState<'url' | 'upload'>('url');
@@ -46,6 +46,9 @@ export default function Menu() {
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
   const [featuredFilter, setFeaturedFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState<string>('display_order');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
   const [showFilters, setShowFilters] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -61,7 +64,8 @@ export default function Menu() {
     is_featured: false,
     preparation_time: '',
     pre_order_time: '1',
-    offer_code: ''
+    offer_code: '',
+    display_order: '0'
   });
   const [newCategoryName, setNewCategoryName] = useState('');
   const [newTypeName, setNewTypeName] = useState('');
@@ -83,24 +87,36 @@ export default function Menu() {
   // Debugging logs
   console.log('Menu Store State:', { categories, productTypes, menuItems, offers });
 
-  // Debounce search
+  // Debounce search and handle filters
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchData();
-    }, 500);
+    }, 400);
     return () => clearTimeout(timer);
-  }, [searchTerm, categoryFilter, typeFilter, availabilityFilter, featuredFilter, itemsPerPage, currentPage]);
+  }, [page, itemsPerPage, searchTerm, categoryFilter, typeFilter, availabilityFilter, featuredFilter, sortBy, sortOrder]);
 
   const fetchData = () => {
     fetchMenuItems({
-      page: currentPage,
+      page: page,
       limit: itemsPerPage,
       search: searchTerm,
       category: categoryFilter !== 'all' ? categoryFilter : undefined,
       type: typeFilter !== 'all' ? typeFilter : undefined,
       available: availabilityFilter !== 'all' ? availabilityFilter === 'available' : undefined,
       featured: featuredFilter !== 'all' ? featuredFilter === 'featured' : undefined,
+      sortBy: sortBy,
+      sortOrder: sortOrder
     });
+  };
+
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
+    } else {
+      setSortBy(field);
+      setSortOrder('ASC');
+    }
+    setPage(1);
   };
 
   const getCategoryName = (categoryId?: string) => {
@@ -249,6 +265,7 @@ export default function Menu() {
       if (formData.preparation_time) submitData.append('preparation_time', formData.preparation_time);
       if (formData.pre_order_time) submitData.append('pre_order_time', formData.pre_order_time);
       if (formData.offer_code) submitData.append('offer_code', formData.offer_code);
+      submitData.append('display_order', formData.display_order);
 
       if (imageMode === 'upload' && imageFile) {
         submitData.append('image', imageFile);
@@ -280,9 +297,9 @@ export default function Menu() {
       max_order_qty: '',
       preparation_time: '',
       pre_order_time: '',
-      is_available: true,
       is_featured: false,
       offer_code: '',
+      display_order: '0',
     });
     setEditingItem(null);
     setImageMode('url');
@@ -308,9 +325,9 @@ export default function Menu() {
       max_order_qty: item.max_order_qty?.toString() || '',
       preparation_time: item.preparation_time?.toString() || '',
       pre_order_time: item.pre_order_time?.toString() || '',
-      is_available: item.is_available,
       is_featured: item.is_featured || false,
       offer_code: item.offer_code || '',
+      display_order: (item as any).display_order?.toString() || '0',
     });
     setEditingItem(item.id);
     setImageMode('url'); // Default to URL, user can switch to upload if they want to replace it
@@ -323,13 +340,13 @@ export default function Menu() {
     }
   };
 
-  const handlePageChange = (page: number) => {
-    fetchMenuItems({ page: page, limit: itemsPerPage });
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
   };
 
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage);
-    fetchMenuItems({ page: 1, limit: newItemsPerPage });
+    setPage(1);
   };
 
   const clearAllFilters = () => {
@@ -338,7 +355,7 @@ export default function Menu() {
     setAvailabilityFilter('all');
     setFeaturedFilter('all');
     setSearchTerm('');
-    fetchMenuItems({ page: 1, limit: itemsPerPage });
+    setPage(1);
   };
 
   const handleToggleAvailability = async (id: string) => {
@@ -542,14 +559,30 @@ export default function Menu() {
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Image</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Name</th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase cursor-pointer hover:text-gold-500 transition-colors"
+                  onClick={() => handleSort('name')}
+                >
+                  Name {sortBy === 'name' && (sortOrder === 'ASC' ? '↑' : '↓')}
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Category</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Price</th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase cursor-pointer hover:text-gold-500 transition-colors"
+                  onClick={() => handleSort('price')}
+                >
+                  Price {sortBy === 'price' && (sortOrder === 'ASC' ? '↑' : '↓')}
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Min Order</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Pre-order</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Available</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Featured</th>
+                <th
+                  className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase cursor-pointer hover:text-gold-500 transition-colors"
+                  onClick={() => handleSort('display_order')}
+                >
+                  Order {sortBy === 'display_order' && (sortOrder === 'ASC' ? '↑' : '↓')}
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Actions</th>
               </tr>
             </thead>
@@ -646,6 +679,9 @@ export default function Menu() {
                     >
                       <Star className={`w-4 h-4 ${item.is_featured ? 'fill-current' : ''}`} />
                     </button>
+                  </td>
+                  <td className="px-6 py-4 text-slate-600 dark:text-slate-400 font-medium">
+                    {item.display_order || 0}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
@@ -1121,6 +1157,21 @@ export default function Menu() {
                         value={formData.pre_order_time}
                         onChange={(e) => setFormData({ ...formData, pre_order_time: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                        Display Order
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={formData.display_order}
+                        onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                        placeholder="0"
                       />
                     </div>
                   </div>

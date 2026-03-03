@@ -62,9 +62,9 @@ export default function CustomerMenu() {
     return map;
   }, [productTypes]);
 
-  // Get unique categories
-  const categories = ['all', ...new Set(menuItems.map(item => item.category_id).filter(Boolean))];
-  const types = ['all', ...new Set(menuItems.map(item => item.type_id).filter(Boolean))];
+  // Get unique categories from items but prioritize storeCategories for labels and order
+  const categories = ['all', ...storeCategories.map(c => c.id)];
+  const types = ['all', ...productTypes.map(t => t.id)];
 
   // Filter items
   const filteredItems = menuItems.filter(item => {

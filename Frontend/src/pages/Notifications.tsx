@@ -10,6 +10,7 @@ import {
     Clock, CheckCircle2, XCircle, Zap
 } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
+import { Pagination } from '@/components/ui/pagination';
 
 const timeAgo = (dateString: string) => {
     const date = new Date(dateString);
@@ -68,8 +69,7 @@ export default function Notifications() {
     const [detailId, setDetailId] = useState<string | null>(null);
     const [generating, setGenerating] = useState(false);
     const [showFilters, setShowFilters] = useState(false);
-
-    const limit = 15;
+    const [itemsPerPage, setItemsPerPage] = useState(20);
 
     const loadData = useCallback(() => {
         fetchNotifications({
@@ -78,10 +78,10 @@ export default function Notifications() {
             priority: priorityFilter !== 'all' ? priorityFilter : undefined,
             is_read: readFilter !== 'all' ? readFilter : undefined,
             page,
-            limit,
+            limit: itemsPerPage,
         });
         fetchStats();
-    }, [debouncedSearch, typeFilter, priorityFilter, readFilter, page, fetchNotifications, fetchStats]);
+    }, [debouncedSearch, typeFilter, priorityFilter, readFilter, page, itemsPerPage, fetchNotifications, fetchStats]);
 
     useEffect(() => {
         loadData();
@@ -110,12 +110,12 @@ export default function Notifications() {
             fetchStats(); // Refresh stats to show new badges
             // Optionally refresh list if user is on page 1 and not searching
             if (page === 1 && !search) {
-                fetchNotifications({ page: 1, limit });
+                fetchNotifications({ page: 1, limit: itemsPerPage });
             }
         }, 30000);
 
         return () => clearInterval(interval);
-    }, [generateFromActivity, fetchStats, fetchNotifications, page, search, limit]);
+    }, [generateFromActivity, fetchStats, fetchNotifications, page, search, itemsPerPage, total]);
 
     const handleGenerate = async () => {
         setGenerating(true);
@@ -199,6 +199,15 @@ export default function Notifications() {
                 // No specific page
                 toast({ title: 'Info', description: 'This is a general notification' });
         }
+    };
+
+    const handlePageChange = (newPage: number) => {
+        setPage(newPage);
+    };
+
+    const handleItemsPerPageChange = (newItemsPerPage: number) => {
+        setItemsPerPage(newItemsPerPage);
+        setPage(1);
     };
 
     // ─── Render ───────────────────────────────────────────────────────────────
@@ -524,46 +533,15 @@ export default function Notifications() {
                     )}
 
                     {/* Pagination */}
-                    {totalPages > 1 && (
-                        <div className="flex items-center justify-between pt-4 px-2">
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                                Page {currentPage} of {totalPages}
-                            </p>
-                            <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setPage((p) => Math.max(1, p - 1))}
-                                    disabled={page <= 1}
-                                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 transition-all"
-                                >
-                                    <ChevronLeft className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                                </button>
-                                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                                    const start = Math.max(1, Math.min(page - 2, totalPages - 4));
-                                    const pageNum = start + i;
-                                    if (pageNum > totalPages) return null;
-                                    return (
-                                        <button
-                                            key={pageNum}
-                                            onClick={() => setPage(pageNum)}
-                                            className={`w-9 h-9 rounded-xl text-sm font-medium transition-all ${pageNum === page
-                                                ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
-                                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700'
-                                                }`}
-                                        >
-                                            {pageNum}
-                                        </button>
-                                    );
-                                })}
-                                <button
-                                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                                    disabled={page >= totalPages}
-                                    className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 disabled:opacity-40 transition-all"
-                                >
-                                    <ChevronRight className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                                </button>
-                            </div>
-                        </div>
-                    )}
+                    <Pagination
+                        currentPage={currentPage}
+                        totalPages={totalPages}
+                        totalItems={total}
+                        itemsPerPage={itemsPerPage}
+                        onPageChange={handlePageChange}
+                        onItemsPerPageChange={handleItemsPerPageChange}
+                        itemName="notifications"
+                    />
                 </div>
 
                 {/* Detail Panel */}

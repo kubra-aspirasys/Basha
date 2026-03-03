@@ -22,13 +22,13 @@ export function Pagination({
   onItemsPerPageChange,
   itemName = "items"
 }: PaginationProps) {
-  const startItem = (currentPage - 1) * itemsPerPage + 1;
-  const endItem = Math.min(currentPage * itemsPerPage, totalItems);
+  const startItem = itemsPerPage === -1 ? 1 : (currentPage - 1) * itemsPerPage + 1;
+  const endItem = itemsPerPage === -1 ? totalItems : Math.min(currentPage * itemsPerPage, totalItems);
 
   const generatePageNumbers = () => {
     const pages: (number | string)[] = [];
     const maxVisiblePages = 5;
-    
+
     if (totalPages <= maxVisiblePages) {
       // Show all pages if total is small
       for (let i = 1; i <= totalPages; i++) {
@@ -37,7 +37,7 @@ export function Pagination({
     } else {
       // Always show first page
       pages.push(1);
-      
+
       if (currentPage <= 3) {
         // Show first 4 pages + ellipsis + last page
         for (let i = 2; i <= 4; i++) {
@@ -61,7 +61,7 @@ export function Pagination({
         pages.push(totalPages);
       }
     }
-    
+
     return pages;
   };
 
@@ -73,10 +73,10 @@ export function Pagination({
       <div className="flex items-center gap-2">
         <span className="text-sm text-slate-600 dark:text-slate-400">Rows per page:</span>
         <Select
-          value={itemsPerPage === totalItems ? 'all' : itemsPerPage.toString()}
+          value={itemsPerPage === -1 ? 'all' : itemsPerPage.toString()}
           onValueChange={(value) => {
             if (value === 'all') {
-              onItemsPerPageChange(totalItems);
+              onItemsPerPageChange(-1);
             } else {
               onItemsPerPageChange(parseInt(value));
             }
@@ -89,6 +89,7 @@ export function Pagination({
             <SelectItem value="10">10</SelectItem>
             <SelectItem value="20">20</SelectItem>
             <SelectItem value="50">50</SelectItem>
+            <SelectItem value="100">100</SelectItem>
             <SelectItem value="all">All</SelectItem>
           </SelectContent>
         </Select>
@@ -124,11 +125,10 @@ export function Pagination({
                 variant={currentPage === page ? "default" : "outline"}
                 size="sm"
                 onClick={() => onPageChange(page as number)}
-                className={`h-8 w-8 p-0 ${
-                  currentPage === page
-                    ? 'bg-gradient-to-r from-gold-500 to-gold-600 text-white border-gold-500'
-                    : ''
-                }`}
+                className={`h-8 w-8 p-0 ${currentPage === page
+                  ? 'bg-gradient-to-r from-gold-500 to-gold-600 text-white border-gold-500'
+                  : ''
+                  }`}
               >
                 {page}
               </Button>

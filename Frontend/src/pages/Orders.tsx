@@ -296,7 +296,7 @@ export default function Orders() {
     setManualDeliveryAddress('');
     setManualItems([]);
     setMenuSearchTerm('');
-    if (menuItems.length === 0) fetchAllMenuItems();
+    fetchAllMenuItems();
   };
 
   const handleAddMenuItem = (item: typeof menuItems[0]) => {
@@ -1136,19 +1136,19 @@ export default function Orders() {
                         key={type}
                         onClick={() => setManualOrderType(type)}
                         className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 ${isSelected
-                            ? type === 'swiggy' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-md scale-105'
-                              : type === 'zomato' ? 'border-red-500 bg-red-50 dark:bg-red-900/20 shadow-md scale-105'
-                                : type === 'takeaway' ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 shadow-md scale-105'
-                                  : type === 'pickup' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md scale-105'
-                                    : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md scale-105'
-                            : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 bg-white dark:bg-slate-700'
+                          ? type === 'swiggy' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-md scale-105'
+                            : type === 'zomato' ? 'border-red-500 bg-red-50 dark:bg-red-900/20 shadow-md scale-105'
+                              : type === 'takeaway' ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 shadow-md scale-105'
+                                : type === 'pickup' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md scale-105'
+                                  : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md scale-105'
+                          : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 bg-white dark:bg-slate-700'
                           }`}
                       >
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${type === 'swiggy' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
-                            : type === 'zomato' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                              : type === 'takeaway' ? 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400'
-                                : type === 'pickup' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                                  : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                          : type === 'zomato' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                            : type === 'takeaway' ? 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400'
+                              : type === 'pickup' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                                : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                           }`}>
                           {config.icon}
                         </div>
@@ -1225,7 +1225,7 @@ export default function Orders() {
                 <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-xl divide-y divide-slate-100 dark:divide-slate-700">
                   {menuItems
                     .filter(item => item.is_available && item.name.toLowerCase().includes(menuSearchTerm.toLowerCase()))
-                    .slice(0, 20)
+                    .slice(0, 100)
                     .map(item => {
                       const alreadyAdded = manualItems.some(i => i.menu_item_id === item.id);
                       return (
@@ -1237,8 +1237,8 @@ export default function Orders() {
                           <button
                             onClick={() => handleAddMenuItem(item)}
                             className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${alreadyAdded
-                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                                : 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50'
+                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                              : 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50'
                               }`}
                           >
                             {alreadyAdded ? '+ More' : '+ Add'}

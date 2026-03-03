@@ -18,7 +18,6 @@ const createNotification = async (data) => {
  * Get all notifications with pagination, filters, and search
  */
 const getAllNotifications = async ({ search, type, priority, is_read, sort, page = 1, limit = 20 }) => {
-    const offset = (page - 1) * limit;
     const where = {};
 
     if (search) {
@@ -48,17 +47,22 @@ const getAllNotifications = async ({ search, type, priority, is_read, sort, page
         else if (sort === 'priority_desc') order = [['priority', 'DESC'], ['createdAt', 'DESC']];
     }
 
-    const { count, rows } = await Notification.findAndCountAll({
+    const options = {
         where,
         order,
-        limit: parseInt(limit),
-        offset: parseInt(offset),
         distinct: true
-    });
+    };
+
+    if (parseInt(limit) !== -1) {
+        options.limit = parseInt(limit);
+        options.offset = (parseInt(page) - 1) * parseInt(limit);
+    }
+
+    const { count, rows } = await Notification.findAndCountAll(options);
 
     return {
         total: count,
-        totalPages: Math.ceil(count / limit),
+        totalPages: parseInt(limit) === -1 ? 1 : Math.ceil(count / parseInt(limit)),
         currentPage: parseInt(page),
         notifications: rows
     };

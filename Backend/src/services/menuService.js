@@ -2,7 +2,7 @@ const { MenuItem, MenuCategory, MenuItemImage, Sequelize } = require('../models'
 const { Op } = Sequelize;
 const { sanitizeObject } = require('../utils/sanitizer');
 
-const listMenuItems = async ({ page = 1, limit = 10, search, category, type, available, sortBy = 'created_at', sortOrder = 'DESC' }) => {
+const listMenuItems = async ({ page = 1, limit = 10, search, category, type, available, sortBy = 'display_order', sortOrder = 'ASC' }) => {
     const offset = (page - 1) * limit;
     const where = {};
 
@@ -47,9 +47,12 @@ const listMenuItems = async ({ page = 1, limit = 10, search, category, type, ava
                 attributes: ['id', 'image_url']
             }
         ],
-        limit: parseInt(limit),
-        offset: parseInt(offset),
-        order: [[sortBy, sortOrder]],
+        limit: limit === -1 ? undefined : parseInt(limit),
+        offset: limit === -1 ? undefined : parseInt(offset),
+        order: [
+            [sortBy, sortOrder],
+            ['name', 'ASC']
+        ],
         distinct: true // distinct id to handle 1:N includes
     });
 
@@ -236,6 +239,7 @@ const getAllMenuItems = async () => {
         ],
         order: [
             [{ model: MenuCategory, as: 'category' }, 'display_order', 'ASC'],
+            ['display_order', 'ASC'],
             ['name', 'ASC']
         ]
     });

@@ -100,6 +100,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: true,
         },
+        display_order: {
+            type: DataTypes.INTEGER,
+            defaultValue: 0,
+            allowNull: false,
+        },
     }, {
         sequelize,
         modelName: 'MenuItem',

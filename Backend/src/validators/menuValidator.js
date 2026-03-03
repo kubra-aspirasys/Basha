@@ -17,6 +17,7 @@ const createMenuItemSchema = Joi.object({
     stock_quantity: Joi.number().integer().min(0).empty('').allow(null).optional(),
     pre_order_time: Joi.number().integer().min(0).empty('').allow(null).optional(),
     offer_code: Joi.string().allow('', null).optional(),
+    display_order: Joi.number().integer().min(0).default(0),
 });
 
 const updateMenuItemSchema = Joi.object({
@@ -36,17 +37,18 @@ const updateMenuItemSchema = Joi.object({
     pre_order_time: Joi.number().integer().min(0).empty('').allow(null).optional(),
     image_url: Joi.string().allow('', null).optional(),
     offer_code: Joi.string().allow('', null).optional(),
+    display_order: Joi.number().integer().min(0).optional(),
 });
 
 const listMenuItemsSchema = Joi.object({
     page: Joi.number().integer().min(1).default(1),
-    limit: Joi.number().integer().min(1).max(100).default(10),
+    limit: Joi.number().integer().min(-1).max(100).default(10),
     search: Joi.string().allow('').optional(),
     category: Joi.string().uuid().optional(), // Category ID
-    type: Joi.string().valid('veg', 'non-veg', 'egg').optional(), // Mapped to is_vegetarian maybe? Or string type? User says "type (Veg / Non-Veg / Egg)"
+    type: Joi.string().valid('veg', 'non-veg', 'egg', 'all').optional(), // Mapped to is_vegetarian maybe? Or string type? User says "type (Veg / Non-Veg / Egg)"
     available: Joi.boolean().optional(),
-    sortBy: Joi.string().valid('name', 'price', 'created_at').default('created_at'),
-    sortOrder: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('desc')
+    sortBy: Joi.string().valid('name', 'price', 'created_at', 'display_order').default('display_order'),
+    sortOrder: Joi.string().valid('asc', 'desc', 'ASC', 'DESC').default('ASC')
 });
 
 module.exports = {
