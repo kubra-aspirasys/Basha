@@ -29,7 +29,7 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: 'pending'
         },
         order_type: {
-            type: DataTypes.ENUM('pickup', 'delivery'),
+            type: DataTypes.ENUM('pickup', 'delivery', 'swiggy', 'zomato', 'takeaway'),
             defaultValue: 'delivery'
         },
         payment_method: {

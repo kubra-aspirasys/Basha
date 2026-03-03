@@ -19,7 +19,7 @@ const createOrderValidator = [
     body('delivery_address').notEmpty().withMessage('Delivery address is required'),
     body('customer_name').notEmpty().withMessage('Customer name is required'),
     body('customer_phone').notEmpty().withMessage('Customer phone is required'), // Could add regex for phone validation
-    body('order_type').isIn(['pickup', 'delivery']).withMessage('Order type must be pickup or delivery'),
+    body('order_type').isIn(['pickup', 'delivery', 'swiggy', 'zomato', 'takeaway']).withMessage('Order type must be pickup, delivery, swiggy, zomato, or takeaway'),
     validate
 ];
 

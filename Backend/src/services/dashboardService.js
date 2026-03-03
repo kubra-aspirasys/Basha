@@ -106,7 +106,7 @@ class DashboardService {
         });
 
         // Process Orders by Type
-        const ordersByType = { pickup: 0, delivery: 0 };
+        const ordersByType = { pickup: 0, delivery: 0, swiggy: 0, zomato: 0, takeaway: 0 };
         ordersByTypeRaw.forEach(item => {
             if (ordersByType.hasOwnProperty(item.order_type)) ordersByType[item.order_type] = parseInt(item.count, 10);
         });

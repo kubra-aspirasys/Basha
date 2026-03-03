@@ -213,6 +213,77 @@ export default function Dashboard() {
         />
       </div>
 
+      {/* Order Channels */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Swiggy */}
+        <div className="group relative overflow-hidden rounded-2xl border border-orange-200 dark:border-orange-800/50 bg-gradient-to-br from-orange-50 to-orange-100/80 dark:from-orange-900/20 dark:to-orange-800/10 p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-orange-400/10 rounded-full -translate-y-8 translate-x-8 group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold text-orange-600/70 dark:text-orange-500/70 uppercase tracking-widest mb-2">Swiggy</p>
+              <p className="text-4xl font-extrabold text-orange-700 dark:text-orange-400 leading-none">{stats.ordersByType.swiggy}</p>
+              <p className="text-xs text-orange-600/60 dark:text-orange-500/60 mt-2">Total Orders</p>
+            </div>
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 bg-orange-500 rounded-xl blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
+              <div className="relative w-11 h-11 rounded-xl bg-orange-500 flex items-center justify-center text-white font-black text-base shadow-md">S</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Zomato */}
+        <div className="group relative overflow-hidden rounded-2xl border border-red-200 dark:border-red-800/50 bg-gradient-to-br from-red-50 to-red-100/80 dark:from-red-900/20 dark:to-red-800/10 p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-red-400/10 rounded-full -translate-y-8 translate-x-8 group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold text-red-600/70 dark:text-red-500/70 uppercase tracking-widest mb-2">Zomato</p>
+              <p className="text-4xl font-extrabold text-red-700 dark:text-red-400 leading-none">{stats.ordersByType.zomato}</p>
+              <p className="text-xs text-red-600/60 dark:text-red-500/60 mt-2">Total Orders</p>
+            </div>
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 bg-red-600 rounded-xl blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
+              <div className="relative w-11 h-11 rounded-xl bg-red-600 flex items-center justify-center text-white font-black text-base shadow-md">Z</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Pickup */}
+        <div className="group relative overflow-hidden rounded-2xl border border-green-200 dark:border-green-800/50 bg-gradient-to-br from-green-50 to-green-100/80 dark:from-green-900/20 dark:to-green-800/10 p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-green-400/10 rounded-full -translate-y-8 translate-x-8 group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold text-green-600/70 dark:text-green-500/70 uppercase tracking-widest mb-2">Pickup</p>
+              <p className="text-4xl font-extrabold text-green-700 dark:text-green-400 leading-none">{stats.ordersByType.pickup}</p>
+              <p className="text-xs text-green-600/60 dark:text-green-500/60 mt-2">Total Orders</p>
+            </div>
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 bg-green-600 rounded-xl blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
+              <div className="relative w-11 h-11 rounded-xl bg-green-600 flex items-center justify-center shadow-md">
+                <Package className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Takeaway */}
+        <div className="group relative overflow-hidden rounded-2xl border border-purple-200 dark:border-purple-800/50 bg-gradient-to-br from-purple-50 to-purple-100/80 dark:from-purple-900/20 dark:to-purple-800/10 p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-purple-400/10 rounded-full -translate-y-8 translate-x-8 group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold text-purple-600/70 dark:text-purple-500/70 uppercase tracking-widest mb-2">Takeaway</p>
+              <p className="text-4xl font-extrabold text-purple-700 dark:text-purple-400 leading-none">{stats.ordersByType.takeaway}</p>
+              <p className="text-xs text-purple-600/60 dark:text-purple-500/60 mt-2">Total Orders</p>
+            </div>
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 bg-purple-600 rounded-xl blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
+              <div className="relative w-11 h-11 rounded-xl bg-purple-600 flex items-center justify-center shadow-md">
+                <ShoppingBag className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Quick Actions */}
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
         <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-6">Quick Actions</h3>

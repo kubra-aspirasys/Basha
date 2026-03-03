@@ -38,6 +38,7 @@ interface OrderState {
   error: string | null;
   fetchOrders: (params?: any) => Promise<void>;
   createOrder: (payload: CreateOrderPayload) => Promise<Order | null>;
+  createManualOrder: (payload: CreateOrderPayload) => Promise<Order | null>;
   updateOrderStatus: (id: string, status: Order['status']) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
   cancelOrder: (id: string) => Promise<void>;
@@ -126,6 +127,46 @@ export const useOrderStore = create<OrderState>((set) => ({
     } catch (error: any) {
       console.error('Failed to create order:', error);
       set({ error: error.response?.data?.message || 'Failed to create order' });
+      return null;
+    }
+  },
+
+  createManualOrder: async (payload) => {
+    try {
+      const requestData = {
+        customer_name: payload.customer_name,
+        customer_phone: payload.customer_phone || 'N/A',
+        delivery_address: payload.delivery_address || 'N/A',
+        order_type: payload.order_type,
+        items: payload.items.map(item => ({
+          menu_item_id: item.menu_item_id,
+          quantity: item.quantity
+        }))
+      };
+
+      const response = await api.post('/admin/orders', requestData);
+
+      if (response.data.success) {
+        const newOrderData = response.data.data;
+        const newOrder = {
+          ...newOrderData,
+          total_amount: typeof newOrderData.total_amount === 'string' ? parseFloat(newOrderData.total_amount) : newOrderData.total_amount,
+          subtotal: typeof newOrderData.subtotal === 'string' ? parseFloat(newOrderData.subtotal) : newOrderData.subtotal,
+          gst_amount: typeof newOrderData.gst_amount === 'string' ? parseFloat(newOrderData.gst_amount) : newOrderData.gst_amount,
+          delivery_charges: typeof newOrderData.delivery_charges === 'string' ? parseFloat(newOrderData.delivery_charges) : newOrderData.delivery_charges,
+          service_charges: typeof newOrderData.service_charges === 'string' ? parseFloat(newOrderData.service_charges) : newOrderData.service_charges,
+          items: newOrderData.items?.map((item: any) => ({
+            ...item,
+            price: typeof item.price === 'string' ? parseFloat(item.price) : item.price
+          })) || []
+        };
+        set((state) => ({ orders: [newOrder, ...state.orders] }));
+        return newOrder;
+      }
+      return null;
+    } catch (error: any) {
+      console.error('Failed to create manual order:', error);
+      set({ error: error.response?.data?.message || 'Failed to create manual order' });
       return null;
     }
   },

@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useOrderStore } from '@/store/order-store';
 import { useMenuStore } from '@/store/menu-store';
 import { useCustomerStore } from '@/store/customer-store';
-import { Search, Eye, Pencil, Trash2, X, Check, Clock, CheckCircle, Truck, Package, AlertCircle, MapPin, Store, Phone, Mail, User, Calendar, FileText, Activity } from 'lucide-react';
+import { Search, Eye, Pencil, Trash2, X, Check, Clock, CheckCircle, Truck, Package, AlertCircle, MapPin, Store, Phone, Mail, User, Calendar, FileText, Activity, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 import { Order } from '@/types';
 
@@ -47,8 +47,8 @@ const statusConfig = {
 };
 
 export default function Orders() {
-  const { orders, updateOrderStatus, deleteOrder, fetchOrders, loading } = useOrderStore();
-  const { menuItems } = useMenuStore();
+  const { orders, updateOrderStatus, deleteOrder, fetchOrders, createManualOrder, loading } = useOrderStore();
+  const { menuItems, fetchAllMenuItems } = useMenuStore();
   const { customers } = useCustomerStore();
   const [searchParams, setSearchParams] = useSearchParams();
   // Initialize state from URL params
@@ -69,6 +69,16 @@ export default function Orders() {
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [tempStatus, setTempStatus] = useState<Order['status']>('pending');
+
+  // Manual Order Modal states
+  const [showManualOrder, setShowManualOrder] = useState(false);
+  const [manualOrderType, setManualOrderType] = useState<Order['order_type']>('takeaway');
+  const [manualCustomerName, setManualCustomerName] = useState('');
+  const [manualCustomerPhone, setManualCustomerPhone] = useState('');
+  const [manualDeliveryAddress, setManualDeliveryAddress] = useState('');
+  const [manualItems, setManualItems] = useState<Array<{ menu_item_id: string; menu_item_name: string; quantity: number; price: number }>>([]);
+  const [menuSearchTerm, setMenuSearchTerm] = useState('');
+  const [creatingOrder, setCreatingOrder] = useState(false);
 
   // Sync state to URL params
   useEffect(() => {
@@ -240,17 +250,108 @@ export default function Orders() {
     );
   };
 
+  const orderTypeConfig: Record<string, { bg: string; icon: React.ReactNode; label: string }> = {
+    delivery: {
+      bg: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800',
+      icon: <MapPin className="w-3 h-3" />,
+      label: 'Delivery'
+    },
+    pickup: {
+      bg: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800',
+      icon: <Store className="w-3 h-3" />,
+      label: 'Pickup'
+    },
+    swiggy: {
+      bg: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border border-orange-200 dark:border-orange-800',
+      icon: <ShoppingBag className="w-3 h-3" />,
+      label: 'Swiggy'
+    },
+    zomato: {
+      bg: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 border border-red-200 dark:border-red-800',
+      icon: <ShoppingBag className="w-3 h-3" />,
+      label: 'Zomato'
+    },
+    takeaway: {
+      bg: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
+      icon: <Package className="w-3 h-3" />,
+      label: 'Takeaway'
+    }
+  };
+
   const OrderTypeBadge = ({ orderType }: { orderType: Order['order_type'] }) => {
-    const isDelivery = orderType === 'delivery';
+    const config = orderTypeConfig[orderType] || orderTypeConfig.delivery;
     return (
-      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${isDelivery
-        ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800'
-        : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800'
-        }`}>
-        {isDelivery ? <MapPin className="w-3 h-3" /> : <Store className="w-3 h-3" />}
-        <span className="capitalize">{orderType}</span>
+      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium ${config.bg}`}>
+        {config.icon}
+        <span>{config.label}</span>
       </div>
     );
+  };
+
+  const handleOpenManualOrder = () => {
+    setShowManualOrder(true);
+    setManualOrderType('takeaway');
+    setManualCustomerName('');
+    setManualCustomerPhone('');
+    setManualDeliveryAddress('');
+    setManualItems([]);
+    setMenuSearchTerm('');
+    if (menuItems.length === 0) fetchAllMenuItems();
+  };
+
+  const handleAddMenuItem = (item: typeof menuItems[0]) => {
+    setManualItems(prev => {
+      const existing = prev.find(i => i.menu_item_id === item.id);
+      if (existing) {
+        return prev.map(i => i.menu_item_id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
+      }
+      return [...prev, { menu_item_id: item.id, menu_item_name: item.name, quantity: 1, price: parseFloat(String(item.discounted_price || item.price)) }];
+    });
+  };
+
+  const handleRemoveMenuItem = (menuItemId: string) => {
+    setManualItems(prev => prev.filter(i => i.menu_item_id !== menuItemId));
+  };
+
+  const handleUpdateItemQty = (menuItemId: string, delta: number) => {
+    setManualItems(prev => prev.map(i => {
+      if (i.menu_item_id === menuItemId) {
+        const newQty = i.quantity + delta;
+        return newQty > 0 ? { ...i, quantity: newQty } : i;
+      }
+      return i;
+    }));
+  };
+
+  const manualOrderSubtotal = manualItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  const handleSubmitManualOrder = async () => {
+    if (!manualCustomerName.trim() || manualItems.length === 0) return;
+    setCreatingOrder(true);
+    try {
+      const result = await createManualOrder({
+        customer_name: manualCustomerName.trim(),
+        customer_phone: manualCustomerPhone.trim() || 'N/A',
+        delivery_address: manualDeliveryAddress.trim() || 'N/A',
+        order_type: manualOrderType,
+        items: manualItems,
+        totals: {
+          subtotal: manualOrderSubtotal,
+          gst_amount: 0,
+          delivery_charges: 0,
+          service_charges: 0,
+          total_amount: manualOrderSubtotal
+        }
+      });
+      if (result) {
+        setShowManualOrder(false);
+        fetchOrders();
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCreatingOrder(false);
+    }
   };
 
   const handleDelete = (orderId: string, orderNumber: string) => {
@@ -277,11 +378,21 @@ export default function Orders() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Orders</h1>
-        <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Manage and track customer orders
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Orders</h1>
+          <p className="text-slate-600 dark:text-slate-400 mt-1">
+            Manage and track customer orders
+          </p>
+        </div>
+        <button
+          onClick={handleOpenManualOrder}
+          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
+        >
+          <Plus className="w-5 h-5" />
+          <span className="hidden sm:inline">Add Manual Order</span>
+          <span className="sm:hidden">Add</span>
+        </button>
       </div>
 
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -351,6 +462,9 @@ export default function Orders() {
                   <option value="all">All Types</option>
                   <option value="pickup">Pickup</option>
                   <option value="delivery">Delivery</option>
+                  <option value="swiggy">Swiggy</option>
+                  <option value="zomato">Zomato</option>
+                  <option value="takeaway">Takeaway</option>
                 </select>
               </div>
 
@@ -428,7 +542,7 @@ export default function Orders() {
               )}
               {typeFilter !== 'all' && (
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-full text-sm">
-                  Type: {typeFilter === 'pickup' ? 'Pickup' : 'Delivery'}
+                  Type: {orderTypeConfig[typeFilter]?.label || typeFilter}
                   <button
                     onClick={() => setTypeFilter('all')}
                     className="ml-1 hover:bg-green-200 dark:hover:bg-green-800 rounded-full p-0.5"
@@ -981,6 +1095,230 @@ export default function Orders() {
                 </div>
 
               </div>
+            </div>
+          </div>
+        </div>
+        , document.body)}
+
+      {/* Manual Order Modal */}
+      {showManualOrder && createPortal(
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[10001] p-4 animate-in fade-in duration-200">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200 ring-1 ring-slate-900/5">
+
+            {/* Modal Header */}
+            <div className="px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-600 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Plus className="w-5 h-5" /> Add Manual Order
+                </h2>
+                <p className="text-amber-100 text-sm mt-0.5">Create a new order for Swiggy, Zomato, or Takeaway</p>
+              </div>
+              <button
+                onClick={() => setShowManualOrder(false)}
+                className="p-2 text-white/80 hover:text-white hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+              {/* Order Type Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Order Type</label>
+                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                  {(['swiggy', 'zomato', 'takeaway', 'pickup', 'delivery'] as Order['order_type'][]).map(type => {
+                    const config = orderTypeConfig[type];
+                    const isSelected = manualOrderType === type;
+                    return (
+                      <button
+                        key={type}
+                        onClick={() => setManualOrderType(type)}
+                        className={`flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all duration-200 ${isSelected
+                            ? type === 'swiggy' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-md scale-105'
+                              : type === 'zomato' ? 'border-red-500 bg-red-50 dark:bg-red-900/20 shadow-md scale-105'
+                                : type === 'takeaway' ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 shadow-md scale-105'
+                                  : type === 'pickup' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md scale-105'
+                                    : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md scale-105'
+                            : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 bg-white dark:bg-slate-700'
+                          }`}
+                      >
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center ${type === 'swiggy' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
+                            : type === 'zomato' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                              : type === 'takeaway' ? 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400'
+                                : type === 'pickup' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                                  : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                          }`}>
+                          {config.icon}
+                        </div>
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">{config.label}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Customer Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Customer Name <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={manualCustomerName}
+                      onChange={e => setManualCustomerName(e.target.value)}
+                      placeholder="Enter customer name"
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Phone</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={manualCustomerPhone}
+                      onChange={e => setManualCustomerPhone(e.target.value)}
+                      placeholder="Enter phone number"
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {manualOrderType === 'delivery' && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Delivery Address</label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
+                    <textarea
+                      value={manualDeliveryAddress}
+                      onChange={e => setManualDeliveryAddress(e.target.value)}
+                      placeholder="Enter delivery address"
+                      rows={2}
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Menu Items Selection */}
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                  Add Items <span className="text-red-500">*</span>
+                </label>
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={menuSearchTerm}
+                    onChange={e => setMenuSearchTerm(e.target.value)}
+                    placeholder="Search menu items..."
+                    className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                  />
+                </div>
+                <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-xl divide-y divide-slate-100 dark:divide-slate-700">
+                  {menuItems
+                    .filter(item => item.is_available && item.name.toLowerCase().includes(menuSearchTerm.toLowerCase()))
+                    .slice(0, 20)
+                    .map(item => {
+                      const alreadyAdded = manualItems.some(i => i.menu_item_id === item.id);
+                      return (
+                        <div key={item.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{item.name}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">₹{parseFloat(String(item.discounted_price || item.price)).toLocaleString()} / {item.unit_type}</p>
+                          </div>
+                          <button
+                            onClick={() => handleAddMenuItem(item)}
+                            className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${alreadyAdded
+                                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                : 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50'
+                              }`}
+                          >
+                            {alreadyAdded ? '+ More' : '+ Add'}
+                          </button>
+                        </div>
+                      );
+                    })}
+                  {menuItems.filter(item => item.is_available && item.name.toLowerCase().includes(menuSearchTerm.toLowerCase())).length === 0 && (
+                    <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
+                      No menu items found
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Selected Items */}
+              {manualItems.length > 0 && (
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Order Items</label>
+                  <div className="space-y-2">
+                    {manualItems.map(item => (
+                      <div key={item.menu_item_id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-600">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{item.menu_item_name}</p>
+                          <p className="text-xs text-slate-500 dark:text-slate-400">₹{item.price.toLocaleString()} each</p>
+                        </div>
+                        <div className="flex items-center gap-2 ml-3">
+                          <button
+                            onClick={() => handleUpdateItemQty(item.menu_item_id, -1)}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+                          >
+                            <Minus className="w-3.5 h-3.5" />
+                          </button>
+                          <span className="w-8 text-center text-sm font-bold text-slate-900 dark:text-white">{item.quantity}</span>
+                          <button
+                            onClick={() => handleUpdateItemQty(item.menu_item_id, 1)}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => handleRemoveMenuItem(item.menu_item_id)}
+                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors ml-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                        <div className="ml-4 text-right min-w-[60px]">
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">₹{(item.price * item.quantity).toLocaleString()}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 flex justify-between items-center px-3 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-xl border border-amber-200 dark:border-amber-800">
+                    <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Subtotal</span>
+                    <span className="text-lg font-bold text-amber-700 dark:text-amber-400">₹{manualOrderSubtotal.toLocaleString()}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-200 dark:border-slate-700 flex items-center justify-between gap-3">
+              <button
+                onClick={() => setShowManualOrder(false)}
+                className="px-5 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmitManualOrder}
+                disabled={!manualCustomerName.trim() || manualItems.length === 0 || creatingOrder}
+                className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2"
+              >
+                {creatingOrder ? (
+                  <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating...</>
+                ) : (
+                  <><Check className="w-4 h-4" /> Create Order</>
+                )}
+              </button>
             </div>
           </div>
         </div>

@@ -63,7 +63,7 @@ export interface Order {
   delivery_charges: number;
   service_charges: number;
   status: 'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled';
-  order_type: 'pickup' | 'delivery';
+  order_type: 'pickup' | 'delivery' | 'swiggy' | 'zomato' | 'takeaway';
   delivery_address: string;
   items: OrderItem[];
   created_at: string;
@@ -173,6 +173,9 @@ export interface DashboardStats {
   ordersByType: {
     pickup: number;
     delivery: number;
+    swiggy: number;
+    zomato: number;
+    takeaway: number;
     [key: string]: number;
   };
   topSellingItems: TopSellingItem[];
