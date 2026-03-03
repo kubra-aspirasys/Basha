@@ -1,5 +1,6 @@
 import { ArrowRight, Clock, Phone, MapPin, Star } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMenuStore } from '@/store/menu-store';
 import { useCartStore } from '@/store/cart-store';
 import { useAuthStore } from '@/store/auth-store';
@@ -23,6 +24,7 @@ const getImageUrl = (url?: string) => {
 };
 
 export default function Home() {
+  const navigate = useNavigate();
   const { menuItems, fetchAllMenuItems, categories: storeCategories, fetchCategories } = useMenuStore();
   const { addItem } = useCartStore();
   const { user } = useAuthStore();
@@ -453,6 +455,46 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      {/* Bulk Order Section */}
+      <section className="py-24 bg-[#0a0a0a] relative overflow-hidden">
+        <div className="container mx-auto px-4">
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Image Side */}
+            <div className="relative animate-fade-in order-2 lg:order-1">
+              <div className="relative z-10 w-full rounded-2xl overflow-hidden shadow-2xl">
+                <img
+                  src="/MalaiKabab.jpeg"
+                  alt="Bulk Orders and Catering"
+                  className="w-full h-[400px] object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+              </div>
+              <div className="absolute -bottom-8 -left-8 w-64 h-64 bg-[#F2A900]/10 rounded-full blur-3xl -z-10" />
+            </div>
+
+            {/* Content Side */}
+            <div className="animate-fade-in animation-delay-200 order-1 lg:order-2">
+              <span className="text-[#F2A900] font-semibold text-sm uppercase tracking-widest mb-4 block">
+                Catering & Events
+              </span>
+              <h2 className="text-4xl md:text-5xl font-display font-extrabold text-white mb-6 uppercase tracking-wider">
+                Planning a <span className="text-[#F2A900]">Large Event?</span>
+              </h2>
+              <p className="text-gray-400 text-lg leading-relaxed mb-8">
+                Make your special occasion memorable with authentic Hyderabad flavors. We accept bulk orders for weddings, corporate events, and parties.
+              </p>
+
+              <button
+                onClick={() => navigate('/contact', { state: { subject: 'Bulk Order / Catering' } })}
+                className="bg-[#F2A900] hover:bg-[#D99700] text-black font-bold px-8 py-4 text-lg uppercase tracking-wider rounded-lg transition-all hover:scale-[1.02] shadow-lg shadow-[#F2A900]/20 inline-flex items-center justify-center gap-2"
+              >
+                Place Bulk Order <ArrowRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* CTA Section */}
       {config.cta?.enabled && (

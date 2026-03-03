@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
-import PWAInstallPrompt from '../PWAInstallPrompt';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -21,8 +20,6 @@ export default function AdminLayout() {
           </div>
         </main>
       </div>
-
-      <PWAInstallPrompt />
     </div>
   );
 }

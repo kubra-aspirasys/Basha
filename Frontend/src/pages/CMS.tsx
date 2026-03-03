@@ -5,17 +5,17 @@ import SiteSettingsManager from '@/components/cms/SiteSettingsManager';
 import ProductCategoryManager from '@/components/cms/ProductCategoryManager';
 import ContactDetailsManager from '@/components/cms/ContactDetailsManager';
 import HomepageHeroManager from '@/components/cms/HomepageHeroManager';
-// import GSTSettingsManager from '@/components/cms/GSTSettingsManager';
-// import DeliveryChargesManager from '@/components/cms/DeliveryChargesManager';
-import { Settings, Grid3x3, Home, Phone } from 'lucide-react';
+import PaymentMethodsManager from '@/components/cms/PaymentMethodsManager';
+import { Settings, Grid3x3, Home, Phone, CreditCard } from 'lucide-react';
 
 export default function CMS() {
-  const [activeTab, setActiveTab] = useState<'settings' | 'categories' | 'homepage' | 'contact'>('homepage');
+  const [activeTab, setActiveTab] = useState<'settings' | 'categories' | 'homepage' | 'contact' | 'payments'>('homepage');
 
   const tabs = [
     { id: 'homepage' as const, label: 'Homepage', icon: Home },
     { id: 'contact' as const, label: 'Contact Details', icon: Phone },
     { id: 'settings' as const, label: 'Site Settings', icon: Settings },
+    { id: 'payments' as const, label: 'Payment & Fulfillment', icon: CreditCard },
     { id: 'categories' as const, label: 'Product Categories', icon: Grid3x3 },
   ];
 
@@ -54,6 +54,7 @@ export default function CMS() {
         {/* {activeTab === 'gst' && <GSTSettingsManager />} */}
         {/* {activeTab === 'delivery' && <DeliveryChargesManager />} */}
         {activeTab === 'settings' && <SiteSettingsManager />}
+        {activeTab === 'payments' && <PaymentMethodsManager />}
         {activeTab === 'categories' && <ProductCategoryManager />}
         {/* {activeTab === 'faqs' && <FAQManager />} */}
       </div>
