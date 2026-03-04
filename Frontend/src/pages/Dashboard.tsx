@@ -214,7 +214,7 @@ export default function Dashboard() {
       </div>
 
       {/* Order Channels */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Swiggy */}
         <div className="group relative overflow-hidden rounded-2xl border border-orange-200 dark:border-orange-800/50 bg-gradient-to-br from-orange-50 to-orange-100/80 dark:from-orange-900/20 dark:to-orange-800/10 p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
           <div className="absolute top-0 right-0 w-24 h-24 bg-orange-400/10 rounded-full -translate-y-8 translate-x-8 group-hover:scale-110 transition-transform duration-300" />
@@ -278,6 +278,24 @@ export default function Dashboard() {
               <div className="absolute inset-0 bg-purple-600 rounded-xl blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
               <div className="relative w-11 h-11 rounded-xl bg-purple-600 flex items-center justify-center shadow-md">
                 <ShoppingBag className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Delivery */}
+        <div className="group relative overflow-hidden rounded-2xl border border-blue-200 dark:border-blue-800/50 bg-gradient-to-br from-blue-50 to-blue-100/80 dark:from-blue-900/20 dark:to-blue-800/10 p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-blue-400/10 rounded-full -translate-y-8 translate-x-8 group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold text-blue-600/70 dark:text-blue-500/70 uppercase tracking-widest mb-2">Delivery</p>
+              <p className="text-4xl font-extrabold text-blue-700 dark:text-blue-400 leading-none">{stats.ordersByType.delivery}</p>
+              <p className="text-xs text-blue-600/60 dark:text-blue-500/60 mt-2">Total Orders</p>
+            </div>
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 bg-blue-600 rounded-xl blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
+              <div className="relative w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center shadow-md">
+                <Truck className="w-5 h-5 text-white" />
               </div>
             </div>
           </div>
