@@ -4,7 +4,7 @@ import { useNotificationStore, Notification } from '@/store/notification-store';
 import { useToast } from '@/hooks/use-toast';
 import {
     Bell, BellRing, Check, CheckCheck, Trash2, RefreshCw,
-    Search, Filter, ChevronLeft, ChevronRight, Eye,
+    Search, Filter, Eye,
     ShoppingBag, CreditCard, Users, MessageSquare,
     AlertTriangle, Info, Package, X, Sparkles,
     Clock, CheckCircle2, XCircle, Zap

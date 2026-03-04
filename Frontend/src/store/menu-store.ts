@@ -19,6 +19,7 @@ export interface MenuItem {
   stock_quantity?: number;
   preparation_time?: number;
   pre_order_time?: number;
+  display_order?: number;
   offer_code?: string;
   offer_discount_type?: 'percentage' | 'fixed';
   offer_discount_value?: number;

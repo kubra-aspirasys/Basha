@@ -71,7 +71,7 @@ export interface SiteSetting {
   key: string;
   value: string;
   type: 'text' | 'image' | 'url' | 'email' | 'phone';
-  category: 'branding' | 'contact' | 'social' | 'general';
+  category: 'branding' | 'contact' | 'social' | 'general' | 'payment';
   description: string | null;
   created_at: string;
   updated_at: string;

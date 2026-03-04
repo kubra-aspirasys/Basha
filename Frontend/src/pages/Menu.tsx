@@ -297,6 +297,7 @@ export default function Menu() {
       max_order_qty: '',
       preparation_time: '',
       pre_order_time: '',
+      is_available: true,
       is_featured: false,
       offer_code: '',
       display_order: '0',
@@ -325,9 +326,10 @@ export default function Menu() {
       max_order_qty: item.max_order_qty?.toString() || '',
       preparation_time: item.preparation_time?.toString() || '',
       pre_order_time: item.pre_order_time?.toString() || '',
+      is_available: item.is_available,
       is_featured: item.is_featured || false,
       offer_code: item.offer_code || '',
-      display_order: (item as any).display_order?.toString() || '0',
+      display_order: item.display_order?.toString() || '0',
     });
     setEditingItem(item.id);
     setImageMode('url'); // Default to URL, user can switch to upload if they want to replace it
