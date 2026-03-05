@@ -12,6 +12,7 @@ interface OfferState {
   deleteOffer: (id: string) => Promise<void>;
   bulkDeleteOffers: (ids: string[]) => Promise<void>;
   getPublicOffers: (customerId?: string) => Promise<Offer[]>;
+  markOfferAsUsed: (id: string, userIds: string[]) => Promise<void>;
 }
 
 export const useOfferStore = create<OfferState>((set, get) => ({
@@ -115,6 +116,20 @@ export const useOfferStore = create<OfferState>((set, get) => ({
     } catch (error: any) {
       console.error('Failed to fetch public offers:', error);
       return [];
+    }
+  },
+
+  markOfferAsUsed: async (id, userIds) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.post(`/offers/${id}/mark-used`, { user_ids: userIds });
+      if (response.data.success) {
+        set({ loading: false });
+      }
+    } catch (error: any) {
+      console.error('Failed to mark offer as used:', error);
+      set({ error: error.response?.data?.message || 'Failed to mark offer as used', loading: false });
+      throw error;
     }
   },
 }));

@@ -19,11 +19,11 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Pencil, Trash2, Search, X } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, X, CheckSquare } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 export default function Offers() {
-  const { offers, addOffer, updateOffer, deleteOffer, fetchOffers, bulkDeleteOffers } = useOfferStore();
+  const { offers, addOffer, updateOffer, deleteOffer, fetchOffers, bulkDeleteOffers, markOfferAsUsed } = useOfferStore();
   const { customers, fetchCustomers } = useCustomerStore();
 
   useEffect(() => {
@@ -45,6 +45,11 @@ export default function Offers() {
   const { toast } = useToast();
 
   const [selectedOffers, setSelectedOffers] = useState<string[]>([]);
+
+  // Mark Used states
+  const [isMarkUsedOpen, setIsMarkUsedOpen] = useState(false);
+  const [markUsedOffer, setMarkUsedOffer] = useState<typeof offers[0] | null>(null);
+  const [markUsedUsers, setMarkUsedUsers] = useState<string[]>([]);
 
   // Filter states
   const [searchTerm, setSearchTerm] = useState('');
@@ -246,6 +251,41 @@ export default function Offers() {
     });
   };
 
+  const handleOpenMarkUsed = (offer: typeof offers[0]) => {
+    setMarkUsedOffer(offer);
+    // If it's for specific users, maybe pre-check them or just leave it empty
+    setMarkUsedUsers([]);
+    setIsMarkUsedOpen(true);
+  };
+
+  const submitMarkUsed = async () => {
+    if (!markUsedOffer || markUsedUsers.length === 0) {
+      toast({
+        title: 'Error',
+        description: 'Please select at least one user to mark the offer as used for.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      await markOfferAsUsed(markUsedOffer.id, markUsedUsers);
+      toast({
+        title: 'Success',
+        description: `Offer marked as used for ${markUsedUsers.length} user(s).`,
+      });
+      setIsMarkUsedOpen(false);
+      setMarkUsedOffer(null);
+      setMarkUsedUsers([]);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to mark offer as used.',
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -423,6 +463,56 @@ export default function Offers() {
                   </Button>
                 </div>
               </form>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={isMarkUsedOpen} onOpenChange={(open) => {
+            setIsMarkUsedOpen(open);
+            if (!open) {
+              setMarkUsedOffer(null);
+              setMarkUsedUsers([]);
+            }
+          }}>
+            <DialogContent className="max-w-md mx-4 sm:mx-0">
+              <DialogHeader>
+                <DialogTitle>Mark "{markUsedOffer?.code}" as Used</DialogTitle>
+                <DialogDescription>
+                  Select the users you want to manually mark this offer as used for.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="max-h-64 overflow-y-auto border border-slate-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 space-y-1">
+                  {customers.map((customer) => (
+                    <label key={customer.id} className="flex items-center space-x-2 p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={markUsedUsers.includes(customer.id)}
+                        onChange={(e) => {
+                          const isChecked = e.target.checked;
+                          setMarkUsedUsers((prev) =>
+                            isChecked
+                              ? [...prev, customer.id]
+                              : prev.filter((id) => id !== customer.id)
+                          );
+                        }}
+                        className="rounded border-slate-300 text-gold-500 focus:ring-gold-500"
+                      />
+                      <span className="text-sm text-slate-900 dark:text-white">{customer.name} ({customer.email || customer.phone || 'No contact info'})</span>
+                    </label>
+                  ))}
+                  {customers.length === 0 && (
+                    <div className="text-sm text-slate-500 text-center py-2">No customers found.</div>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setIsMarkUsedOpen(false)}>
+                  Cancel
+                </Button>
+                <Button type="button" onClick={submitMarkUsed} className="bg-gold-500 hover:bg-gold-600">
+                  Mark as Used
+                </Button>
+              </div>
             </DialogContent>
           </Dialog>
         </div>
@@ -662,6 +752,14 @@ export default function Offers() {
                         <Button
                           size="sm"
                           variant="outline"
+                          title="Mark Used"
+                          onClick={() => handleOpenMarkUsed(offer)}
+                        >
+                          <CheckSquare className="w-4 h-4 text-green-600 dark:text-green-400" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => handleEdit(offer)}
                         >
                           <Pencil className="w-4 h-4" />
@@ -757,6 +855,16 @@ export default function Offers() {
 
                   {/* Actions */}
                   <div className="flex gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      title="Mark Used"
+                      onClick={() => handleOpenMarkUsed(offer)}
+                      className="flex-1"
+                    >
+                      <CheckSquare className="w-4 h-4 mr-2 text-green-600 dark:text-green-400" />
+                      Mark Used
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

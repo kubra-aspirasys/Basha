@@ -6,7 +6,7 @@ import { useAuthStore } from '@/store/auth-store';
 import { useSettingsStore } from '@/store/settings-store';
 
 import { calculateOrderTotal, formatCurrency } from '@/utils/orderCalculations';
-import { Pencil, Plus, Minus, ShoppingBag, CheckCircle, QrCode } from 'lucide-react';
+import { Pencil, Plus, Minus, ShoppingBag, CheckCircle } from 'lucide-react';
 import api from '@/lib/api';
 import { useToast } from '@/hooks/use-toast';
 
@@ -236,7 +236,7 @@ export default function Cart() {
         return;
       }
 
-      clearCart();
+      // Wait to clear cart until user clicks a navigation button
       setOrderPlaced({ id: newOrder.id, number: newOrder.order_number });
       setMessage({ type: 'success', text: `Order ${newOrder.order_number} placed! We will contact you soon.` });
       // Keep saved customer info, only clear notes
@@ -251,43 +251,6 @@ export default function Cart() {
       });
     }
   };
-
-  if (orderPlaced) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-        <div className="bg-[#1a1a1a] border border-[#F2A900]/30 rounded-2xl p-8 max-w-md w-full text-center space-y-6 animate-in fade-in zoom-in duration-300">
-          <div className="w-20 h-20 bg-[#F2A900]/10 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle className="w-10 h-10 text-[#F2A900]" />
-          </div>
-
-          <div className="space-y-2">
-            <h2 className="text-2xl font-bold text-white">Order Placed Successfully!</h2>
-            <p className="text-gray-400">
-              Your order <span className="text-[#F2A900] font-mono font-bold">#{orderPlaced.number}</span> has been received.
-            </p>
-            <p className="text-sm text-gray-500">
-              We'll contact you shortly to confirm your order details.
-            </p>
-          </div>
-
-          <div className="pt-4 space-y-3">
-            <button
-              onClick={() => navigate('/orders')}
-              className="w-full py-3 bg-[#F2A900] text-black font-bold rounded-lg hover:bg-[#D99700] transition-colors"
-            >
-              View My Orders
-            </button>
-            <button
-              onClick={() => navigate('/')}
-              className="w-full py-3 bg-transparent border border-[#F2A900]/30 text-[#F2A900] font-semibold rounded-lg hover:bg-[#F2A900]/10 transition-colors"
-            >
-              Back to Home
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] pt-20 pb-20">
@@ -585,82 +548,131 @@ export default function Cart() {
 
             {/* Suggested Coupons */}
             {!appliedCoupon && availableCoupons.length > 0 && (
-              <div className="mt-4 animate-in fade-in slide-in-from-bottom-4 duration-500 rounded-xl border border-[#F2A900]/40 bg-gradient-to-b from-[#F2A900]/[0.07] to-[#0a0a0a] p-4 shadow-[0_0_25px_rgba(242,169,0,0.08)]">
+              <div className="mt-3 animate-in fade-in slide-in-from-bottom-3 duration-500">
+                {/* Header */}
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2">
-                    <div className="w-1 h-5 rounded-full bg-[#F2A900]" />
-                    <p className="text-sm text-[#F2A900] font-bold uppercase tracking-widest">Available Offers</p>
+                    <span className="text-base">🎟️</span>
+                    <p className="text-sm font-bold text-[#F2A900] uppercase tracking-widest">Available Coupons</p>
                   </div>
-                  <span className="text-[10px] bg-[#F2A900] text-black font-bold px-2.5 py-1 rounded-full">
-                    {availableCoupons.length} coupons found
+                  <span className="text-[10px] bg-[#F2A900] text-black font-black px-2.5 py-0.5 rounded-full">
+                    {availableCoupons.length} offer{availableCoupons.length > 1 ? 's' : ''}
                   </span>
                 </div>
-                <div className="space-y-3 max-h-[300px] overflow-y-auto overflow-x-hidden scrollbar-hide w-full">
-                  {availableCoupons.map((coupon) => (
-                    <div
-                      key={coupon.id}
-                      className={`relative overflow-hidden border rounded-xl p-4 flex flex-col gap-3 transition-all duration-300 group hover:scale-[1.01] cursor-default ${bestOffer?.id === coupon.id
-                        ? 'bg-gradient-to-br from-[#F2A900]/10 to-[#F2A900]/[0.03] border-[#F2A900] shadow-[0_0_25px_rgba(242,169,0,0.2),inset_0_1px_0_rgba(242,169,0,0.15)] ring-1 ring-[#F2A900]/60'
-                        : 'bg-[#141414] border-[#F2A900]/25 hover:border-[#F2A900]/60 hover:bg-[#1a1a1a] hover:shadow-[0_0_15px_rgba(242,169,0,0.1)]'
-                        }`}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1 pr-2">
-                          <div className="flex items-center gap-2 mb-1">
-                            <div className={`p-1.5 rounded-lg ${bestOffer?.id === coupon.id ? 'bg-[#F2A900]/25 shadow-[0_0_8px_rgba(242,169,0,0.2)]' : 'bg-[#F2A900]/15'}`}>
-                              <ShoppingBag className="w-4 h-4 text-[#F2A900]" />
-                            </div>
-                            <span className={`font-mono font-bold text-lg tracking-tight transition-colors ${bestOffer?.id === coupon.id ? 'text-[#F2A900]' : 'text-white group-hover:text-[#F2A900]'}`}>
-                              {coupon.code}
-                            </span>
+
+                {/* Horizontal scroll carousel */}
+                <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide snap-x snap-mandatory">
+                  {availableCoupons.map((coupon) => {
+                    const isBest = bestOffer?.id === coupon.id;
+                    const daysLeft = Math.ceil((new Date(coupon.valid_to).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+                    const isExpiringSoon = daysLeft <= 3;
+                    return (
+                      <div
+                        key={coupon.id}
+                        className={`relative flex-shrink-0 snap-center w-[260px] rounded-2xl overflow-hidden transition-all duration-300 group
+                          ${isBest
+                            ? 'shadow-[0_0_30px_rgba(242,169,0,0.35)] ring-1 ring-[#F2A900]/70'
+                            : 'shadow-[0_0_12px_rgba(242,169,0,0.08)] hover:shadow-[0_0_20px_rgba(242,169,0,0.2)]'
+                          }`}
+                        style={{
+                          background: isBest
+                            ? 'linear-gradient(135deg, #1c1600 0%, #2a1f00 40%, #1a1200 100%)'
+                            : 'linear-gradient(135deg, #141414 0%, #1a1a1a 100%)',
+                          border: isBest ? '1px solid rgba(242,169,0,0.6)' : '1px solid rgba(242,169,0,0.2)',
+                        }}
+                      >
+                        {/* Shimmer sweep on best offer */}
+                        {isBest && (
+                          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                            <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-[1200ms] ease-in-out"
+                              style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(242,169,0,0.08) 50%, transparent 60%)' }}
+                            />
                           </div>
-                          <p className="text-xs text-gray-400 line-clamp-1 ml-0.5">{coupon.description || 'Valid on all items'}</p>
-                        </div>
-                        <div className="text-right flex flex-col items-end gap-1.5">
-                          {bestOffer?.id === coupon.id && (
-                            <div className="bg-[#F2A900] text-black text-[9px] font-black px-2 py-0.5 rounded flex items-center gap-1 shadow-[0_2px_8px_rgba(242,169,0,0.4)] uppercase">
-                              <QrCode className="w-2.5 h-2.5" />
-                              BEST VALUE
+                        )}
+
+                        {/* Top section */}
+                        <div className="p-4 pb-3">
+                          {/* Best badge row */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider
+                              ${isBest ? 'bg-[#F2A900] text-black' : 'bg-[#F2A900]/10 text-[#F2A900]/80 border border-[#F2A900]/20'}`}>
+                              {isBest ? 'BEST VALUE' : 'OFFER'}
                             </div>
-                          )}
-                          <p className={`text-[#F2A900] font-black justify-end text-xl flex items-baseline gap-1 ${bestOffer?.id !== coupon.id ? 'mt-1' : ''}`}>
-                            {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
-                            <span className="text-[10px] text-[#F2A900]/60 font-semibold mb-1">OFF</span>
+                            {isExpiringSoon && (
+                              <span className="text-[9px] font-black bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded-full uppercase tracking-wider animate-pulse">
+                                Expires in {daysLeft}d
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Discount callout */}
+                          <div className="flex items-end gap-1 mb-2">
+                            <span className={`font-black leading-none ${coupon.discount_type === 'percentage' ? 'text-5xl' : 'text-4xl'} ${isBest ? 'text-[#F2A900]' : 'text-white group-hover:text-[#F2A900] transition-colors'}`}>
+                              {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
+                            </span>
+                            <span className="text-[#F2A900]/70 font-bold text-lg mb-1">OFF</span>
+                          </div>
+
+                          {/* Description */}
+                          <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+                            {coupon.description || 'Valid on all menu items'}
                           </p>
                         </div>
-                      </div>
 
-                      <div className="flex items-center justify-between pt-3 border-t border-dashed border-[#F2A900]/30 mt-1 relative">
-                        <div className="flex flex-col">
-                          <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-0.5">Valid Until</span>
-                          <span className="text-xs text-white/90 font-medium">
-                            {new Date(coupon.valid_to).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-                          </span>
+                        {/* Perforation divider */}
+                        <div className="relative flex items-center px-0 my-0">
+                          {/* Left notch */}
+                          <div className={`absolute -left-3 w-6 h-6 rounded-full z-10
+                            ${isBest ? 'bg-[#0d0b00] border border-[#F2A900]/60' : 'bg-[#0a0a0a] border border-[#F2A900]/20'}`} />
+                          {/* Dashed line */}
+                          <div className="w-full border-t-2 border-dashed border-[#F2A900]/20 mx-3" />
+                          {/* Right notch */}
+                          <div className={`absolute -right-3 w-6 h-6 rounded-full z-10
+                            ${isBest ? 'bg-[#0d0b00] border border-[#F2A900]/60' : 'bg-[#0a0a0a] border border-[#F2A900]/20'}`} />
                         </div>
-                        <button
-                          onClick={() => {
-                            setCouponCode(coupon.code);
-                            // Auto-triggering apply logic
-                            setTimeout(() => {
-                              const applyBtn = document.getElementById('apply-coupon-btn');
-                              if (applyBtn) applyBtn.click();
-                            }, 50);
-                          }}
-                          className={`px-4 py-2 rounded-lg text-xs font-bold transition-all duration-300 ${bestOffer?.id === coupon.id
-                            ? 'bg-[#F2A900] text-black hover:bg-[#D99700] shadow-[0_4px_12px_rgba(242,169,0,0.4)] hover:shadow-[0_6px_18px_rgba(242,169,0,0.5)] hover:-translate-y-0.5'
-                            : 'bg-[#F2A900]/15 text-[#F2A900] hover:bg-[#F2A900] hover:text-black border border-[#F2A900]/30 hover:border-transparent hover:shadow-[0_4px_12px_rgba(242,169,0,0.3)]'
-                            }`}
-                        >
-                          APPLY NOW
-                        </button>
-                      </div>
 
-                      {/* Decorative ticket cutouts */}
-                      <div className={`absolute bottom-[44px] -left-3 w-6 h-6 rounded-full border-r ${bestOffer?.id === coupon.id ? 'bg-[#0d0d0a] border-[#F2A900]' : 'bg-[#0a0a0a] border-[#F2A900]/25 group-hover:border-[#F2A900]/60'}`} />
-                      <div className={`absolute bottom-[44px] -right-3 w-6 h-6 rounded-full border-l ${bestOffer?.id === coupon.id ? 'bg-[#0d0d0a] border-[#F2A900]' : 'bg-[#0a0a0a] border-[#F2A900]/25 group-hover:border-[#F2A900]/60'}`} />
-                    </div>
-                  ))}
+                        {/* Bottom section */}
+                        <div className="px-4 pt-3 pb-4 flex items-center justify-between gap-3">
+                          {/* Code + expiry */}
+                          <div className="flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Code</span>
+                            </div>
+                            <span className={`font-mono font-black text-base tracking-widest ${isBest ? 'text-[#F2A900]' : 'text-white'}`}>
+                              {coupon.code}
+                            </span>
+                            <span className="text-[10px] text-gray-500 mt-0.5">
+                              Valid till {new Date(coupon.valid_to).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                            </span>
+                          </div>
+
+                          {/* Apply button */}
+                          <button
+                            onClick={() => {
+                              setCouponCode(coupon.code);
+                              setTimeout(() => {
+                                const applyBtn = document.getElementById('apply-coupon-btn');
+                                if (applyBtn) applyBtn.click();
+                              }, 50);
+                            }}
+                            className={`flex-shrink-0 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 active:scale-95
+                              ${isBest
+                                ? 'bg-[#F2A900] text-black hover:bg-[#ffbf00] shadow-[0_4px_15px_rgba(242,169,0,0.45)] hover:shadow-[0_6px_20px_rgba(242,169,0,0.6)] hover:-translate-y-0.5'
+                                : 'bg-[#F2A900]/10 text-[#F2A900] border border-[#F2A900]/30 hover:bg-[#F2A900] hover:text-black hover:border-transparent hover:shadow-[0_4px_12px_rgba(242,169,0,0.35)] hover:-translate-y-0.5'
+                              }`}
+                          >
+                            Apply
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
+
+                {/* Scroll hint if more than 1 coupon */}
+                {availableCoupons.length > 1 && (
+                  <p className="text-center text-[10px] text-gray-600 mt-2 tracking-wider">← swipe to see more →</p>
+                )}
               </div>
             )}
           </div>
@@ -721,6 +733,47 @@ export default function Cart() {
           </button>
         </div>
       </div>
-    </div >
+
+      {orderPlaced && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="bg-[#1a1a1a] border border-[#F2A900]/30 rounded-2xl p-8 max-w-md w-full text-center space-y-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+            <div className="w-20 h-20 bg-[#F2A900]/10 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="w-10 h-10 text-[#F2A900]" />
+            </div>
+
+            <div className="space-y-2">
+              <h2 className="text-2xl font-bold text-white">Order Placed Successfully!</h2>
+              <p className="text-gray-400">
+                Your order <span className="text-[#F2A900] font-mono font-bold">#{orderPlaced.number}</span> has been received.
+              </p>
+              <p className="text-sm text-gray-500">
+                We'll contact you shortly to confirm your order details.
+              </p>
+            </div>
+
+            <div className="pt-4 space-y-3">
+              <button
+                onClick={() => {
+                  clearCart();
+                  navigate('/orders');
+                }}
+                className="w-full py-3 bg-[#F2A900] text-black font-bold rounded-lg hover:bg-[#D99700] transition-colors"
+              >
+                View My Orders
+              </button>
+              <button
+                onClick={() => {
+                  clearCart();
+                  navigate('/');
+                }}
+                className="w-full py-3 bg-transparent border border-[#F2A900]/30 text-[#F2A900] font-semibold rounded-lg hover:bg-[#F2A900]/10 transition-colors"
+              >
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

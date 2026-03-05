@@ -10,6 +10,7 @@ import MenuItemDetailModal from '@/components/MenuItemDetailModal';
 import AuthModal from '@/components/AuthModal';
 import { formatCurrency } from '@/utils/orderCalculations';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
 
 
 const IconMap: Record<string, any> = { Clock, Phone, MapPin };
@@ -153,8 +154,13 @@ export default function Home() {
     toast({
       title: "Added to Cart!",
       description: `${item.name} has been added to your basket.`,
+      action: (
+        <ToastAction altText="Go to Cart" onClick={() => navigate('/cart')}>
+          Go to Cart
+        </ToastAction>
+      ),
     });
-  }, [addItem, toast]);
+  }, [addItem, toast, navigate]);
 
   const handleAddToCart = (quantity: number) => {
     if (!selectedItem) return;

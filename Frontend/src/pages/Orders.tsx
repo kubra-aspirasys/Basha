@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useOrderStore } from '@/store/order-store';
 import { useMenuStore } from '@/store/menu-store';
 import { useCustomerStore } from '@/store/customer-store';
-import { Search, Eye, Pencil, Trash2, X, Check, Clock, CheckCircle, Truck, Package, AlertCircle, MapPin, Store, Phone, Mail, User, Calendar, FileText, Activity, Plus, Minus, ShoppingBag } from 'lucide-react';
+import { Search, Eye, Pencil, Trash2, X, Check, Clock, CheckCircle, Truck, Package, AlertCircle, MapPin, Store, Phone, Mail, User, Calendar, FileText, Activity, Plus, Minus, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 import { Order } from '@/types';
 
@@ -78,6 +78,7 @@ export default function Orders() {
   const [manualDeliveryAddress, setManualDeliveryAddress] = useState('');
   const [manualItems, setManualItems] = useState<Array<{ menu_item_id: string; menu_item_name: string; quantity: number; price: number }>>([]);
   const [menuSearchTerm, setMenuSearchTerm] = useState('');
+  const [manualPlatformOrderId, setManualPlatformOrderId] = useState('');
   const [creatingOrder, setCreatingOrder] = useState(false);
 
   // Sync state to URL params
@@ -254,7 +255,7 @@ export default function Orders() {
     delivery: {
       bg: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800',
       icon: <MapPin className="w-3 h-3" />,
-      label: 'Delivery'
+      label: 'Online'
     },
     pickup: {
       bg: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 border border-green-200 dark:border-green-800',
@@ -274,7 +275,7 @@ export default function Orders() {
     takeaway: {
       bg: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
       icon: <Package className="w-3 h-3" />,
-      label: 'Takeaway'
+      label: 'Walk in'
     }
   };
 
@@ -294,6 +295,7 @@ export default function Orders() {
     setManualCustomerName('');
     setManualCustomerPhone('');
     setManualDeliveryAddress('');
+    setManualPlatformOrderId('');
     setManualItems([]);
     setMenuSearchTerm('');
     fetchAllMenuItems();
@@ -332,7 +334,9 @@ export default function Orders() {
       const result = await createManualOrder({
         customer_name: manualCustomerName.trim(),
         customer_phone: manualCustomerPhone.trim() || 'N/A',
-        delivery_address: manualDeliveryAddress.trim() || 'N/A',
+        delivery_address: (['swiggy', 'zomato'].includes(manualOrderType) && manualPlatformOrderId.trim())
+          ? `Platform Order ID: ${manualPlatformOrderId.trim()}`
+          : manualDeliveryAddress.trim() || 'N/A',
         order_type: manualOrderType,
         items: manualItems,
         totals: {
@@ -461,10 +465,10 @@ export default function Orders() {
                 >
                   <option value="all">All Types</option>
                   <option value="pickup">Pickup</option>
-                  <option value="delivery">Delivery</option>
+                  <option value="delivery">Online</option>
                   <option value="swiggy">Swiggy</option>
                   <option value="zomato">Zomato</option>
-                  <option value="takeaway">Takeaway</option>
+                  <option value="takeaway">Walk in</option>
                 </select>
               </div>
 
@@ -1111,7 +1115,7 @@ export default function Orders() {
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
                   <Plus className="w-5 h-5" /> Add Manual Order
                 </h2>
-                <p className="text-amber-100 text-sm mt-0.5">Create a new order for Swiggy, Zomato, or Takeaway</p>
+                <p className="text-amber-100 text-sm mt-0.5">Create a new order for Swiggy, Zomato, or Walk in</p>
               </div>
               <button
                 onClick={() => setShowManualOrder(false)}
@@ -1127,8 +1131,8 @@ export default function Orders() {
               {/* Order Type Selection */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Order Type</label>
-                <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
-                  {(['swiggy', 'zomato', 'takeaway', 'pickup', 'delivery'] as Order['order_type'][]).map(type => {
+                <div className="grid grid-cols-3 gap-2">
+                  {(['swiggy', 'zomato', 'takeaway'] as Order['order_type'][]).map(type => {
                     const config = orderTypeConfig[type];
                     const isSelected = manualOrderType === type;
                     return (
@@ -1191,17 +1195,21 @@ export default function Orders() {
                 </div>
               </div>
 
-              {manualOrderType === 'delivery' && (
+              {/* Platform Order ID — Swiggy / Zomato only */}
+              {(['swiggy', 'zomato'] as Order['order_type'][]).includes(manualOrderType) && (
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Delivery Address</label>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Platform Order ID
+                    <span className="ml-1.5 text-xs font-normal text-slate-400">(from Swiggy / Zomato app)</span>
+                  </label>
                   <div className="relative">
-                    <MapPin className="absolute left-3 top-3 w-4 h-4 text-slate-400" />
-                    <textarea
-                      value={manualDeliveryAddress}
-                      onChange={e => setManualDeliveryAddress(e.target.value)}
-                      placeholder="Enter delivery address"
-                      rows={2}
-                      className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none"
+                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      value={manualPlatformOrderId}
+                      onChange={e => setManualPlatformOrderId(e.target.value)}
+                      placeholder={`Enter ${manualOrderType === 'swiggy' ? 'Swiggy' : 'Zomato'} order ID`}
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                     />
                   </div>
                 </div>
@@ -1222,79 +1230,177 @@ export default function Orders() {
                     className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
                   />
                 </div>
-                <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-xl divide-y divide-slate-100 dark:divide-slate-700">
-                  {menuItems
-                    .filter(item => item.is_available && item.name.toLowerCase().includes(menuSearchTerm.toLowerCase()))
-                    .slice(0, 100)
-                    .map(item => {
-                      const alreadyAdded = manualItems.some(i => i.menu_item_id === item.id);
-                      return (
-                        <div key={item.id} className="flex items-center justify-between px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{item.name}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400">₹{parseFloat(String(item.discounted_price || item.price)).toLocaleString()} / {item.unit_type}</p>
-                          </div>
-                          <button
-                            onClick={() => handleAddMenuItem(item)}
-                            className={`ml-3 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 ${alreadyAdded
-                              ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                              : 'bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50'
-                              }`}
-                          >
-                            {alreadyAdded ? '+ More' : '+ Add'}
-                          </button>
-                        </div>
-                      );
-                    })}
-                  {menuItems.filter(item => item.is_available && item.name.toLowerCase().includes(menuSearchTerm.toLowerCase())).length === 0 && (
-                    <div className="px-4 py-6 text-center text-sm text-slate-500 dark:text-slate-400">
-                      No menu items found
-                    </div>
-                  )}
+
+                {/* Card grid */}
+                <div className="max-h-64 overflow-y-auto pr-1">
+                  {(() => {
+                    const filtered = menuItems.filter(
+                      item => item.is_available && item.name.toLowerCase().includes(menuSearchTerm.toLowerCase())
+                    ).slice(0, 100);
+                    if (filtered.length === 0) return (
+                      <div className="flex flex-col items-center justify-center py-10 text-slate-400 dark:text-slate-500">
+                        <Search className="w-8 h-8 mb-2 opacity-40" />
+                        <p className="text-sm">No items found</p>
+                      </div>
+                    );
+                    return (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                        {filtered.map(item => {
+                          const cartItem = manualItems.find(i => i.menu_item_id === item.id);
+                          const qty = cartItem?.quantity ?? 0;
+                          const imgUrl = (() => {
+                            const raw = item.image_url;
+                            if (!raw) return null;
+                            if (raw.startsWith('http')) return raw;
+                            const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+                            return `${base}${raw}`;
+                          })();
+                          return (
+                            <div
+                              key={item.id}
+                              className={`relative group rounded-xl border-2 overflow-hidden transition-all duration-200 bg-white dark:bg-slate-800 ${qty > 0
+                                ? 'border-amber-400 dark:border-amber-500 shadow-md shadow-amber-100 dark:shadow-amber-900/20'
+                                : 'border-slate-200 dark:border-slate-600 hover:border-amber-300 dark:hover:border-amber-600'
+                                }`}
+                            >
+                              {/* Image */}
+                              <div className="relative h-24 bg-slate-100 dark:bg-slate-700 overflow-hidden">
+                                {imgUrl ? (
+                                  <img
+                                    src={imgUrl}
+                                    alt={item.name}
+                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                    onError={e => { e.currentTarget.style.display = 'none'; }}
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <UtensilsCrossed className="w-8 h-8 text-slate-300 dark:text-slate-600" />
+                                  </div>
+                                )}
+                                {/* Veg / Non-veg dot */}
+                                <div className={`absolute top-1.5 left-1.5 w-4 h-4 rounded-sm border-2 flex items-center justify-center ${item.is_vegetarian ? 'border-green-600 bg-white' : 'border-red-600 bg-white'}`}>
+                                  <div className={`w-2 h-2 rounded-full ${item.is_vegetarian ? 'bg-green-600' : 'bg-red-600'}`} />
+                                </div>
+                                {/* Qty badge */}
+                                {qty > 0 && (
+                                  <div className="absolute top-1.5 right-1.5 min-w-[20px] h-5 px-1 bg-amber-500 text-white text-xs font-black rounded-full flex items-center justify-center shadow">
+                                    {qty}
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Info + controls */}
+                              <div className="p-2">
+                                <p className="text-xs font-semibold text-slate-800 dark:text-white leading-tight line-clamp-2 mb-1" title={item.name}>
+                                  {item.name}
+                                </p>
+                                <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-2">
+                                  ₹{parseFloat(String(item.discounted_price || item.price)).toLocaleString()}
+                                </p>
+
+                                {qty === 0 ? (
+                                  <button
+                                    onClick={() => handleAddMenuItem(item)}
+                                    className="w-full py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-colors flex items-center justify-center gap-1"
+                                  >
+                                    <Plus className="w-3.5 h-3.5" /> Add
+                                  </button>
+                                ) : (
+                                  <div className="flex items-center justify-between gap-1">
+                                    <button
+                                      onClick={() => handleUpdateItemQty(item.id, -1)}
+                                      className="flex-1 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors flex items-center justify-center"
+                                    >
+                                      <Minus className="w-3.5 h-3.5" />
+                                    </button>
+                                    <span className="w-7 text-center text-sm font-black text-slate-900 dark:text-white">{qty}</span>
+                                    <button
+                                      onClick={() => handleAddMenuItem(item)}
+                                      className="flex-1 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white transition-colors flex items-center justify-center"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
 
-              {/* Selected Items */}
+              {/* Selected Items Cart */}
               {manualItems.length > 0 && (
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Order Items</label>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
+                    Order Summary
+                    <span className="ml-2 px-2 py-0.5 text-xs bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-full font-bold">
+                      {manualItems.reduce((s, i) => s + i.quantity, 0)} items
+                    </span>
+                  </label>
                   <div className="space-y-2">
-                    {manualItems.map(item => (
-                      <div key={item.menu_item_id} className="flex items-center justify-between bg-slate-50 dark:bg-slate-700/50 p-3 rounded-xl border border-slate-200 dark:border-slate-600">
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-slate-900 dark:text-white truncate">{item.menu_item_name}</p>
-                          <p className="text-xs text-slate-500 dark:text-slate-400">₹{item.price.toLocaleString()} each</p>
+                    {manualItems.map(item => {
+                      const menuItem = menuItems.find(m => m.id === item.menu_item_id);
+                      const imgUrl = (() => {
+                        const raw = menuItem?.image_url;
+                        if (!raw) return null;
+                        if (raw.startsWith('http')) return raw;
+                        const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
+                        return `${base}${raw}`;
+                      })();
+                      return (
+                        <div key={item.menu_item_id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-700/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-600">
+                          {/* Thumbnail */}
+                          <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0 border border-slate-200 dark:border-slate-600">
+                            {imgUrl ? (
+                              <img src={imgUrl} alt={item.menu_item_name} className="w-full h-full object-cover" onError={e => { e.currentTarget.style.display = 'none'; }} />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <UtensilsCrossed className="w-5 h-5 text-slate-300 dark:text-slate-600" />
+                              </div>
+                            )}
+                          </div>
+                          {/* Name & price */}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{item.menu_item_name}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">₹{item.price.toLocaleString()} × {item.quantity}</p>
+                          </div>
+                          {/* Qty controls */}
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              onClick={() => handleUpdateItemQty(item.menu_item_id, -1)}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </button>
+                            <span className="w-6 text-center text-sm font-black text-slate-900 dark:text-white">{item.quantity}</span>
+                            <button
+                              onClick={() => handleAddMenuItem(menuItems.find(m => m.id === item.menu_item_id)!)}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 transition-colors"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </button>
+                            <button
+                              onClick={() => handleRemoveMenuItem(item.menu_item_id)}
+                              className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 transition-colors"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </button>
+                          </div>
+                          {/* Line total */}
+                          <div className="text-right min-w-[52px]">
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">₹{(item.price * item.quantity).toLocaleString()}</p>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 ml-3">
-                          <button
-                            onClick={() => handleUpdateItemQty(item.menu_item_id, -1)}
-                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
-                          >
-                            <Minus className="w-3.5 h-3.5" />
-                          </button>
-                          <span className="w-8 text-center text-sm font-bold text-slate-900 dark:text-white">{item.quantity}</span>
-                          <button
-                            onClick={() => handleUpdateItemQty(item.menu_item_id, 1)}
-                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleRemoveMenuItem(item.menu_item_id)}
-                            className="w-7 h-7 flex items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors ml-1"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        <div className="ml-4 text-right min-w-[60px]">
-                          <p className="text-sm font-bold text-slate-900 dark:text-white">₹{(item.price * item.quantity).toLocaleString()}</p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
-                  <div className="mt-3 flex justify-between items-center px-3 py-2.5 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-xl border border-amber-200 dark:border-amber-800">
+                  <div className="mt-3 flex justify-between items-center px-4 py-3 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 rounded-xl border border-amber-200 dark:border-amber-800">
                     <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Subtotal</span>
-                    <span className="text-lg font-bold text-amber-700 dark:text-amber-400">₹{manualOrderSubtotal.toLocaleString()}</span>
+                    <span className="text-xl font-black text-amber-700 dark:text-amber-400">₹{manualOrderSubtotal.toLocaleString()}</span>
                   </div>
                 </div>
               )}

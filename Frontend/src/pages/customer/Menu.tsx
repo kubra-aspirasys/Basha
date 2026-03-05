@@ -7,6 +7,8 @@ import MenuItemDetailModal from '@/components/MenuItemDetailModal';
 import AuthModal from '@/components/AuthModal';
 import { MenuItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
+import { ToastAction } from '@/components/ui/toast';
+import { useNavigate } from 'react-router-dom';
 
 // Helper to construct full image URL
 const getImageUrl = (url?: string) => {
@@ -30,6 +32,7 @@ export default function CustomerMenu() {
   const { addItem } = useCartStore();
   const { user } = useAuthStore();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
@@ -88,6 +91,11 @@ export default function CustomerMenu() {
     toast({
       title: "Added to Cart!",
       description: `${item.name} has been added to your basket.`,
+      action: (
+        <ToastAction altText="Go to Cart" onClick={() => navigate('/cart')}>
+          Go to Cart
+        </ToastAction>
+      ),
     });
     setTimeout(() => setAddedToCart(null), 2000);
   };

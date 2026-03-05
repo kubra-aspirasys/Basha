@@ -2,6 +2,7 @@
 const { Offer, UsedCoupon } = require('../models');
 const { successResponse, errorResponse } = require('../utils/apiResponse');
 const { Op } = require('sequelize');
+const { v4: uuidv4 } = require('uuid');
 
 /**
  * Validate a coupon code
@@ -302,5 +303,56 @@ exports.bulkDeleteOffers = async (req, res, next) => {
     } catch (error) {
         console.error('Error in bulk deleting offers:', error);
         return errorResponse(res, 'Failed to delete selected offers', 500);
+    }
+};
+
+/**
+ * Mark offers as used for specific users
+ * @route POST /api/offers/:id/mark-used
+ * @access Private/Admin
+ */
+exports.markOfferAsUsed = async (req, res, next) => {
+    try {
+        const { id } = req.params;
+        const { user_ids } = req.body;
+
+        if (!user_ids || !Array.isArray(user_ids) || user_ids.length === 0) {
+            return errorResponse(res, 'Please provide an array of user IDs', 400);
+        }
+
+        const offer = await Offer.findByPk(id);
+        if (!offer) {
+            return errorResponse(res, 'Offer not found', 404);
+        }
+
+        const usedCouponsToInsert = user_ids.map(userId => ({
+            id: uuidv4(),
+            order_id: uuidv4(), // Generate a placeholder UUID for the order
+            offer_id: offer.id,
+            customer_id: userId,
+            discount_amount: 0 // No actual discount applied
+        }));
+
+        // Ignore if already marked (we could check first, or let unique constraints fail. Because UsedCoupon doesn't have a unique constraint on customer+offer, we should check first to prevent duplicates)
+        const existingUsed = await UsedCoupon.findAll({
+            where: {
+                offer_id: offer.id,
+                customer_id: {
+                    [Op.in]: user_ids
+                }
+            }
+        });
+        const existingUsers = existingUsed.map(uc => uc.customer_id);
+
+        const newToInsert = usedCouponsToInsert.filter(uc => !existingUsers.includes(uc.customer_id));
+
+        if (newToInsert.length > 0) {
+            await UsedCoupon.bulkCreate(newToInsert);
+        }
+
+        return successResponse(res, `Offer marked as used for ${newToInsert.length} users successfully`);
+    } catch (error) {
+        console.error('Error marking offer as used:', error);
+        return errorResponse(res, 'Failed to mark offer as used', 500);
     }
 };

@@ -8,7 +8,8 @@ const {
     deleteOffer,
     validateOffer,
     getPublicOffers,
-    bulkDeleteOffers
+    bulkDeleteOffers,
+    markOfferAsUsed
 } = require('../controllers/offerController');
 
 const {
@@ -27,5 +28,7 @@ router.get('/', getAllOffers);
 router.post('/', createOffer);
 router.put('/:id', updateOffer);
 router.delete('/:id', deleteOffer);
+router.post('/bulk-delete', bulkDeleteOffers);
+router.post('/:id/mark-used', markOfferAsUsed);
 
 module.exports = router;
