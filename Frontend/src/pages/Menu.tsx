@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMenuStore } from '@/store/menu-store';
 import { useOfferStore } from '@/store/offer-store';
 import { Plus, Pencil, Trash2, Search, Upload, Link as LinkIcon, X, Star, Tag, CheckCircle, AlertCircle } from 'lucide-react';
@@ -12,6 +13,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 const UNIT_TYPES = ['piece', 'kg', 'gram', 'plate', 'bowl', 'liter', 'ml', 'dozen', 'box', 'packet'];
 
 export default function Menu() {
+  const navigate = useNavigate();
   const {
     menuItems,
     categories,
@@ -340,6 +342,24 @@ export default function Menu() {
     if (confirm(`Are you sure you want to delete "${name}"?`)) {
       await deleteMenuItem(id);
     }
+  };
+
+  const handleCategoryChange = (val: string) => {
+    if (val === 'add_new') {
+      navigate('/admin/cms', { state: { activeTab: 'categories' } });
+      setIsOpen(false);
+      return;
+    }
+    setFormData({ ...formData, category_id: val });
+  };
+
+  const handleTypeChange = (val: string) => {
+    if (val === 'add_new') {
+      navigate('/admin/cms', { state: { activeTab: 'categories' } });
+      setIsOpen(false);
+      return;
+    }
+    setFormData({ ...formData, type_id: val });
   };
 
   const handlePageChange = (newPage: number) => {
@@ -897,25 +917,15 @@ export default function Menu() {
                       <select
                         required
                         value={formData.category_id}
-                        onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                       >
                         <option value="">Select Category</option>
                         {categories.map((cat) => (
                           <option key={cat.id} value={cat.id}>{cat.name}</option>
                         ))}
-                        <option value="other">Other (Add New)</option>
+                        <option value="add_new" className="text-blue-600 font-semibold italic">Add New Category</option>
                       </select>
-                      {formData.category_id === 'other' && (
-                        <input
-                          type="text"
-                          required
-                          placeholder="Enter new category name"
-                          value={newCategoryName}
-                          onChange={(e) => setNewCategoryName(e.target.value)}
-                          className="mt-2 w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                        />
-                      )}
                     </div>
 
                     <div>
@@ -924,25 +934,15 @@ export default function Menu() {
                       </label>
                       <select
                         value={formData.type_id}
-                        onChange={(e) => setFormData({ ...formData, type_id: e.target.value })}
+                        onChange={(e) => handleTypeChange(e.target.value)}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                       >
                         <option value="">Select Type</option>
                         {productTypes.map((type) => (
                           <option key={type.id} value={type.id}>{type.name}</option>
                         ))}
-                        <option value="other">Other (Add New)</option>
+                        <option value="add_new" className="text-blue-600 font-semibold italic">Add New Type</option>
                       </select>
-                      {formData.type_id === 'other' && (
-                        <input
-                          type="text"
-                          required
-                          placeholder="Enter new type name"
-                          value={newTypeName}
-                          onChange={(e) => setNewTypeName(e.target.value)}
-                          className="mt-2 w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
-                        />
-                      )}
                     </div>
                   </div>
 

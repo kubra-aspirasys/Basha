@@ -325,19 +325,19 @@ export default function Cart() {
                     </div>
 
                     <div className="flex items-center justify-between mt-3 gap-2">
-                      <div className="flex items-center gap-2 bg-[#0a0a0a] rounded-lg border border-[#F2A900]/30 p-0.5 sm:p-1 h-8 sm:h-auto">
+                      <div className="flex items-center gap-3 bg-[#0a0a0a] rounded-full border border-[#F2A900]/30 p-1">
                         <button
-                          onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-[#F2A900] hover:bg-[#F2A900]/20 rounded transition-colors"
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          className="w-8 h-8 flex items-center justify-center text-[#F2A900] bg-[#1a1a1a] hover:bg-[#222] border border-[#F2A900]/10 rounded-full transition-colors"
                         >
-                          <Minus className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <Minus className="w-4 h-4" />
                         </button>
-                        <span className="w-8 sm:w-12 text-center text-white font-semibold text-sm sm:text-base">{item.quantity}</span>
+                        <span className="w-6 text-center text-white font-bold text-base">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="w-7 h-7 sm:w-8 sm:h-8 flex items-center justify-center text-[#F2A900] hover:bg-[#F2A900]/20 rounded transition-colors"
+                          className="w-8 h-8 flex items-center justify-center text-[#F2A900] bg-[#1a1a1a] hover:bg-[#222] border border-[#F2A900]/10 rounded-full transition-colors"
                         >
-                          <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
+                          <Plus className="w-4 h-4" />
                         </button>
                       </div>
                       <button

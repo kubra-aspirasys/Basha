@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo } from 'react';
 import { useMenuStore } from '@/store/menu-store';
 import { useCartStore } from '@/store/cart-store';
 import { useAuthStore } from '@/store/auth-store';
-import { Search, ShoppingCart, Filter, X } from 'lucide-react';
+import { Search, ShoppingCart, Filter, X, Plus, Minus } from 'lucide-react';
 import MenuItemDetailModal from '@/components/MenuItemDetailModal';
 import AuthModal from '@/components/AuthModal';
 import { MenuItem } from '@/types';
@@ -29,7 +29,7 @@ export default function CustomerMenu() {
     fetchProductTypes,
     loading
   } = useMenuStore();
-  const { addItem } = useCartStore();
+  const { items: cartItems, addItem, updateQuantity } = useCartStore();
   const { user } = useAuthStore();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -123,6 +123,20 @@ export default function CustomerMenu() {
       doAddItem(pendingCartItem.item, pendingCartItem.quantity);
       setPendingCartItem(null);
     }
+  };
+
+  const getItemQuantity = (id: string) => {
+    const item = cartItems.find(i => i.id === id);
+    return item ? item.quantity : 0;
+  };
+
+  const handleUpdateQuantity = (item: any, newQty: number) => {
+    if (!user) {
+      setPendingCartItem({ item, quantity: newQty });
+      setShowAuthModal(true);
+      return;
+    }
+    updateQuantity(item.id, newQty);
   };
 
   return (
@@ -288,28 +302,64 @@ export default function CustomerMenu() {
                     <p className="text-gray-400 text-sm mb-4 line-clamp-2">{item.description}</p>
                   )}
 
-                  {/* Price and Unit */}
-                  <div className="flex justify-between items-center mb-4">
-                    <div>
-                      <p className="text-[#F2A900] font-bold text-2xl">₹{item.price}</p>
-                      <p className="text-gray-500 text-xs">per {item.unit_type}</p>
+                  {/* Price, Unit and Action */}
+                  <div className="flex justify-between items-end mt-4">
+                    <div className="flex flex-col">
+                      <p className="text-[#F2A900] font-bold text-2xl">
+                        {formatCurrency((item.discounted_price || item.price) * (getItemQuantity(item.id) || 1))}
+                      </p>
+                      <p className="text-gray-500 text-[10px] uppercase tracking-wider font-medium">per {item.unit_type}</p>
+                    </div>
+
+                    <div className="flex flex-col items-end">
+                      {getItemQuantity(item.id) === 0 ? (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(item);
+                          }}
+                          className="w-12 h-12 rounded-full bg-[#F2A900] hover:bg-[#D99700] text-black flex items-center justify-center transition-all duration-300 shadow-[0_0_15px_rgba(242,169,0,0.2)] hover:shadow-[0_0_20px_rgba(242,169,0,0.4)] hover:scale-105 active:scale-95"
+                          title="Add to Cart"
+                        >
+                          <ShoppingCart className="w-5 h-5" />
+                        </button>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="flex items-center gap-3 bg-[#1e1e1e] rounded-full p-1 border border-[#F2A900]/20 shadow-inner">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateQuantity(item, getItemQuantity(item.id) - 1);
+                              }}
+                              className="w-8 h-8 rounded-full bg-[#2a2a2a] hover:bg-[#333] flex items-center justify-center transition-colors border border-[#F2A900]/10"
+                            >
+                              <Minus className="w-4 h-4 text-[#F2A900]" />
+                            </button>
+
+                            <span className="text-lg font-bold text-white min-w-[1.5rem] text-center">
+                              {getItemQuantity(item.id)}
+                            </span>
+
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateQuantity(item, getItemQuantity(item.id) + 1);
+                              }}
+                              disabled={item.max_order_qty ? getItemQuantity(item.id) >= item.max_order_qty : false}
+                              className="w-8 h-8 rounded-full bg-[#2a2a2a] hover:bg-[#333] flex items-center justify-center transition-colors border border-[#F2A900]/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                            >
+                              <Plus className="w-4 h-4 text-[#F2A900]" />
+                            </button>
+                          </div>
+                          {item.max_order_qty && (
+                            <p className="text-[9px] text-gray-500 uppercase tracking-tighter">
+                              Max: {item.max_order_qty}
+                            </p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {/* Add to Cart Button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleAddToCart(item);
-                    }}
-                    className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 flex items-center justify-center gap-2 ${addedToCart === item.id
-                      ? 'bg-green-600 text-white'
-                      : 'bg-[#F2A900] hover:bg-[#D99700] text-black'
-                      }`}
-                  >
-                    <ShoppingCart className="w-4 h-4" />
-                    {addedToCart === item.id ? 'Added!' : 'Add to Cart'}
-                  </button>
                 </div>
               </div>
             ))}

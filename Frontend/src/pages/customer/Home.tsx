@@ -1,4 +1,4 @@
-import { ArrowRight, Clock, Phone, MapPin, Star } from 'lucide-react';
+import { ArrowRight, Clock, Phone, MapPin, Star, ShoppingCart, Plus, Minus } from 'lucide-react';
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMenuStore } from '@/store/menu-store';
@@ -27,7 +27,7 @@ const getImageUrl = (url?: string) => {
 export default function Home() {
   const navigate = useNavigate();
   const { menuItems, fetchAllMenuItems, categories: storeCategories, fetchCategories } = useMenuStore();
-  const { addItem } = useCartStore();
+  const { items: cartItems, addItem, updateQuantity } = useCartStore();
   const { user } = useAuthStore();
   const { homepageHero, fetchHomepageHero } = useCMSEnhancedStore();
   const { toast } = useToast();
@@ -177,6 +177,20 @@ export default function Home() {
       doAddToCart(pendingCartItem.item, pendingCartItem.quantity);
       setPendingCartItem(null);
     }
+  };
+
+  const getItemQuantity = (id: string) => {
+    const item = cartItems.find(i => i.id === id);
+    return item ? item.quantity : 0;
+  };
+
+  const handleUpdateQuantity = (item: any, newQty: number) => {
+    if (!user) {
+      setPendingCartItem({ item, quantity: newQty });
+      setShowAuthModal(true);
+      return;
+    }
+    updateQuantity(item.id, newQty);
   };
 
   return (
@@ -413,14 +427,67 @@ export default function Home() {
                       <h3 className="text-white font-bold text-base sm:text-lg mb-1 sm:mb-2 line-clamp-1">{item.name}</h3>
                       <p className="text-gray-400 text-xs sm:text-sm mb-2 sm:mb-3 line-clamp-2">{item.description || 'Authentic Hyderabad taste'}</p>
                     </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-baseline gap-1 sm:gap-2">
-                        <span className="text-[#F2A900] font-bold text-lg sm:text-2xl">{formatCurrency(item.discounted_price || item.price)}</span>
-                        {item.discounted_price && (
-                          <span className="text-gray-500 text-xs sm:text-sm line-through">{formatCurrency(item.price)}</span>
+                    <div className="flex justify-between items-end mt-4">
+                      <div className="flex flex-col">
+                        <div className="flex items-baseline gap-1 sm:gap-2">
+                          <span className="text-[#F2A900] font-bold text-lg sm:text-2xl">
+                            {formatCurrency((item.discounted_price || item.price) * (getItemQuantity(item.id) || 1))}
+                          </span>
+                          {item.discounted_price && (
+                            <span className="text-gray-500 text-[10px] sm:text-xs line-through">{formatCurrency(item.price * (getItemQuantity(item.id) || 1))}</span>
+                          )}
+                        </div>
+                        <span className="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wider font-medium">per {item.unit_type}</span>
+                      </div>
+
+                      <div className="flex flex-col items-end">
+                        {getItemQuantity(item.id) === 0 ? (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (!user) {
+                                setPendingCartItem({ item, quantity: 1 });
+                                setShowAuthModal(true);
+                                return;
+                              }
+                              doAddToCart(item, 1);
+                            }}
+                            className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#F2A900] hover:bg-[#D99700] text-black flex items-center justify-center transition-all duration-300 shadow-[0_0_15px_rgba(242,169,0,0.2)] hover:shadow-[0_0_20px_rgba(242,169,0,0.4)] hover:scale-105 active:scale-95"
+                            title="Add to Cart"
+                          >
+                            <ShoppingCart className="w-5 h-5" />
+                          </button>
+                        ) : (
+                          <div className="flex flex-col items-center gap-1">
+                            <div className="flex items-center gap-3 bg-[#0a0a0a] rounded-full p-1 border border-[#F2A900]/20 shadow-inner">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateQuantity(item, getItemQuantity(item.id) - 1);
+                                }}
+                                className="w-8 h-8 rounded-full bg-[#2a2a2a] hover:bg-[#333] flex items-center justify-center transition-colors border border-[#F2A900]/10"
+                              >
+                                <Minus className="w-4 h-4 text-[#F2A900]" />
+                              </button>
+
+                              <span className="text-base font-bold text-white min-w-[1.2rem] text-center">
+                                {getItemQuantity(item.id)}
+                              </span>
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleUpdateQuantity(item, getItemQuantity(item.id) + 1);
+                                }}
+                                disabled={item.max_order_qty ? getItemQuantity(item.id) >= item.max_order_qty : false}
+                                className="w-8 h-8 rounded-full bg-[#2a2a2a] hover:bg-[#333] flex items-center justify-center transition-colors border border-[#F2A900]/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                              >
+                                <Plus className="w-4 h-4 text-[#F2A900]" />
+                              </button>
+                            </div>
+                          </div>
                         )}
                       </div>
-                      <span className="text-gray-500 text-[10px] sm:text-xs">per {item.unit_type}</span>
                     </div>
                   </div>
                 </div>

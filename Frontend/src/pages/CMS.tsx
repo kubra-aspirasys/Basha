@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import PageHeader from '@/components/PageHeader';
 // import FAQManager from '@/components/cms/FAQManager';
 import SiteSettingsManager from '@/components/cms/SiteSettingsManager';
@@ -9,7 +10,14 @@ import PaymentMethodsManager from '@/components/cms/PaymentMethodsManager';
 import { Settings, Grid3x3, Home, Phone, CreditCard } from 'lucide-react';
 
 export default function CMS() {
+  const location = useLocation();
   const [activeTab, setActiveTab] = useState<'settings' | 'categories' | 'homepage' | 'contact' | 'payments'>('homepage');
+
+  useEffect(() => {
+    if (location.state && (location.state as any).activeTab) {
+      setActiveTab((location.state as any).activeTab);
+    }
+  }, [location.state]);
 
   const tabs = [
     { id: 'homepage' as const, label: 'Homepage', icon: Home },
