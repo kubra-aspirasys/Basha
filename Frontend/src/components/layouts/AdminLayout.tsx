@@ -1,10 +1,14 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    document.title = "Basha Biryani - Admin Panel";
+  }, []);
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-slate-50/50 to-slate-100/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 relative overflow-hidden">

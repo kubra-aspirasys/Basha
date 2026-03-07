@@ -58,4 +58,8 @@ router.put('/homepage-hero', protect, authorize('admin'), cmsController.updateHo
 // File Upload
 router.post('/upload', protect, authorize('admin'), cmsController.uploadFile);
 
+// Store Status
+router.get('/store-status', cmsController.getStoreStatus);
+router.put('/store-status', protect, authorize('admin'), cmsController.updateStoreStatus);
+
 module.exports = router;

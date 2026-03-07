@@ -6,7 +6,6 @@ import { Plus, Pencil, Trash2, Search, Upload, Link as LinkIcon, X, Star, Tag, C
 import { Pagination } from '@/components/ui/pagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
 // Removed mock import
 // import { categoryNames, typeNames } from '@/lib/menu-mock-data';
 
@@ -30,8 +29,6 @@ export default function Menu() {
     deleteMenuItem,
     toggleAvailability,
     toggleFeatured,
-    createCategory,
-    createProductType
   } = useMenuStore();
   const { offers, fetchOffers } = useOfferStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -69,8 +66,6 @@ export default function Menu() {
     offer_code: '',
     display_order: '0'
   });
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newTypeName, setNewTypeName] = useState('');
 
   const [offerValidation, setOfferValidation] = useState({
     isValid: false,
@@ -238,19 +233,8 @@ export default function Menu() {
     e.preventDefault();
 
     try {
-      // Handle "Other" category
       let finalCategoryId = formData.category_id;
-      if (formData.category_id === 'other') {
-        const newCategory = await createCategory(newCategoryName);
-        finalCategoryId = newCategory.id;
-      }
-
-      // Handle "Other" type
       let finalTypeId = formData.type_id;
-      if (formData.type_id === 'other') {
-        const newType = await createProductType(newTypeName);
-        finalTypeId = newType.id;
-      }
 
       const submitData = new FormData();
       submitData.append('name', formData.name);
@@ -879,7 +863,7 @@ export default function Menu() {
             </DialogTitle>
           </DialogHeader>
 
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto p-1">
             <form id="menu-form" onSubmit={handleSubmit} className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left Column */}
@@ -1203,7 +1187,7 @@ export default function Menu() {
               </div>
 
             </form>
-          </ScrollArea>
+          </div>
 
           <DialogFooter className="p-6 border-t border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 rounded-b-xl z-10 shrink-0 gap-2">
             <Button

@@ -12,6 +12,9 @@ import {
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useOrderStore } from '@/store/order-store';
+import { Switch } from '@/components/ui/switch';
+import { toast } from 'sonner';
 
 // Helper to construct full image URL
 const getImageUrl = (url?: string) => {
@@ -79,8 +82,10 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { storeActive, fetchStoreStatus, setStoreStatus } = useOrderStore();
 
   useEffect(() => {
+    fetchStoreStatus();
     const fetchStats = async (showLoading = true) => {
       try {
         if (showLoading) setLoading(true);
@@ -106,6 +111,7 @@ export default function Dashboard() {
     // 15s Polling for live dashboard updates
     const interval = setInterval(() => {
       fetchStats(false);
+      fetchStoreStatus(); // Re-fetch store status as well
     }, 15000);
 
     return () => clearInterval(interval);
@@ -174,12 +180,43 @@ export default function Dashboard() {
             Overview of your restaurant management
           </p>
         </div>
-        <div className={cn(
-          "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300",
-          isRefreshing ? "bg-primary-50 text-primary-600 dark:bg-primary-900/30 opacity-100" : "opacity-0"
-        )}>
-          <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-          <span>Refreshing live data...</span>
+
+        <div className="flex flex-col-reverse items-end sm:items-center gap-4">
+          <div
+            className={`flex items-center gap-3 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full border-2 transition-all duration-300 shadow-sm backdrop-blur-sm ${storeActive
+                ? 'bg-green-50/80 border-green-200 dark:bg-green-900/20 dark:border-green-800/50'
+                : 'bg-red-50/80 border-red-200 dark:bg-red-900/20 dark:border-red-800/50'
+              }`}
+          >
+            <div className={`relative flex items-center justify-center w-2.5 h-2.5 rounded-full ${storeActive ? 'bg-green-500' : 'bg-red-500'}`}>
+              {storeActive && <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75 duration-1000" />}
+            </div>
+            <span className={`text-sm font-bold tracking-wide uppercase ${storeActive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+              {storeActive ? 'Accepting Orders' : 'Store Closed'}
+            </span>
+            <div className="pl-2 ml-1 border-l border-slate-300 dark:border-slate-600">
+              <Switch
+                checked={storeActive}
+                onCheckedChange={async (checked) => {
+                  try {
+                    await setStoreStatus(checked);
+                    toast.success(checked ? 'Store is now open for orders' : 'Store is now closed');
+                  } catch {
+                    toast.error('Failed to change store status');
+                  }
+                }}
+                className={storeActive ? '!bg-green-500' : '!bg-red-500'}
+              />
+            </div>
+          </div>
+
+          <div className={cn(
+            "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300",
+            isRefreshing ? "bg-primary-50 text-primary-600 dark:bg-primary-900/30 opacity-100" : "opacity-0"
+          )}>
+            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+            <span>Refreshing live data...</span>
+          </div>
         </div>
       </div>
 

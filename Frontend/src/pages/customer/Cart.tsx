@@ -25,7 +25,7 @@ import { Offer } from '@/types';
 export default function Cart() {
   const navigate = useNavigate();
   const { items, updateQuantity, removeItem, clearCart, fetchCart } = useCartStore();
-  const { createOrder } = useOrderStore();
+  const { createOrder, storeActive, fetchStoreStatus } = useOrderStore();
   const { user } = useAuthStore();
   const { settings } = useSettingsStore();
   const { toast } = useToast();
@@ -37,7 +37,8 @@ export default function Cart() {
       fetchCart();
     }
     fetchSiteSettings();
-  }, [user, fetchCart, fetchSiteSettings]);
+    fetchStoreStatus();
+  }, [user, fetchCart, fetchSiteSettings, fetchStoreStatus]);
 
   // CMS-controlled toggles with safe fallbacks (default to true if not specified)
   const isDeliveryEnabled = siteSettings.find(s => s.key === 'payment_method_delivery')?.value !== 'false';
@@ -724,13 +725,20 @@ export default function Cart() {
           )}
 
 
-          <button
-            onClick={handlePlaceOrder}
-            disabled={isPlacing || !items.length}
-            className="w-full py-3 rounded bg-[#F2A900] hover:bg-[#D99700] text-black font-semibold transition-colors disabled:opacity-50"
-          >
-            {isPlacing ? 'Placing order...' : `Place Order ${items.length > 0 ? `(${formatCurrency(totals.total)})` : ''}`}
-          </button>
+          {!storeActive ? (
+            <div className="p-4 bg-red-900/40 border border-red-500/50 rounded-xl text-center space-y-1">
+              <p className="text-red-400 font-bold">Store is Currently Closed</p>
+              <p className="text-red-300 text-sm">We are unable to accept new orders at this time. Please try again later.</p>
+            </div>
+          ) : (
+            <button
+              onClick={handlePlaceOrder}
+              disabled={isPlacing || !items.length}
+              className="w-full py-3 rounded bg-[#F2A900] hover:bg-[#D99700] text-black font-semibold transition-colors disabled:opacity-50"
+            >
+              {isPlacing ? 'Placing order...' : `Place Order ${items.length > 0 ? `(${formatCurrency(totals.total)})` : ''}`}
+            </button>
+          )}
         </div>
       </div>
 

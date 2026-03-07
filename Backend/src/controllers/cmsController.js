@@ -273,6 +273,20 @@ class CMSController {
             return successResponse(res, 'File uploaded successfully', { url: mockUrl });
         } catch (error) { return errorResponse(res, error.message); }
     }
+
+    // --- Store Status (Stored in SiteSettings) ---
+    async getStoreStatus(req, res) {
+        try {
+            const data = await cmsService.getStoreStatus();
+            return successResponse(res, 'Store status fetched successfully', data);
+        } catch (error) { return errorResponse(res, error.message); }
+    }
+    async updateStoreStatus(req, res) {
+        try {
+            const data = await cmsService.updateStoreStatus(req.body.is_store_active);
+            return successResponse(res, 'Store status updated successfully', data);
+        } catch (error) { return errorResponse(res, error.message); }
+    }
 }
 
 module.exports = new CMSController();

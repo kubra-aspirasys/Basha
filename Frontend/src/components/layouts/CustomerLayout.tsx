@@ -17,6 +17,7 @@ export default function CustomerLayout() {
 
   // Redirect admin to admin panel if they try to access customer routes
   useEffect(() => {
+    document.title = "Basha Biryani";
     if (isAuthenticated && user?.role === 'admin') {
       navigate('/admin/dashboard', { replace: true });
     }

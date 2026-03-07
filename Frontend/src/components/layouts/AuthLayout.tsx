@@ -1,6 +1,10 @@
+import { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 
 export default function AuthLayout() {
+  useEffect(() => {
+    document.title = "Basha Biryani";
+  }, []);
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-slate-50 to-gold-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 flex items-center justify-center p-4" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
       <div className="absolute inset-0 bg-grid-slate-900/[0.02] dark:bg-grid-white/[0.02] -z-10" />

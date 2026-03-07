@@ -129,8 +129,17 @@ export default function Home() {
     }
   };
 
-  // Get unique categories from store (keeps manual order)
-  const categories = ['all', ...storeCategories.map(c => c.id)];
+  // Get unique categories from store (keeps manual order), filtered to only those with available items
+  const categories = useMemo(() => {
+    const hasItems = (categoryId: string) =>
+      menuItems.some(item => item.category_id === categoryId && item.is_available);
+
+    const activeCategoryIds = storeCategories
+      .filter(c => hasItems(c.id))
+      .map(c => c.id);
+
+    return ['all', ...activeCategoryIds];
+  }, [storeCategories, menuItems]);
 
   // Get filtered items by category for new tabbed menu
   const filteredMenuItems = selectedCategory === 'all'

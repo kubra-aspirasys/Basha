@@ -9,6 +9,7 @@ import { MenuItem } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { ToastAction } from '@/components/ui/toast';
 import { useNavigate } from 'react-router-dom';
+import { formatCurrency } from '@/utils/orderCalculations';
 
 // Helper to construct full image URL
 const getImageUrl = (url?: string) => {
@@ -37,7 +38,6 @@ export default function CustomerMenu() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedType, setSelectedType] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
-  const [addedToCart, setAddedToCart] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<MenuItem | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [pendingCartItem, setPendingCartItem] = useState<{ item: any; quantity: number } | null>(null);
@@ -65,8 +65,18 @@ export default function CustomerMenu() {
     return map;
   }, [productTypes]);
 
-  // Get unique categories from items but prioritize storeCategories for labels and order
-  const categories = ['all', ...storeCategories.map(c => c.id)];
+  // Get unique categories from items, hiding empty ones
+  const categories = useMemo(() => {
+    const hasItems = (categoryId: string) =>
+      menuItems.some(item => item.category_id === categoryId && item.is_available);
+
+    // Filter categories that have items in them
+    const activeCategoryIds = storeCategories
+      .filter(c => hasItems(c.id))
+      .map(c => c.id);
+
+    return ['all', ...activeCategoryIds];
+  }, [storeCategories, menuItems]);
   const types = ['all', ...productTypes.map(t => t.id)];
 
   // Filter items
@@ -87,7 +97,6 @@ export default function CustomerMenu() {
       unit_type: item.unit_type,
       quantity,
     });
-    setAddedToCart(item.id);
     toast({
       title: "Added to Cart!",
       description: `${item.name} has been added to your basket.`,
@@ -97,7 +106,6 @@ export default function CustomerMenu() {
         </ToastAction>
       ),
     });
-    setTimeout(() => setAddedToCart(null), 2000);
   };
 
   const handleAddToCart = (item: any) => {

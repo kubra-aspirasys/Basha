@@ -141,7 +141,6 @@ class CMSService {
         return await type.destroy();
     }
 
-    // --- Homepage Config (Stored in SiteSettings) ---
     async getHomepageHero() {
         const setting = await this.models.SiteSetting.findOne({ where: { key: 'homepage_config' } });
         return setting ? JSON.parse(setting.value) : null;
@@ -161,6 +160,40 @@ class CMSService {
         });
         const updated = await setting.update({ value: JSON.stringify(data) });
         return JSON.parse(updated.value);
+    }
+
+    // --- Store Status (Stored in SiteSettings) ---
+    async getStoreStatus() {
+        const SiteSetting = this.models.SiteSetting;
+        if (!SiteSetting) throw new Error('SiteSetting model not loaded');
+
+        const [setting] = await SiteSetting.findOrCreate({
+            where: { key: 'is_store_active' },
+            defaults: {
+                value: 'true',
+                type: 'boolean',
+                category: 'system',
+                description: 'Is store actively accepting orders'
+            }
+        });
+        return { is_store_active: setting.value === 'true' };
+    }
+
+    async updateStoreStatus(isActive) {
+        const SiteSetting = this.models.SiteSetting;
+        if (!SiteSetting) throw new Error('SiteSetting model not loaded');
+
+        const [setting] = await SiteSetting.findOrCreate({
+            where: { key: 'is_store_active' },
+            defaults: {
+                value: 'true',
+                type: 'boolean',
+                category: 'system',
+                description: 'Is store actively accepting orders'
+            }
+        });
+        const updated = await setting.update({ value: isActive ? 'true' : 'false' });
+        return { is_store_active: updated.value === 'true' };
     }
 }
 

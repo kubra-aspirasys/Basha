@@ -9,6 +9,17 @@ const createOrder = async (req, res, next) => {
         const customerId = req.user.role === 'admin' ? null : req.user.userId;
         const orderData = req.body;
 
+        if (req.user.role !== 'admin') {
+            const { SiteSetting } = require('../models');
+            const storeSetting = await SiteSetting.findOne({ where: { key: 'is_store_active' } });
+            if (storeSetting && storeSetting.value === 'false') {
+                return res.status(400).json({
+                    success: false,
+                    message: 'We are currently closed and unable to accept new orders at this time.'
+                });
+            }
+        }
+
         const order = await orderService.createOrder(customerId, orderData);
 
         res.status(201).json({

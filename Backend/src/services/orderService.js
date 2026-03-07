@@ -240,7 +240,9 @@ class OrderService {
         const order = await Order.findByPk(orderId);
 
         if (!order) {
-            throw new Error('Order not found');
+            const error = new Error('Order not found');
+            error.statusCode = 404;
+            throw error;
         }
 
         const currentStatus = order.status;
@@ -254,7 +256,9 @@ class OrderService {
         const allowedNextStatuses = ALLOWED_TRANSITIONS[currentStatus] || [];
 
         if (!allowedNextStatuses.includes(newStatus)) {
-            throw new Error(`Invalid status transition from '${currentStatus}' to '${newStatus}'. Allowed: ${allowedNextStatuses.join(', ')}`);
+            const error = new Error(`Invalid status transition from '${currentStatus}' to '${newStatus}'. Allowed: ${allowedNextStatuses.join(', ')}`);
+            error.statusCode = 400;
+            throw error;
         }
 
         order.status = newStatus;

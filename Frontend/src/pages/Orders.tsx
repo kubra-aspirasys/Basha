@@ -7,6 +7,8 @@ import { useCustomerStore } from '@/store/customer-store';
 import { Search, Eye, Pencil, Trash2, X, Check, Clock, CheckCircle, Truck, Package, AlertCircle, MapPin, Store, Phone, Mail, User, Calendar, FileText, Activity, Plus, Minus, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 import { Order } from '@/types';
+import { toast } from 'sonner';
+import { Switch } from '@/components/ui/switch';
 
 const statusConfig = {
   pending: {
@@ -47,7 +49,7 @@ const statusConfig = {
 };
 
 export default function Orders() {
-  const { orders, updateOrderStatus, deleteOrder, fetchOrders, createManualOrder, loading } = useOrderStore();
+  const { orders, updateOrderStatus, deleteOrder, fetchOrders, createManualOrder, loading, storeActive, fetchStoreStatus, setStoreStatus } = useOrderStore();
   const { menuItems, fetchAllMenuItems } = useMenuStore();
   const { customers } = useCustomerStore();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -98,14 +100,16 @@ export default function Orders() {
 
   useEffect(() => {
     fetchOrders();
+    fetchStoreStatus();
 
     // 15s Polling for live updates
     const interval = setInterval(() => {
       fetchOrders();
+      fetchStoreStatus();
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [fetchOrders]);
+  }, [fetchOrders, fetchStoreStatus]);
 
   // Handle URL parameter to open specific order
   useEffect(() => {
@@ -189,10 +193,15 @@ export default function Orders() {
     return menuItems.find((item) => item.id === menuItemId);
   };
 
-  const handleStatusChange = (orderId: string, newStatus: Order['status']) => {
-    updateOrderStatus(orderId, newStatus);
-    setViewMode(null);
-    setSelectedOrder(null);
+  const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
+    try {
+      await updateOrderStatus(orderId, newStatus);
+      setViewMode(null);
+      setSelectedOrder(null);
+      toast.success('Order status updated successfully');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.message || 'Failed to update order status');
+    }
   };
 
   const handleInlineStatusEdit = (order: Order) => {
@@ -200,9 +209,15 @@ export default function Orders() {
     setTempStatus(order.status);
   };
 
-  const handleInlineStatusSave = (orderId: string) => {
-    updateOrderStatus(orderId, tempStatus);
-    setEditingStatus(null);
+  const handleInlineStatusSave = async (orderId: string) => {
+    try {
+      await updateOrderStatus(orderId, tempStatus);
+      setEditingStatus(null);
+      toast.success('Order status updated successfully');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || error.message || 'Failed to update status');
+      setEditingStatus(null);
+    }
   };
 
   const handleInlineStatusCancel = () => {
@@ -382,21 +397,51 @@ export default function Orders() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white">Orders</h1>
           <p className="text-slate-600 dark:text-slate-400 mt-1">
             Manage and track customer orders
           </p>
         </div>
-        <button
-          onClick={handleOpenManualOrder}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0"
-        >
-          <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline">Add Manual Order</span>
-          <span className="sm:hidden">Add</span>
-        </button>
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-4 w-full sm:w-auto">
+          <div
+            className={`flex items-center justify-between sm:justify-start gap-3 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full border-2 transition-all duration-300 shadow-sm backdrop-blur-sm w-full sm:w-auto ${storeActive
+                ? 'bg-green-50/80 border-green-200 dark:bg-green-900/20 dark:border-green-800/50'
+                : 'bg-red-50/80 border-red-200 dark:bg-red-900/20 dark:border-red-800/50'
+              }`}
+          >
+            <div className={`relative flex items-center justify-center w-2.5 h-2.5 rounded-full flex-shrink-0 ${storeActive ? 'bg-green-500' : 'bg-red-500'}`}>
+              {storeActive && <div className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75 duration-1000" />}
+            </div>
+            <span className={`text-sm font-bold tracking-wide uppercase whitespace-nowrap ${storeActive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+              {storeActive ? 'Accepting Orders' : 'Store Closed'}
+            </span>
+            <div className="pl-2 ml-auto sm:ml-1 border-l border-slate-300 dark:border-slate-600 flex items-center">
+              <Switch
+                checked={storeActive}
+                onCheckedChange={async (checked) => {
+                  try {
+                    await setStoreStatus(checked);
+                    toast.success(checked ? 'Store is now open for orders' : 'Store is now closed');
+                  } catch {
+                    toast.error('Failed to change store status');
+                  }
+                }}
+                className={storeActive ? '!bg-green-500' : '!bg-red-500'}
+              />
+            </div>
+          </div>
+
+          <button
+            onClick={handleOpenManualOrder}
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+          >
+            <Plus className="w-5 h-5" />
+            <span className="hidden sm:inline">Add Manual Order</span>
+            <span className="sm:hidden">Add</span>
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
