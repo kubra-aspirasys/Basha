@@ -1,5 +1,5 @@
 'use strict';
-const { User, Customer } = require('../models');
+const { User, Customer, CustomerAddress } = require('../models');
 const bcrypt = require('bcryptjs');
 
 class ProfileService {
@@ -8,7 +8,9 @@ class ProfileService {
         if (role === 'admin') {
             user = await User.findByPk(userId);
         } else {
-            user = await Customer.findByPk(userId);
+            user = await Customer.findByPk(userId, {
+                include: [{ model: CustomerAddress, as: 'addresses' }]
+            });
         }
 
         if (!user) {
@@ -28,7 +30,9 @@ class ProfileService {
         if (role === 'admin') {
             user = await User.findByPk(userId);
         } else {
-            user = await Customer.findByPk(userId);
+            user = await Customer.findByPk(userId, {
+                include: [{ model: CustomerAddress, as: 'addresses' }]
+            });
         }
 
         if (!user) {
@@ -36,7 +40,7 @@ class ProfileService {
         }
 
         // Only allow update of safe fields based on UI
-        const safeFields = ['name', 'phone', 'avatar_url', 'address'];
+        const safeFields = ['name', 'phone', 'avatar_url', 'house_address', 'street', 'locality', 'city', 'address_type'];
         const dataToUpdate = {};
 
         Object.keys(updateData).forEach(key => {

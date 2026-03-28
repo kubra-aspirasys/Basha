@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { X, Eye, EyeOff, LogIn, UserPlus, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/store/auth-store';
 
 interface AuthModalProps {
@@ -12,6 +13,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
     const [mode, setMode] = useState<'login' | 'signup'>('login');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const navigate = useNavigate();
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
@@ -179,7 +181,19 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-sm font-medium text-gray-300">Password</label>
+                                <div className="flex justify-between items-center">
+                                    <label className="text-sm font-medium text-gray-300">Password</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            onClose();
+                                            navigate('/forgot-password');
+                                        }}
+                                        className="text-xs font-semibold text-[#F2A900] hover:text-[#D99700] transition-colors"
+                                    >
+                                        Forgot password?
+                                    </button>
+                                </div>
                                 <div className="relative">
                                     <input
                                         type={showPassword ? 'text' : 'password'}

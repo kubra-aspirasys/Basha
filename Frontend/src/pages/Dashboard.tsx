@@ -11,19 +11,13 @@ import {
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
+import CloseStoreModal from '@/components/CloseStoreModal';
 import { cn } from '@/lib/utils';
 import { useOrderStore } from '@/store/order-store';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
 
-// Helper to construct full image URL
-const getImageUrl = (url?: string) => {
-  if (!url) return null;
-  if (url.startsWith('http')) return url;
-  // Remove /api from base if present to get root
-  const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
-  return `${baseUrl}${url}`;
-};
+import { getImageUrl } from '@/utils/imageUtils';
 
 const statusConfig = {
   pending: {
@@ -40,6 +34,11 @@ const statusConfig = {
     color: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 border-yellow-200 dark:border-yellow-800',
     icon: Package,
     label: 'Preparing'
+  },
+  ready_for_pickup: {
+    color: 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800',
+    icon: Package,
+    label: 'Ready for Pickup'
   },
   out_for_delivery: {
     color: 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300 border-orange-200 dark:border-orange-800',
@@ -82,6 +81,8 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState('all');
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const { storeActive, fetchStoreStatus, setStoreStatus } = useOrderStore();
 
   useEffect(() => {
@@ -90,7 +91,7 @@ export default function Dashboard() {
       try {
         if (showLoading) setLoading(true);
         else setIsRefreshing(true);
-        const response = await api.get('/dashboard/stats');
+        const response = await api.get(`/dashboard/stats?filter=${filter}`);
         if (response.data.success) {
           setStats(response.data.data);
           setError(null);
@@ -115,7 +116,7 @@ export default function Dashboard() {
     }, 15000);
 
     return () => clearInterval(interval);
-  }, []);
+  }, [filter, fetchStoreStatus]);
 
   if (loading) {
     return (
@@ -130,6 +131,12 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {[...Array(4)].map((_, i) => (
             <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full rounded-xl transition-all" />
           ))}
         </div>
 
@@ -181,7 +188,21 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex flex-col-reverse items-end sm:items-center gap-4">
+        <div className="flex flex-col-reverse sm:flex-row items-end sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <select
+              title="Dashboard Filter"
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="bg-white dark:bg-slate-800 border items-center gap-2 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-all"
+            >
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="last_week">Last Week</option>
+              <option value="last_month">Last Month</option>
+              <option value="all">Lifetime / All Time</option>
+            </select>
+          </div>
           <div
             className={`flex items-center gap-3 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full border-2 transition-all duration-300 shadow-sm backdrop-blur-sm ${storeActive
                 ? 'bg-green-50/80 border-green-200 dark:bg-green-900/20 dark:border-green-800/50'
@@ -199,8 +220,12 @@ export default function Dashboard() {
                 checked={storeActive}
                 onCheckedChange={async (checked) => {
                   try {
-                    await setStoreStatus(checked);
-                    toast.success(checked ? 'Store is now open for orders' : 'Store is now closed');
+                    if (checked) {
+                      await setStoreStatus(true, '');
+                      toast.success('Store is now open for orders');
+                    } else {
+                      setIsCloseModalOpen(true);
+                    }
                   } catch {
                     toast.error('Failed to change store status');
                   }
@@ -209,6 +234,20 @@ export default function Dashboard() {
               />
             </div>
           </div>
+          <CloseStoreModal
+            isOpen={isCloseModalOpen}
+            onClose={() => setIsCloseModalOpen(false)}
+            onConfirm={async (reason) => {
+              try {
+                await setStoreStatus(false, reason);
+                toast.success('Store is now closed');
+              } catch {
+                toast.error('Failed to change store status');
+              } finally {
+                setIsCloseModalOpen(false);
+              }
+            }}
+          />
 
           <div className={cn(
             "flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-300",
@@ -247,6 +286,38 @@ export default function Dashboard() {
           value={stats.totalMenuItems}
           icon={UtensilsCrossed}
           onClick={() => navigate('/admin/menu')}
+        />
+      </div>
+
+      {/* Order Status Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <MetricsCard
+          title="New & Pending"
+          value={(stats.ordersByStatus.pending || 0) + (stats.ordersByStatus.confirmed || 0)}
+          icon={Clock}
+          trend={{ value: 'Awaiting Action', positive: false }}
+          onClick={() => navigate('/admin/orders')}
+        />
+        <MetricsCard
+          title="In Kitchen / Dispatch"
+          value={(stats.ordersByStatus.preparing || 0) + (stats.ordersByStatus.out_for_delivery || 0) + (stats.ordersByStatus.ready_for_pickup || 0)}
+          icon={ChefHat}
+          trend={{ value: 'In Progress', positive: true }}
+          onClick={() => navigate('/admin/orders?status=preparing')}
+        />
+        <MetricsCard
+          title="Delivered Orders"
+          value={stats.ordersByStatus.delivered || 0}
+          icon={CheckCircle}
+          trend={{ value: 'Completed', positive: true }}
+          onClick={() => navigate('/admin/orders?status=delivered')}
+        />
+        <MetricsCard
+          title="Cancelled Orders"
+          value={stats.ordersByStatus.cancelled || 0}
+          icon={XCircle}
+          trend={{ value: 'Lost Opportunities', positive: false }}
+          onClick={() => navigate('/admin/orders?status=cancelled')}
         />
       </div>
 

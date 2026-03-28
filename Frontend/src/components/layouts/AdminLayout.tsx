@@ -2,13 +2,26 @@ import { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
+import { useOrderStore } from '@/store/order-store';
 
 export default function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const { fetchOrders } = useOrderStore();
+
   useEffect(() => {
     document.title = "Basha Biryani - Admin Panel";
-  }, []);
+    // Initial fetch
+    fetchOrders();
+    // Poll for new orders every 30 seconds
+    const pollInterval = setInterval(() => {
+      fetchOrders();
+    }, 30000);
+
+    return () => clearInterval(pollInterval);
+  }, [fetchOrders]);
+
+
 
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-slate-50/50 to-slate-100/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 relative overflow-hidden">

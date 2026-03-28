@@ -33,21 +33,19 @@ exports.getCart = async (req, res) => {
             });
         }
 
-        // Format response to match frontend expectation roughly, or just return structured data
-        // The frontend expects items with menu info embedded mostly.
-        const formattedItems = cart.items.map(item => ({
-            id: item.menu_item.id, // Frontend uses menu item id as the main identifier often, but let's see. 
-            // Actually frontend store uses 'id' as the item id. 
-            // But if we want to support editing quantity, we might need the cart_item_id too or just look up by product id.
-            // Let's pass both useful IDs.
-            cart_item_id: item.id,
-            menu_item_id: item.menu_item.id,
-            name: item.menu_item.name,
-            price: parseFloat(item.menu_item.price),
-            quantity: item.quantity,
-            image_url: item.menu_item.image_url,
-            unit_type: item.menu_item.unit_type
-        }));
+        // Format response to match frontend expectation
+        const formattedItems = cart.items
+            .filter(item => item.menu_item !== null) // Filter out items with missing MenuItem
+            .map(item => ({
+                id: item.menu_item.id,
+                cart_item_id: item.id,
+                menu_item_id: item.menu_item.id,
+                name: item.menu_item.name,
+                price: parseFloat(item.menu_item.price),
+                quantity: item.quantity,
+                image_url: item.menu_item.image_url,
+                unit_type: item.menu_item.unit_type
+            }));
 
         res.status(200).json({
             success: true,

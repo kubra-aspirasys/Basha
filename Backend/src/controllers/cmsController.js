@@ -283,7 +283,7 @@ class CMSController {
     }
     async updateStoreStatus(req, res) {
         try {
-            const data = await cmsService.updateStoreStatus(req.body.is_store_active);
+            const data = await cmsService.updateStoreStatus(req.body.is_store_active, req.body.close_reason);
             return successResponse(res, 'Store status updated successfully', data);
         } catch (error) { return errorResponse(res, error.message); }
     }

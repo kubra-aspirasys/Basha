@@ -13,14 +13,7 @@ interface SearchResult {
   price?: number;
 }
 
-// Helper to construct full image URL
-const getImageUrl = (url?: string) => {
-  if (!url) return '/banner.jpeg'; // Fallback
-  if (url.startsWith('http')) return url;
-  // Remove /api from base if present to get root
-  const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
-  return `${baseUrl}${url}`;
-};
+import { getImageUrl } from '@/utils/imageUtils';
 
 export default function GlobalSearch() {
   const navigate = useNavigate();

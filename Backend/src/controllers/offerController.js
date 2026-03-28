@@ -11,18 +11,20 @@ const { v4: uuidv4 } = require('uuid');
  */
 exports.validateOffer = async (req, res, next) => {
     try {
-        const { code, order_total, customer_id } = req.body;
+        const { code, order_total, customer_id, items } = req.body;
 
         if (!code) {
             return errorResponse(res, 'Coupon code is required', 400);
         }
 
+        const now = new Date();
+        
         const offer = await Offer.findOne({
             where: {
                 code: code.toUpperCase(),
                 is_active: true,
-                valid_from: { [Op.lte]: new Date() },
-                valid_to: { [Op.gte]: new Date() }
+                valid_from: { [Op.lte]: now },
+                valid_to: { [Op.gte]: now }
             }
         });
 
@@ -49,14 +51,33 @@ exports.validateOffer = async (req, res, next) => {
             }
         }
 
+        let applicableTotal = parseFloat(order_total);
+        if (offer.item_applicability === 'specific') {
+            if (!items || !Array.isArray(items) || items.length === 0) {
+                return errorResponse(res, 'This coupon is for specific items only. Please add applicable items to your cart.', 400);
+            }
+
+            const specificItems = offer.specific_items || [];
+            const matchingItems = items.filter(item => specificItems.includes(item.menu_item_id));
+
+            if (matchingItems.length === 0) {
+                return errorResponse(res, 'This coupon doesn\'t apply to any items in your cart.', 400);
+            }
+
+            applicableTotal = matchingItems.reduce((sum, item) => sum + (parseFloat(item.price) * parseInt(item.quantity)), 0);
+        }
+
         let discount = 0;
         if (offer.discount_type === 'percentage') {
-            discount = (parseFloat(order_total) * parseFloat(offer.discount_value)) / 100;
+            discount = (applicableTotal * parseFloat(offer.discount_value)) / 100;
+            if (offer.max_discount_value && discount > parseFloat(offer.max_discount_value)) {
+                discount = parseFloat(offer.max_discount_value);
+            }
         } else {
             discount = parseFloat(offer.discount_value);
         }
 
-        // Cap discount at order total if needed, or implement max discount logic
+        // Cap discount at order total
         if (discount > parseFloat(order_total)) {
             discount = parseFloat(order_total);
         }
@@ -64,8 +85,13 @@ exports.validateOffer = async (req, res, next) => {
         return successResponse(res, 'Coupon applied successfully', {
             id: offer.id,
             code: offer.code,
+            description: offer.description,
             discount_type: offer.discount_type,
             discount_value: offer.discount_value,
+            max_discount_value: offer.max_discount_value,
+            item_applicability: offer.item_applicability,
+            specific_items: offer.specific_items,
+            valid_to: offer.valid_to,
             calculated_discount: discount.toFixed(2)
         });
 
@@ -83,15 +109,18 @@ exports.validateOffer = async (req, res, next) => {
 exports.getPublicOffers = async (req, res, next) => {
     try {
         const { customer_id } = req.query;
-
+        const now = new Date();
+        
         const allOffers = await Offer.findAll({
             where: {
                 is_active: true,
-                valid_from: { [Op.lte]: new Date() },
-                valid_to: { [Op.gte]: new Date() }
+                [Op.and]: [
+                    { [Op.or]: [{ valid_from: null }, { valid_from: { [Op.lte]: now } }] },
+                    { [Op.or]: [{ valid_to: null }, { valid_to: { [Op.gte]: new Date(now.setHours(0,0,0,0)) } }] }
+                ]
             },
-            attributes: ['id', 'code', 'discount_type', 'discount_value', 'valid_to', 'applicable_to', 'specific_users'],
-            order: [['valid_to', 'ASC']] // Show expiring soon first
+            attributes: ['id', 'code', 'discount_type', 'discount_value', 'description', 'max_discount_value', 'valid_to', 'applicable_to', 'specific_users', 'item_applicability', 'specific_items'],
+            order: [['valid_to', 'ASC']]
         });
 
         let usedOfferIds = [];
@@ -115,9 +144,13 @@ exports.getPublicOffers = async (req, res, next) => {
         }).map(offer => ({
             id: offer.id,
             code: offer.code,
+            description: offer.description,
             discount_type: offer.discount_type,
             discount_value: offer.discount_value,
-            valid_to: offer.valid_to
+            max_discount_value: offer.max_discount_value,
+            valid_to: offer.valid_to,
+            item_applicability: offer.item_applicability,
+            specific_items: offer.specific_items
         }));
 
         return successResponse(res, 'Available offers retrieved successfully', availableOffers);
@@ -152,22 +185,26 @@ exports.getAllOffers = async (req, res, next) => {
  */
 exports.createOffer = async (req, res, next) => {
     try {
-        const { code, discount_type, discount_value, valid_from, valid_to, is_active, applicable_to, specific_users } = req.body;
+        const { code, discount_type, discount_value, max_discount_value, description, valid_from, valid_to, is_active, applicable_to, specific_users, item_applicability, specific_items } = req.body;
 
         // Check if offer code exists (including soft-deleted records, since DB unique constraint covers all rows)
         const existingOffer = await Offer.findOne({ where: { code }, paranoid: false });
         if (existingOffer) {
-            if (existingOffer.isSoftDeleted()) {
+            if (existingOffer.deleted_at) {
                 // Restore the soft-deleted offer and update it
                 await existingOffer.restore();
                 await existingOffer.update({
                     discount_type,
                     discount_value,
+                    max_discount_value,
+                    description,
                     valid_from,
                     valid_to,
                     is_active,
                     applicable_to: applicable_to || 'all',
-                    specific_users: specific_users || []
+                    specific_users: specific_users || [],
+                    item_applicability: item_applicability || 'all',
+                    specific_items: specific_items || []
                 });
                 return successResponse(res, 'Offer created successfully', existingOffer, 201);
             }
@@ -178,11 +215,15 @@ exports.createOffer = async (req, res, next) => {
             code,
             discount_type,
             discount_value,
+            max_discount_value,
+            description,
             valid_from,
             valid_to,
             is_active,
             applicable_to: applicable_to || 'all',
-            specific_users: specific_users || []
+            specific_users: specific_users || [],
+            item_applicability: item_applicability || 'all',
+            specific_items: specific_items || []
         });
 
         return successResponse(res, 'Offer created successfully', offer, 201);
@@ -213,7 +254,7 @@ exports.createOffer = async (req, res, next) => {
 exports.updateOffer = async (req, res, next) => {
     try {
         const { id } = req.params;
-        const { code, discount_type, discount_value, valid_from, valid_to, is_active, applicable_to, specific_users } = req.body;
+        const { code, discount_type, discount_value, max_discount_value, description, valid_from, valid_to, is_active, applicable_to, specific_users, item_applicability, specific_items } = req.body;
 
         const offer = await Offer.findByPk(id);
         if (!offer) {
@@ -232,11 +273,15 @@ exports.updateOffer = async (req, res, next) => {
             code,
             discount_type,
             discount_value,
+            max_discount_value,
+            description,
             valid_from,
             valid_to,
             is_active,
             applicable_to: applicable_to || 'all',
-            specific_users: applicable_to === 'specific' ? (specific_users || []) : []
+            specific_users: applicable_to === 'specific' ? (specific_users || []) : [],
+            item_applicability: item_applicability || 'all',
+            specific_items: item_applicability === 'specific' ? (specific_items || []) : []
         });
 
         return successResponse(res, 'Offer updated successfully', offer);

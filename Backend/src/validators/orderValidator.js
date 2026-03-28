@@ -17,8 +17,18 @@ const createOrderValidator = [
     body('items.*.menu_item_id').isUUID().withMessage('Invalid menu item ID'),
     body('items.*.quantity').isInt({ min: 1 }).withMessage('Quantity must be at least 1'),
     body('delivery_address').notEmpty().withMessage('Delivery address is required'),
-    body('customer_name').notEmpty().withMessage('Customer name is required'),
-    body('customer_phone').notEmpty().withMessage('Customer phone is required'), // Could add regex for phone validation
+    body('customer_name').custom((value, { req }) => {
+        if (req.body.order_type !== 'pickup' && !value) {
+            throw new Error('Customer name is required');
+        }
+        return true;
+    }),
+    body('customer_phone').custom((value, { req }) => {
+        if (req.body.order_type !== 'pickup' && !value) {
+            throw new Error('Customer phone is required');
+        }
+        return true;
+    }),
     body('order_type').isIn(['pickup', 'delivery', 'swiggy', 'zomato', 'takeaway']).withMessage('Order type must be pickup, delivery, swiggy, zomato, or takeaway'),
     validate
 ];

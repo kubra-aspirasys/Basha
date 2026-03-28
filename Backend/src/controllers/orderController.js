@@ -112,6 +112,26 @@ const updateOrderStatus = async (req, res, next) => {
     }
 };
 
+// @desc    Update order details
+// @route   PUT /api/admin/orders/:id
+// @access  Private (Admin)
+const updateOrder = async (req, res, next) => {
+    try {
+        const orderId = req.params.id;
+        const updateData = req.body;
+
+        const order = await orderService.updateOrder(orderId, updateData);
+
+        res.status(200).json({
+            success: true,
+            message: 'Order updated successfully',
+            data: order
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Cancel order
 // @route   PUT /api/customer/orders/:id/cancel
 // @access  Private (Customer)
@@ -155,6 +175,7 @@ module.exports = {
     getMyOrders,
     getOrderDetails,
     updateOrderStatus,
+    updateOrder,
     cancelOrder,
     deleteOrder
 };

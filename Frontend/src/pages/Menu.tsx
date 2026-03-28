@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useMenuStore } from '@/store/menu-store';
 import { useOfferStore } from '@/store/offer-store';
-import { Plus, Pencil, Trash2, Search, Upload, Link as LinkIcon, X, Star, Tag, CheckCircle, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Search, Upload, Link as LinkIcon, X, Star, Tag, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
+import { getImageUrl } from '@/utils/imageUtils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 // Removed mock import
@@ -29,6 +30,7 @@ export default function Menu() {
     deleteMenuItem,
     toggleAvailability,
     toggleFeatured,
+    loading,
   } = useMenuStore();
   const { offers, fetchOffers } = useOfferStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -134,20 +136,6 @@ export default function Menu() {
     return type ? type.color : '#6B7280';
   };
 
-  const getImageUrl = (url?: string | null) => {
-    if (!url) return undefined;
-    if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:')) {
-      return url;
-    }
-    // Clean up the path
-    const cleanPath = url.startsWith('/') ? url.slice(1) : url;
-
-    // Use the API URL to determine the base URL for images
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-    const baseUrl = apiUrl.endsWith('/api') ? apiUrl.slice(0, -4) : apiUrl;
-
-    return `${baseUrl}/${cleanPath}`;
-  };
 
   // Offer validation logic
   const validateOfferCode = (code: string, price: number) => {
@@ -878,6 +866,7 @@ export default function Menu() {
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all"
+                      disabled={loading}
                     />
                   </div>
 
@@ -890,6 +879,7 @@ export default function Menu() {
                       onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                       rows={3}
                       className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all"
+                      disabled={loading}
                     />
                   </div>
 
@@ -900,6 +890,7 @@ export default function Menu() {
                       </label>
                       <select
                         required
+                        disabled={loading}
                         value={formData.category_id}
                         onChange={(e) => handleCategoryChange(e.target.value)}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
@@ -917,6 +908,7 @@ export default function Menu() {
                         Type
                       </label>
                       <select
+                        disabled={loading}
                         value={formData.type_id}
                         onChange={(e) => handleTypeChange(e.target.value)}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
@@ -940,6 +932,7 @@ export default function Menu() {
                         required
                         min="1"
                         step="1"
+                        disabled={loading}
                         value={formData.price}
                         onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
@@ -967,6 +960,7 @@ export default function Menu() {
                             ? 'border-red-500 focus:ring-red-500'
                             : 'border-slate-300 dark:border-slate-600'
                           }`}
+                        disabled={loading}
                       />
                       {formData.offer_code && (
                         <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
@@ -1033,11 +1027,12 @@ export default function Menu() {
                             value={formData.image_url}
                             onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
                             className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                            disabled={loading}
                           />
                           {formData.image_url && (
                             <div className="relative aspect-video rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-900">
                               <img
-                                src={formData.image_url}
+                                src={getImageUrl(formData.image_url)}
                                 alt="Preview"
                                 className="w-full h-full object-cover"
                                 onError={(e) => (e.currentTarget.src = 'https://placehold.co/600x400?text=Invalid+URL')}
@@ -1158,6 +1153,7 @@ export default function Menu() {
                         onChange={(e) => setFormData({ ...formData, display_order: e.target.value })}
                         className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                         placeholder="0"
+                        disabled={loading}
                       />
                     </div>
                   </div>
@@ -1201,9 +1197,17 @@ export default function Menu() {
             <Button
               type="submit"
               form="menu-form"
-              className="px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-white hover:shadow-lg transition-all border-0"
+              disabled={loading}
+              className="px-6 bg-gradient-to-r from-gold-500 to-gold-600 text-white hover:shadow-lg transition-all border-0 disabled:opacity-70 disabled:cursor-not-allowed min-w-[120px]"
             >
-              {editingItem ? 'Save Changes' : 'Add Item'}
+              {loading ? (
+                <div className="flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Saving...</span>
+                </div>
+              ) : (
+                editingItem ? 'Save Changes' : 'Add Item'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

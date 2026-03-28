@@ -167,7 +167,7 @@ class CMSService {
         const SiteSetting = this.models.SiteSetting;
         if (!SiteSetting) throw new Error('SiteSetting model not loaded');
 
-        const [setting] = await SiteSetting.findOrCreate({
+        const [activeSetting] = await SiteSetting.findOrCreate({
             where: { key: 'is_store_active' },
             defaults: {
                 value: 'true',
@@ -176,14 +176,28 @@ class CMSService {
                 description: 'Is store actively accepting orders'
             }
         });
-        return { is_store_active: setting.value === 'true' };
+        
+        const [reasonSetting] = await SiteSetting.findOrCreate({
+            where: { key: 'store_close_reason' },
+            defaults: {
+                value: '',
+                type: 'text',
+                category: 'system',
+                description: 'Reason for closing the store'
+            }
+        });
+
+        return { 
+            is_store_active: activeSetting.value === 'true',
+            close_reason: reasonSetting.value
+        };
     }
 
-    async updateStoreStatus(isActive) {
+    async updateStoreStatus(isActive, closeReason = '') {
         const SiteSetting = this.models.SiteSetting;
         if (!SiteSetting) throw new Error('SiteSetting model not loaded');
 
-        const [setting] = await SiteSetting.findOrCreate({
+        const [activeSetting] = await SiteSetting.findOrCreate({
             where: { key: 'is_store_active' },
             defaults: {
                 value: 'true',
@@ -192,8 +206,24 @@ class CMSService {
                 description: 'Is store actively accepting orders'
             }
         });
-        const updated = await setting.update({ value: isActive ? 'true' : 'false' });
-        return { is_store_active: updated.value === 'true' };
+        
+        const [reasonSetting] = await SiteSetting.findOrCreate({
+            where: { key: 'store_close_reason' },
+            defaults: {
+                value: '',
+                type: 'text',
+                category: 'system',
+                description: 'Reason for closing the store'
+            }
+        });
+
+        const updatedActive = await activeSetting.update({ value: isActive ? 'true' : 'false' });
+        const updatedReason = await reasonSetting.update({ value: isActive ? '' : closeReason });
+
+        return { 
+            is_store_active: updatedActive.value === 'true',
+            close_reason: updatedReason.value
+        };
     }
 }
 

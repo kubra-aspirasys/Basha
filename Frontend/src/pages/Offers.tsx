@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useOfferStore } from '@/store/offer-store';
 import { useCustomerStore } from '@/store/customer-store';
+import { useMenuStore } from '@/store/menu-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,22 +26,28 @@ import { useToast } from '@/hooks/use-toast';
 export default function Offers() {
   const { offers, addOffer, updateOffer, deleteOffer, fetchOffers, bulkDeleteOffers, markOfferAsUsed } = useOfferStore();
   const { customers, fetchCustomers } = useCustomerStore();
+  const { menuItems, fetchAllMenuItems } = useMenuStore();
 
   useEffect(() => {
     fetchOffers();
     fetchCustomers({ limit: 1000 });
-  }, [fetchOffers, fetchCustomers]);
+    fetchAllMenuItems();
+  }, [fetchOffers, fetchCustomers, fetchAllMenuItems]);
   const [isOpen, setIsOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     code: '',
     discount_type: 'percentage' as 'percentage' | 'fixed',
     discount_value: '',
+    max_discount_value: '',
+    description: '',
     valid_from: '',
     valid_to: '',
     is_active: true,
     applicable_to: 'all' as 'all' | 'specific',
     specific_users: [] as string[],
+    item_applicability: 'all' as 'all' | 'specific',
+    specific_items: [] as string[],
   });
   const { toast } = useToast();
 
@@ -92,20 +99,22 @@ export default function Offers() {
     }
 
     try {
+      const offerPayload = {
+        ...formData,
+        discount_value: discountVal,
+        max_discount_value: formData.discount_type === 'percentage' && formData.max_discount_value
+          ? parseFloat(formData.max_discount_value) 
+          : undefined,
+      };
+
       if (editingOffer) {
-        await updateOffer(editingOffer, {
-          ...formData,
-          discount_value: discountVal,
-        });
+        await updateOffer(editingOffer, offerPayload);
         toast({
           title: 'Offer updated',
           description: 'The offer has been updated successfully',
         });
       } else {
-        await addOffer({
-          ...formData,
-          discount_value: discountVal,
-        });
+        await addOffer(offerPayload);
         toast({
           title: 'Offer added',
           description: 'The offer has been added successfully',
@@ -127,11 +136,15 @@ export default function Offers() {
       code: '',
       discount_type: 'percentage',
       discount_value: '',
+      max_discount_value: '',
+      description: '',
       valid_from: '',
       valid_to: '',
       is_active: true,
       applicable_to: 'all',
       specific_users: [],
+      item_applicability: 'all',
+      specific_items: [],
     });
     setEditingOffer(null);
   };
@@ -233,11 +246,15 @@ export default function Offers() {
       code: offer.code || '',
       discount_type: offer.discount_type || 'percentage',
       discount_value: offer.discount_value ? String(offer.discount_value) : '',
-      valid_from: offer.valid_from ? String(offer.valid_from).split('T')[0] : '',
-      valid_to: offer.valid_to ? String(offer.valid_to).split('T')[0] : '',
+      max_discount_value: offer.max_discount_value ? String(offer.max_discount_value) : '',
+      description: offer.description || '',
+      valid_from: offer.valid_from ? new Date(new Date(offer.valid_from).getTime() - (new Date(offer.valid_from).getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : '',
+      valid_to: offer.valid_to ? new Date(new Date(offer.valid_to).getTime() - (new Date(offer.valid_to).getTimezoneOffset() * 60000)).toISOString().slice(0, 16) : '',
       is_active: offer.is_active ?? true,
       applicable_to: offer.applicable_to || 'all',
       specific_users: typeof offer.specific_users === 'string' ? JSON.parse(offer.specific_users) : (offer.specific_users || []),
+      item_applicability: offer.item_applicability || 'all',
+      specific_items: typeof offer.specific_items === 'string' ? JSON.parse(offer.specific_items) : (offer.specific_items || []),
     });
     setEditingOffer(offer.id);
     setIsOpen(true);
@@ -329,7 +346,7 @@ export default function Offers() {
                 Add Offer
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl mx-4 sm:mx-0">
+            <DialogContent className="max-w-2xl mx-4 sm:mx-0 max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
                   {editingOffer ? 'Edit Offer' : 'Add New Offer'}
@@ -363,17 +380,41 @@ export default function Offers() {
                     </select>
                   </div>
                 </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="discount_value">
+                      Discount Value {formData.discount_type === 'percentage' ? '(%)' : '(₹)'}
+                    </Label>
+                    <Input
+                      id="discount_value"
+                      type="number"
+                      step="0.01"
+                      value={formData.discount_value}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setFormData({ ...formData, discount_value: e.target.value })}
+                      required
+                    />
+                  </div>
+                  {formData.discount_type === 'percentage' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="max_discount_value">Max Discount Limit (₹)</Label>
+                      <Input
+                        id="max_discount_value"
+                        type="number"
+                        step="0.01"
+                        value={formData.max_discount_value}
+                        onChange={(e) => setFormData({ ...formData, max_discount_value: e.target.value })}
+                        placeholder="Optional top limit"
+                      />
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-2">
-                  <Label htmlFor="discount_value">
-                    Discount Value {formData.discount_type === 'percentage' ? '(%)' : '(₹)'}
-                  </Label>
+                  <Label htmlFor="description">Short Description (optional)</Label>
                   <Input
-                    id="discount_value"
-                    type="number"
-                    step="0.01"
-                    value={formData.discount_value}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setFormData({ ...formData, discount_value: e.target.value })}
-                    required
+                    id="description"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="e.g., Valid on specific items only"
                   />
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -381,9 +422,9 @@ export default function Offers() {
                     <Label htmlFor="valid_from">Valid From</Label>
                     <Input
                       id="valid_from"
-                      type="date"
+                      type="datetime-local"
                       value={formData.valid_from}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setFormData({ ...formData, valid_from: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, valid_from: e.target.value })}
                       required
                     />
                   </div>
@@ -391,9 +432,9 @@ export default function Offers() {
                     <Label htmlFor="valid_to">Valid To</Label>
                     <Input
                       id="valid_to"
-                      type="date"
+                      type="datetime-local"
                       value={formData.valid_to}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => setFormData({ ...formData, valid_to: e.target.value })}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, valid_to: e.target.value })}
                       required
                     />
                   </div>
@@ -428,7 +469,7 @@ export default function Offers() {
                 {formData.applicable_to === 'specific' && (
                   <div className="space-y-2">
                     <Label>Select Users</Label>
-                    <div className="max-h-48 overflow-y-auto border border-slate-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 space-y-1">
+                    <div className="max-h-40 overflow-y-auto border border-slate-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 space-y-1">
                       {customers.map((customer) => (
                         <label key={customer.id} className="flex items-center space-x-2 p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded cursor-pointer">
                           <input
@@ -450,6 +491,49 @@ export default function Offers() {
                       ))}
                       {customers.length === 0 && (
                         <div className="text-sm text-slate-500 text-center py-2">No customers found.</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="item_applicability">Item Applicability</Label>
+                  <select
+                    id="item_applicability"
+                    value={formData.item_applicability}
+                    onChange={(e) => setFormData({ ...formData, item_applicability: e.target.value as 'all' | 'specific', specific_items: e.target.value === 'all' ? [] : formData.specific_items })}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  >
+                    <option value="all">All Items</option>
+                    <option value="specific">Particular Item(s)</option>
+                  </select>
+                </div>
+
+                {formData.item_applicability === 'specific' && (
+                  <div className="space-y-2">
+                    <Label>Select Particular Items</Label>
+                    <div className="max-h-40 overflow-y-auto border border-slate-300 dark:border-slate-600 rounded-lg p-2 bg-white dark:bg-slate-700 space-y-1">
+                      {menuItems.map((item) => (
+                        <label key={item.id} className="flex items-center space-x-2 p-1 hover:bg-slate-100 dark:hover:bg-slate-600 rounded cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={formData.specific_items.includes(item.id)}
+                            onChange={(e) => {
+                              const isChecked = e.target.checked;
+                              setFormData((prev) => ({
+                                ...prev,
+                                specific_items: isChecked
+                                  ? [...prev.specific_items, item.id]
+                                  : prev.specific_items.filter((id) => id !== item.id),
+                              }));
+                            }}
+                            className="rounded border-slate-300 text-gold-500 focus:ring-gold-500"
+                          />
+                          <span className="text-sm text-slate-900 dark:text-white">{item.name} (₹{item.price})</span>
+                        </label>
+                      ))}
+                      {menuItems.length === 0 && (
+                        <div className="text-sm text-slate-500 text-center py-2">No menu items found.</div>
                       )}
                     </div>
                   </div>
@@ -701,7 +785,8 @@ export default function Offers() {
                   <TableHead>Discount</TableHead>
                   <TableHead>Valid From</TableHead>
                   <TableHead>Valid To</TableHead>
-                  <TableHead>Applicable</TableHead>
+                  <TableHead>User App.</TableHead>
+                  <TableHead>Item App.</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
@@ -722,20 +807,33 @@ export default function Offers() {
                     </TableCell>
                     <TableCell>
                       {offer.discount_type === 'percentage'
-                        ? `${offer.discount_value}%`
+                        ? `${offer.discount_value}%${offer.max_discount_value ? ` (Max ₹${offer.max_discount_value})` : ''}`
                         : `₹${offer.discount_value}`}
                     </TableCell>
-                    <TableCell>
-                      {new Date(offer.valid_from).toLocaleDateString()}
+                    <TableCell className="text-sm font-medium">
+                      <div className="flex flex-col">
+                        <span>{new Date(offer.valid_from).toLocaleDateString()}</span>
+                        <span className="text-[10px] text-slate-500">{new Date(offer.valid_from).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
                     </TableCell>
-                    <TableCell>
-                      {new Date(offer.valid_to).toLocaleDateString()}
+                    <TableCell className="text-sm font-medium">
+                      <div className="flex flex-col">
+                        <span>{new Date(offer.valid_to).toLocaleDateString()}</span>
+                        <span className="text-[10px] text-slate-500">{new Date(offer.valid_to).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
                     </TableCell>
                     <TableCell>
                       {offer.applicable_to === 'specific' ? (
                         <Badge variant="outline" className="border-gold-500 text-gold-600">Specific Users</Badge>
                       ) : (
                         <Badge variant="outline" className="border-blue-300 text-blue-600">All Users</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {offer.item_applicability === 'specific' ? (
+                        <Badge variant="outline" className="border-gold-500 text-gold-600">Specific Items</Badge>
+                      ) : (
+                        <Badge variant="outline" className="border-green-300 text-green-600">All Items</Badge>
                       )}
                     </TableCell>
                     <TableCell>
@@ -814,7 +912,7 @@ export default function Offers() {
                         </h3>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
                           {offer.discount_type === 'percentage'
-                            ? `${offer.discount_value}% off`
+                            ? `${offer.discount_value}% off${offer.max_discount_value ? ` (Max ₹${offer.max_discount_value})` : ''}`
                             : `₹${offer.discount_value} off`}
                         </p>
                       </div>

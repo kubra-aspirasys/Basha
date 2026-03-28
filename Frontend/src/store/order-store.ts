@@ -37,14 +37,16 @@ interface OrderState {
   loading: boolean;
   error: string | null;
   storeActive: boolean;
+  closeReason: string;
   fetchOrders: (params?: any) => Promise<void>;
   createOrder: (payload: CreateOrderPayload) => Promise<Order | null>;
   createManualOrder: (payload: CreateOrderPayload) => Promise<Order | null>;
+  updateOrder: (id: string, payload: Partial<CreateOrderPayload>) => Promise<void>;
   updateOrderStatus: (id: string, status: Order['status']) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
   cancelOrder: (id: string) => Promise<void>;
   fetchStoreStatus: () => Promise<void>;
-  setStoreStatus: (isActive: boolean) => Promise<void>;
+  setStoreStatus: (isActive: boolean, closeReason?: string) => Promise<void>;
 }
 
 export const useOrderStore = create<OrderState>((set) => ({
@@ -52,23 +54,30 @@ export const useOrderStore = create<OrderState>((set) => ({
   loading: false,
   error: null,
   storeActive: true,
+  closeReason: '',
 
   fetchStoreStatus: async () => {
     try {
       const response = await api.get('/cms/store-status');
       if (response.data.success) {
-        set({ storeActive: response.data.data.is_store_active });
+        set({ 
+          storeActive: response.data.data.is_store_active,
+          closeReason: response.data.data.close_reason || '',
+        });
       }
     } catch (error) {
       console.error('Failed to fetch store status', error);
     }
   },
 
-  setStoreStatus: async (isActive: boolean) => {
+  setStoreStatus: async (isActive: boolean, closeReason?: string) => {
     try {
-      const response = await api.put('/cms/store-status', { is_store_active: isActive });
+      const response = await api.put('/cms/store-status', { is_store_active: isActive, close_reason: closeReason });
       if (response.data.success) {
-        set({ storeActive: response.data.data.is_store_active });
+        set({ 
+          storeActive: response.data.data.is_store_active,
+          closeReason: response.data.data.close_reason || '',
+        });
       }
     } catch (error) {
       console.error('Failed to update store status', error);
@@ -226,6 +235,37 @@ export const useOrderStore = create<OrderState>((set) => ({
     } catch (error: any) {
       console.error('Failed to update order status', error);
       set({ error: error.response?.data?.message || 'Failed to update status' });
+      throw error;
+    }
+  },
+
+  updateOrder: async (id, payload) => {
+    try {
+      const response = await api.put(`/admin/orders/${id}`, payload);
+
+      if (response.data.success) {
+        const updatedOrderData = response.data.data;
+        const updatedOrder = {
+          ...updatedOrderData,
+          total_amount: typeof updatedOrderData.total_amount === 'string' ? parseFloat(updatedOrderData.total_amount) : updatedOrderData.total_amount,
+          subtotal: typeof updatedOrderData.subtotal === 'string' ? parseFloat(updatedOrderData.subtotal) : updatedOrderData.subtotal,
+          gst_amount: typeof updatedOrderData.gst_amount === 'string' ? parseFloat(updatedOrderData.gst_amount) : updatedOrderData.gst_amount,
+          delivery_charges: typeof updatedOrderData.delivery_charges === 'string' ? parseFloat(updatedOrderData.delivery_charges) : updatedOrderData.delivery_charges,
+          service_charges: typeof updatedOrderData.service_charges === 'string' ? parseFloat(updatedOrderData.service_charges) : updatedOrderData.service_charges,
+          items: updatedOrderData.items?.map((item: any) => ({
+            ...item,
+            price: typeof item.price === 'string' ? parseFloat(item.price) : item.price
+          })) || []
+        };
+        set((state) => ({
+          orders: state.orders.map((order) =>
+            order.id === id ? updatedOrder : order
+          ),
+        }));
+      }
+    } catch (error: any) {
+      console.error('Failed to update order', error);
+      set({ error: error.response?.data?.message || 'Failed to update order' });
       throw error;
     }
   },

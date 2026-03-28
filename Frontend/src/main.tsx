@@ -10,6 +10,22 @@ if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then((registration) => {
           console.log('SW registered: ', registration);
+          
+          // Force update check
+          registration.update();
+          
+          // When a new service worker is waiting, force it to take over
+          registration.onupdatefound = () => {
+            const installingWorker = registration.installing;
+            if (installingWorker) {
+              installingWorker.onstatechange = () => {
+                if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // If there is a change, reload to get the new UI
+                  window.location.reload();
+                }
+              };
+            }
+          };
         })
         .catch((registrationError) => {
           console.log('SW registration failed: ', registrationError);

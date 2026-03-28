@@ -16,6 +16,11 @@ export default function Orders() {
 
     useEffect(() => {
         fetchOrders();
+        // 30s Polling for status updates
+        const interval = setInterval(() => {
+            fetchOrders();
+        }, 30000);
+        return () => clearInterval(interval);
     }, [fetchOrders]);
 
     // Orders are already filtered by the API based on the authenticated customer

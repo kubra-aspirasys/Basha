@@ -7,21 +7,39 @@ const api = axios.create({
     },
 });
 
+// This will be set by auth-store after it initializes
+let getAuthToken: (() => string | null) | null = null;
+
+export const setAuthTokenGetter = (getter: () => string | null) => {
+    getAuthToken = getter;
+};
+
 api.interceptors.request.use(
     (config) => {
-        // Zustand persist stores data in localStorage with key 'auth-storage'
-        const storageStr = localStorage.getItem('auth-storage');
-        if (storageStr) {
+        let token: string | null = null;
+
+        // Primary: read directly from zustand store's in-memory state (always fresh)
+        if (getAuthToken) {
+            token = getAuthToken();
+        }
+
+        // Fallback: read from localStorage (for initial page load before store init)
+        if (!token) {
             try {
-                const storage = JSON.parse(storageStr);
-                const token = storage.state?.token;
-                if (token) {
-                    config.headers.Authorization = `Bearer ${token}`;
+                const storageStr = localStorage.getItem('auth-storage');
+                if (storageStr) {
+                    const storage = JSON.parse(storageStr);
+                    token = storage.state?.token || null;
                 }
             } catch (err) {
                 console.error('Error parsing auth-storage', err);
             }
         }
+
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
         return config;
     },
     (error) => {
@@ -34,8 +52,6 @@ api.interceptors.response.use(
     (error) => {
         if (error.response?.status === 401) {
             // Handle unauthorized - maybe logout or redirect
-            // localStorage.removeItem('auth-storage');
-            // window.location.href = '/login';
         }
         return Promise.reject(error);
     }

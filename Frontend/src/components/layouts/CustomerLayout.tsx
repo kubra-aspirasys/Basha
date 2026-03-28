@@ -1,16 +1,23 @@
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuthStore } from '@/store/auth-store';
-import { ShoppingCart, User, Menu as MenuIcon, X, Phone, Mail, MapPin, Facebook, Twitter, Instagram, Youtube } from 'lucide-react';
+import { ShoppingCart, User, Menu as MenuIcon, X, Phone, Mail, MapPin, Facebook, Twitter, Instagram, Youtube, Download } from 'lucide-react';
 import { useCartStore } from '@/store/cart-store';
+import { useOrderStore } from '@/store/order-store';
 import GlobalSearch from '@/components/GlobalSearch';
 import LogoutConfirmModal from '@/components/LogoutConfirmModal';
+import { toast } from 'sonner';
 
 export default function CustomerLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  
+  // PWA State
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showInstallButton, setShowInstallButton] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
   const { user, isAuthenticated, logout } = useAuthStore();
   const navigate = useNavigate();
   const location = useLocation();
@@ -22,8 +29,24 @@ export default function CustomerLayout() {
       navigate('/admin/dashboard', { replace: true });
     }
   }, [isAuthenticated, user, navigate]);
+  const { storeActive, closeReason, fetchStoreStatus } = useOrderStore();
   const cartItems = useCartStore((state) => state.items);
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
+  useEffect(() => {
+    const refreshData = () => {
+      fetchStoreStatus();
+      if (isAuthenticated) {
+        useCartStore.getState().fetchCart();
+      }
+    };
+
+    refreshData();
+
+    // 30s Polling for live updates (cart items from other devices, store status)
+    const interval = setInterval(refreshData, 30000);
+    return () => clearInterval(interval);
+  }, [fetchStoreStatus, isAuthenticated]);
 
   const handleMenuClick = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -64,6 +87,55 @@ export default function CustomerLayout() {
     setUserMenuOpen(false);
     setMobileMenuOpen(false);
     setShowLogoutConfirm(true);
+  };
+
+  useEffect(() => {
+    // Detect iOS and check if not already standalone
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+    const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    
+    setIsIOS(isIOSDevice && !isStandalone);
+
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setShowInstallButton(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    // Initial check for standalone mode (Android/Chrome)
+    if (isStandalone) {
+      setShowInstallButton(false);
+    }
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (isIOS) {
+      toast('To install: tap the Share button and select "Add to Home Screen" 📲', {
+        icon: '💡',
+        duration: 5000,
+      });
+      return;
+    }
+
+    if (!deferredPrompt) {
+      toast.error('Installation not supported on this browser/device');
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      console.log('User accepted the install prompt');
+      setShowInstallButton(false);
+    }
+    setDeferredPrompt(null);
   };
 
   const confirmLogout = () => {
@@ -146,6 +218,18 @@ export default function CustomerLayout() {
                         >
                           My Account
                         </Link>
+                        {(showInstallButton || isIOS) && (
+                          <button
+                            onClick={() => {
+                              setUserMenuOpen(false);
+                              handleInstallClick();
+                            }}
+                            className="w-full text-left px-4 py-3 text-[#F2A900] hover:bg-[#F2A900]/10 transition-colors flex items-center gap-2"
+                          >
+                            <Download className="w-4 h-4" />
+                            Install App
+                          </button>
+                        )}
                         <button
                           onClick={() => {
                             handleLogout();
@@ -157,6 +241,18 @@ export default function CustomerLayout() {
                       </>
                     ) : (
                       <>
+                        {(showInstallButton || isIOS) && (
+                          <button
+                            onClick={() => {
+                              setUserMenuOpen(false);
+                              handleInstallClick();
+                            }}
+                            className="w-full text-left px-4 py-3 text-[#F2A900] hover:bg-[#F2A900]/10 transition-colors flex items-center gap-2"
+                          >
+                            <Download className="w-4 h-4" />
+                            Install App
+                          </button>
+                        )}
                         <Link
                           to="/login"
                           onClick={() => setUserMenuOpen(false)}
@@ -208,17 +304,43 @@ export default function CustomerLayout() {
               </Link>
               {isAuthenticated ? (
                 <>
-                  <Link to="/profile" className="py-2 text-white hover:text-[#F2A900] uppercase text-sm" onClick={() => setMobileMenuOpen(false)}>
+                  <Link to="/account" className="py-2 text-white hover:text-[#F2A900] uppercase text-sm" onClick={() => setMobileMenuOpen(false)}>
                     Profile
                   </Link>
+                  {(showInstallButton || isIOS) && (
+                    <button 
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleInstallClick();
+                      }}
+                      className="py-2 text-left text-[#F2A900] uppercase text-sm flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Install App
+                    </button>
+                  )}
                   <button onClick={handleLogout} className="py-2 text-left text-red-400 uppercase text-sm">
                     Logout
                   </button>
                 </>
               ) : (
-                <Link to="/login" className="py-2 text-[#F2A900] font-semibold uppercase text-sm" onClick={() => setMobileMenuOpen(false)}>
-                  Login / Sign Up
-                </Link>
+                <>
+                  {(showInstallButton || isIOS) && (
+                    <button 
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleInstallClick();
+                      }}
+                      className="py-2 text-left text-[#F2A900] uppercase text-sm flex items-center gap-2"
+                    >
+                      <Download className="w-4 h-4" />
+                      Install App
+                    </button>
+                  )}
+                  <Link to="/login" className="py-2 text-[#F2A900] font-semibold uppercase text-sm" onClick={() => setMobileMenuOpen(false)}>
+                    Login / Sign Up
+                  </Link>
+                </>
               )}
             </nav>
           </div>
@@ -227,7 +349,22 @@ export default function CustomerLayout() {
 
       {/* Main Content */}
       <main className="flex-1">
-        <Outlet />
+        {!storeActive && (
+          <div className="bg-red-500/10 border-b border-red-500/30 w-full pt-20 pb-2">
+            <div className="container mx-auto px-4 text-center">
+              <p className="text-red-400 text-sm font-semibold tracking-wide uppercase">
+                <span className="font-bold">Store is Currently Closed</span>
+                {closeReason && <span className="hidden sm:inline"> - {closeReason}</span>}
+              </p>
+              {closeReason && (
+                <p className="text-red-300 text-xs mt-1 sm:hidden">{closeReason}</p>
+              )}
+            </div>
+          </div>
+        )}
+        <div className={storeActive ? '' : 'pt-0'}>
+          <Outlet />
+        </div>
       </main>
 
       {/* Footer */}

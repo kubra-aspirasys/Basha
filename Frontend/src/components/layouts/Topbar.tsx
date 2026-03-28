@@ -21,6 +21,9 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isSilenced, setIsSilenced] = useState(false);
+  const prevOrderCount = useRef(0);
 
   useEffect(() => {
     fetchProfile();
@@ -60,7 +63,11 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   };
 
   const handleNotificationClick = () => {
-    setShowNotifications(!showNotifications);
+    const newState = !showNotifications;
+    setShowNotifications(newState);
+    if (newState) {
+      setIsSilenced(true);
+    }
   };
 
   const formatTimeAgo = (dateString: string) => {
@@ -119,6 +126,39 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Reset silence if a NEW order notification arrives
+  useEffect(() => {
+    const currentOrderNotifications = latestUnread.filter(n => n.type === 'new_order');
+    if (currentOrderNotifications.length > prevOrderCount.current) {
+      setIsSilenced(false);
+    }
+    prevOrderCount.current = currentOrderNotifications.length;
+  }, [latestUnread]);
+
+  // Ringing logic for new orders
+  useEffect(() => {
+    const hasUnreadOrder = latestUnread.some(n => n.type === 'new_order');
+    
+    if (user?.role === 'admin' && hasUnreadOrder && !isSilenced) {
+      if (!audioRef.current) {
+        audioRef.current = new Audio('/notification.mp3');
+        audioRef.current.loop = true;
+      }
+      
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(() => {
+          // Auto-play might be blocked by browser until user interacts
+        });
+      }
+    } else {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+    }
+  }, [latestUnread, user?.role, isSilenced]);
 
   // Keyboard shortcut for search (Ctrl+K or Cmd+K)
   useEffect(() => {

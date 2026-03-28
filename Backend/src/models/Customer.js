@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     class Customer extends Model {
         static associate(models) {
             Customer.hasMany(models.Order, { foreignKey: 'customer_id', as: 'orders' });
+            Customer.hasMany(models.CustomerAddress, { foreignKey: 'customer_id', as: 'addresses' });
         }
     }
     Customer.init({
@@ -17,7 +18,11 @@ module.exports = (sequelize, DataTypes) => {
         email: DataTypes.STRING,
         password_hash: DataTypes.STRING,
         phone: DataTypes.STRING,
-        address: DataTypes.TEXT,
+        house_address: DataTypes.TEXT,
+        street: DataTypes.STRING,
+        locality: DataTypes.STRING,
+        city: DataTypes.STRING,
+        address_type: DataTypes.STRING,
         is_blocked: DataTypes.BOOLEAN,
         is_active: DataTypes.BOOLEAN,
         last_activity: DataTypes.DATE,

@@ -1,5 +1,5 @@
 'use strict';
-const { User, Customer } = require('../models');
+const { User, Customer, CustomerAddress } = require('../models');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
@@ -10,8 +10,9 @@ class AuthService {
      * Get user profile by token data
      */
     async getMe(userId, role) {
-        const Model = role === 'admin' ? User : Customer;
-        const user = await Model.findByPk(userId);
+        const user = role === 'admin' 
+            ? await User.findByPk(userId) 
+            : await Customer.findByPk(userId, { include: [{ model: CustomerAddress, as: 'addresses' }] });
 
         if (!user) {
             throw new Error('User not found');
@@ -68,13 +69,15 @@ class AuthService {
             // Fallback check: maybe they are on the wrong tab
             if (!user) {
                 user = await Customer.findOne({
-                    where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
+                    where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] },
+                    include: [{ model: CustomerAddress, as: 'addresses' }]
                 });
                 if (user) role = 'customer';
             }
         } else if (role === 'customer') {
             user = await Customer.findOne({
-                where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
+                where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] },
+                include: [{ model: CustomerAddress, as: 'addresses' }]
             });
             // Fallback check: maybe they are on the wrong tab
             if (!user) {
@@ -92,7 +95,8 @@ class AuthService {
                 role = 'admin';
             } else {
                 user = await Customer.findOne({
-                    where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
+                    where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] },
+                    include: [{ model: CustomerAddress, as: 'addresses' }]
                 });
                 if (user) role = 'customer';
             }
@@ -142,7 +146,7 @@ class AuthService {
             email,
             phone,
             password_hash,
-            address,
+            house_address: address, // Map registration address to house_address column
             is_active: true,
             is_blocked: false
         });

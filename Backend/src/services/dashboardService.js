@@ -10,11 +10,42 @@ const {
 const { Op } = require('sequelize');
 
 class DashboardService {
-    async getStats() {
-        const today = new Date();
-        const sevenDaysAgo = new Date(today);
+    async getStats(filter = 'all') {
+        const todayForCalc = new Date();
+        const startOfDay = new Date(new Date().setHours(0, 0, 0, 0));
+        const sevenDaysAgo = new Date();
         sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+
+        let startDate = null;
+        let endDate = null;
+
+        if (filter === 'today') {
+            startDate = new Date(todayForCalc.setHours(0, 0, 0, 0));
+            endDate = new Date(todayForCalc.setHours(23, 59, 59, 999));
+        } else if (filter === 'yesterday') {
+            const yest = new Date();
+            yest.setDate(yest.getDate() - 1);
+            startDate = new Date(yest.setHours(0, 0, 0, 0));
+            endDate = new Date(yest.setHours(23, 59, 59, 999));
+        } else if (filter === 'last_week') {
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - 7);
+            startDate.setHours(0, 0, 0, 0);
+        } else if (filter === 'last_month') {
+            startDate = new Date();
+            startDate.setMonth(startDate.getMonth() - 1);
+            startDate.setHours(0, 0, 0, 0);
+        }
+
+        const dateCond = {};
+        if (startDate && endDate) {
+            dateCond.createdAt = { [Op.between]: [startDate, endDate] };
+        } else if (startDate) {
+            dateCond.createdAt = { [Op.gte]: startDate };
+        }
+
+        const paymentDateCond = { status: 'completed', ...dateCond };
+
 
         const [
             totalCustomers,
@@ -31,15 +62,16 @@ class DashboardService {
             newCustomersToday,
             pendingPayments
         ] = await Promise.all([
-            Customer.count(),
-            Order.count(),
+            Customer.count({ where: dateCond }),
+            Order.count({ where: dateCond }),
             MenuItem.count(),
             Payment.findOne({
                 attributes: [[sequelize.fn('SUM', sequelize.col('amount')), 'total']],
-                where: { status: 'completed' },
+                where: paymentDateCond,
                 raw: true
             }),
             Order.findAll({
+                where: dateCond,
                 limit: 5,
                 order: [['createdAt', 'DESC']],
                 include: [{ model: OrderItem, as: 'items' }]
@@ -53,19 +85,29 @@ class DashboardService {
                 attributes: ['createdAt', 'total_amount']
             }),
             Order.count({
+                where: dateCond,
                 attributes: ['status'],
                 group: ['status']
             }),
             Order.count({
+                where: dateCond,
                 attributes: ['order_type'],
                 group: ['order_type']
             }),
             OrderItem.findAll({
                 attributes: ['menu_item_id', [sequelize.fn('SUM', sequelize.col('quantity')), 'totalSold']],
-                include: [{ model: MenuItem, attributes: ['id', 'name', 'price', 'image_url'] }],
+                include: [{ 
+                    model: Order, 
+                    attributes: [],
+                    where: dateCond,
+                    required: true 
+                }, { 
+                    model: MenuItem, 
+                    attributes: ['id', 'name', 'price', 'image_url'] 
+                }],
                 group: ['menu_item_id', 'MenuItem.id'],
                 order: [[sequelize.fn('SUM', sequelize.col('quantity')), 'DESC']],
-                limit: 5,
+                limit: 10,
                 subQuery: false
             }),
             Order.findAll({

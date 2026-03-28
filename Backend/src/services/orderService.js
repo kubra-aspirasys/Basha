@@ -1,4 +1,4 @@
-const { Order, OrderItem, MenuItem, Payment, sequelize } = require('../models');
+const { Order, OrderItem, MenuItem, Payment, Notification, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const { sanitizeObject, sanitizeString } = require('../utils/sanitizer');
 
@@ -59,26 +59,39 @@ class OrderService {
                 });
             }
 
-            // 2. Calculate charges
-            const serviceCharges = 0; // standard logic, can be config based
-            const deliveryCharges = order_type === 'delivery' ? 50 : 0; // Only charge for direct delivery orders
-            const gstRate = 0.18; // 18% GST to match frontend
+            // 2. Calculate charges from SiteSettings
+            const { SiteSetting } = require('../models');
+            const [deliverySetting, gstSetting] = await Promise.all([
+                SiteSetting.findOne({ where: { key: 'delivery_charges' } }),
+                SiteSetting.findOne({ where: { key: 'gst_rate' } })
+            ]);
+
+            const deliveryCharges = (order_type === 'delivery') 
+                ? parseFloat(deliverySetting?.value || 50) 
+                : 0;
+            const gstRate = parseFloat(gstSetting?.value || 18) / 100;
+            const serviceCharges = 0; 
+            
             const taxableAmount = subtotal + deliveryCharges + serviceCharges;
             const gstAmount = taxableAmount * gstRate;
 
             // Apply discount if coupon provided
-            let discountAmount = 0;
+            let finalDiscountAmount = 0;
             if (coupon_id && discount_amount) {
-                // In a robust system, re-validate coupon here.
-                // For now, trusting the passed validated amount but capping it
-                discountAmount = parseFloat(discount_amount);
+                finalDiscountAmount = parseFloat(discount_amount);
             }
 
-            let totalAmount = taxableAmount + gstAmount - discountAmount;
+            let totalAmount = taxableAmount + gstAmount - finalDiscountAmount;
             if (totalAmount < 0) totalAmount = 0;
 
             // 3. Create Order
             const orderNumber = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+            // Default status based on order type
+            let defaultStatus = 'pending';
+            if (['takeaway', 'swiggy', 'zomato'].includes(order_type)) {
+                defaultStatus = 'confirmed';
+            }
 
             const order = await Order.create({
                 order_number: orderNumber,
@@ -91,7 +104,7 @@ class OrderService {
                 delivery_charges: deliveryCharges,
                 service_charges: serviceCharges,
                 total_amount: totalAmount,
-                status: 'pending',
+                status: orderData.status || defaultStatus,
                 order_type,
                 payment_method: payment_method || 'cod'
             }, { transaction });
@@ -253,7 +266,15 @@ class OrderService {
         }
 
         // Check if transition is allowed
-        const allowedNextStatuses = ALLOWED_TRANSITIONS[currentStatus] || [];
+        const allowedNextStatuses = [...(ALLOWED_TRANSITIONS[currentStatus] || [])];
+
+        // Specific rules for Manual Orders (Walkin, Swiggy, Zomato)
+        if (['takeaway', 'swiggy', 'zomato'].includes(order.order_type)) {
+            // Manual orders can jump from preparing to delivered
+            if (currentStatus === 'preparing' && !allowedNextStatuses.includes('delivered')) {
+                allowedNextStatuses.push('delivered');
+            }
+        }
 
         if (!allowedNextStatuses.includes(newStatus)) {
             const error = new Error(`Invalid status transition from '${currentStatus}' to '${newStatus}'. Allowed: ${allowedNextStatuses.join(', ')}`);
@@ -264,8 +285,115 @@ class OrderService {
         order.status = newStatus;
         await order.save();
 
+        // If status moved to preparing or beyond, mark any 'new_order' notifications as read
+        const statusesBeyondNew = ['preparing', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'];
+        if (statusesBeyondNew.includes(newStatus)) {
+            try {
+                const { Notification } = require('../models');
+                await Notification.update(
+                    { is_read: true },
+                    { 
+                        where: { 
+                            reference_id: order.id,
+                            reference_type: 'order',
+                            type: 'new_order',
+                            is_read: false
+                        }
+                    }
+                );
+            } catch (err) {
+                console.error('Failed to update notification status:', err);
+            }
+        }
+
         // Return full details including items so frontend doesn't lose them
         return await this.getOrderDetails(order.id);
+    }
+
+    /**
+     * Fully update order details (Admin)
+     */
+    async updateOrder(orderId, updateData) {
+        const transaction = await sequelize.transaction();
+        try {
+            const order = await Order.findByPk(orderId, { transaction });
+            if (!order) {
+                const error = new Error('Order not found');
+                error.statusCode = 404;
+                throw error;
+            }
+
+            const {
+                customer_name,
+                order_type,
+                status,
+                items
+            } = sanitizeObject(updateData);
+
+            if (customer_name) order.customer_name = customer_name;
+            if (order_type) order.order_type = order_type;
+            if (status) order.status = status;
+
+            if (items && Array.isArray(items) && items.length > 0) {
+                let subtotal = 0;
+                const orderItemsData = [];
+
+                for (const item of items) {
+                    const menuItem = await MenuItem.findByPk(item.menu_item_id);
+                    if (!menuItem) throw new Error(`Menu item not found: ${item.menu_item_id}`);
+
+                    const price = parseFloat(menuItem.discounted_price || menuItem.price);
+                    subtotal += price * item.quantity;
+
+                    orderItemsData.push({
+                        order_id: order.id,
+                        menu_item_id: menuItem.id,
+                        menu_item_name: menuItem.name,
+                        quantity: item.quantity,
+                        price: price
+                    });
+                }
+
+                const serviceCharges = 0;
+                const deliveryCharges = order.order_type === 'delivery' ? 50 : 0;
+                const gstRate = 0.18;
+                const taxableAmount = subtotal + deliveryCharges + serviceCharges;
+                const gstAmount = taxableAmount * gstRate;
+
+                // Try to infer existing discount to maintain it
+                const oldTaxable = parseFloat(order.subtotal) + parseFloat(order.delivery_charges) + parseFloat(order.service_charges);
+                const oldGst = parseFloat(order.gst_amount);
+                const oldExpectedTotal = oldTaxable + oldGst;
+                const existingDiscount = oldExpectedTotal > parseFloat(order.total_amount) ? oldExpectedTotal - parseFloat(order.total_amount) : 0;
+
+                let totalAmount = taxableAmount + gstAmount - existingDiscount;
+                if (totalAmount < 0) totalAmount = 0;
+
+                order.subtotal = subtotal;
+                order.gst_amount = gstAmount;
+                order.delivery_charges = deliveryCharges;
+                order.service_charges = serviceCharges;
+                order.total_amount = totalAmount;
+
+                await OrderItem.destroy({ where: { order_id: order.id }, transaction });
+                await OrderItem.bulkCreate(orderItemsData, { transaction });
+
+                const payment = await Payment.findOne({ where: { order_id: order.id }, transaction });
+                if (payment) {
+                    payment.amount = totalAmount;
+                    if (customer_name) payment.customer_name = customer_name;
+                    await payment.save({ transaction });
+                }
+            }
+
+            await order.save({ transaction });
+            await transaction.commit();
+
+            return await this.getOrderDetails(order.id);
+        } catch (error) {
+            await transaction.rollback();
+            throw error;
+        }
     }
 
     /**

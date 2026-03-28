@@ -31,7 +31,7 @@ const timeAgo = (dateString: string) => {
 };
 
 const typeConfig: Record<string, any> = {
-    new_order: { icon: ShoppingBag, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-100 dark:bg-blue-900/30', label: 'New Order' },
+    new_order: { icon: ShoppingBag, color: 'text-red-600 dark:text-red-500', bg: 'bg-red-100 dark:bg-red-900/40', label: 'New Order' },
     order_status: { icon: Package, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-900/30', label: 'Order Update' },
     order_cancelled: { icon: XCircle, color: 'text-red-600 dark:text-red-400', bg: 'bg-red-100 dark:bg-red-900/30', label: 'Order Cancelled' },
     new_payment: { icon: CreditCard, color: 'text-green-600 dark:text-green-400', bg: 'bg-green-100 dark:bg-green-900/30', label: 'Payment' },
@@ -61,7 +61,7 @@ export default function Notifications() {
 
     const [search, setSearch] = useState('');
     const debouncedSearch = useDebounce(search, 500); // 500ms debounce
-    const [typeFilter, setTypeFilter] = useState('all');
+    const [typeFilter, setTypeFilter] = useState('new_order');
     const [priorityFilter, setPriorityFilter] = useState('all');
     const [readFilter, setReadFilter] = useState('all');
     const [page, setPage] = useState(1);
@@ -486,7 +486,7 @@ export default function Notifications() {
 
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-start justify-between gap-2">
-                                                <h4 className={`text-sm font-semibold truncate ${notification.is_read ? 'text-slate-600 dark:text-slate-400' : 'text-slate-900 dark:text-white'}`}>
+                                                <h4 className={`text-sm font-semibold truncate ${notification.is_read ? 'text-slate-600 dark:text-slate-400' : (tc.color || 'text-slate-900 dark:text-white')}`}>
                                                     {notification.title}
                                                 </h4>
                                                 <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap flex-shrink-0">

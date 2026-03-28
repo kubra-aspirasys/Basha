@@ -5,6 +5,7 @@ const {
     getAllOrders,
     getOrderDetails,
     updateOrderStatus,
+    updateOrder,
     deleteOrder
 } = require('../controllers/orderController');
 const { protect } = require('../middleware/authMiddleware');
@@ -19,6 +20,7 @@ router.get('/', getAllOrders);
 router.post('/', createOrderValidator, createOrder);
 router.get('/:id', mongoIdValidator, getOrderDetails);
 router.put('/:id/status', updateStatusValidator, updateOrderStatus);
+router.put('/:id', mongoIdValidator, updateOrder);
 router.delete('/:id', mongoIdValidator, deleteOrder);
 
 module.exports = router;

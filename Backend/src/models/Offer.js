@@ -27,6 +27,14 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.DECIMAL(10, 2),
             allowNull: false
         },
+        max_discount_value: {
+            type: DataTypes.DECIMAL(10, 2),
+            allowNull: true
+        },
+        description: {
+            type: DataTypes.TEXT,
+            allowNull: true
+        },
         valid_from: {
             type: DataTypes.DATE,
             allowNull: false
@@ -45,6 +53,15 @@ module.exports = (sequelize, DataTypes) => {
             defaultValue: 'all'
         },
         specific_users: {
+            type: DataTypes.JSON,
+            allowNull: true
+        },
+        item_applicability: {
+            type: DataTypes.ENUM('all', 'specific'),
+            allowNull: false,
+            defaultValue: 'all'
+        },
+        specific_items: {
             type: DataTypes.JSON,
             allowNull: true
         }

@@ -15,14 +15,7 @@ import { ToastAction } from '@/components/ui/toast';
 
 const IconMap: Record<string, any> = { Clock, Phone, MapPin };
 
-// Helper to construct full image URL
-const getImageUrl = (url?: string) => {
-  if (!url) return '/banner.jpeg'; // Fallback
-  if (url.startsWith('http')) return url;
-  // Remove /api from base if present to get root
-  const baseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
-  return `${baseUrl}${url}`;
-};
+import { getImageUrl } from '@/utils/imageUtils';
 
 export default function Home() {
   const navigate = useNavigate();
@@ -99,18 +92,18 @@ export default function Home() {
     },
     heritage: {
       enabled: true,
-      title: "Hydrabad Chicken Biryani",
+      title: "Hyderabad Chicken Biryani",
       video_url: "/Videos/hero.mp4",
-      text_block1: "Hydrabad biryani (also known as Hydrabad dum biryani) originated from Golconda, Telangana India, made with basmati rice and meat.",
-      text_block2: "Originating in the kitchens of the Qutub Shahi Kingdom. It combines the elements of Hydrabad and later on the Great Mughalai Cuisines.",
-      text_block3: "Hydrabad biryani is a key dish flourished During the period of the 6th Nizam of Hydrabad Sir Mir Mehboob Ali Khan Asaf Jah and it is so famous that the dish is considered the city's signature dish.",
+      text_block1: "Hyderabad biryani (also known as Hyderabad dum biryani) originated from Golconda, Telangana India, made with basmati rice and meat.",
+      text_block2: "Originating in the kitchens of the Qutub Shahi Kingdom. It combines the elements of Hyderabad and later on the Great Mughalai Cuisines.",
+      text_block3: "Hyderabad biryani is a key dish flourished During the period of the 6th Nizam of Hyderabad Sir Mir Mehboob Ali Khan Asaf Jah and it is so famous that the dish is considered the city's signature dish.",
       charminar_image: "/charminar.webp",
       nizam_image: "/nizam.webp"
     },
     menu: {
       enabled: true,
       badge: "Our Menu",
-      title: "Explore Our Delicious Menu",
+      title: "Explore Delicious Menu",
       description: "Choose from our wide range of authentic Hyderabad dishes"
     },
     features: {

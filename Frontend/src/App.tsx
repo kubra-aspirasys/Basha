@@ -54,7 +54,7 @@ function App() {
             <Route path="/account" element={<Account />} />
             <Route path="/orders" element={<CustomerOrders />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="/profile" element={<div className="p-8 text-center">Profile Page - Coming Soon</div>} />
+            <Route path="/profile" element={<Navigate to="/account" replace />} />
           </Route>
 
           {/* Admin panel routes */}

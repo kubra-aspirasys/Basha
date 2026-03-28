@@ -76,6 +76,11 @@ export default function SiteSettingsManager() {
   };
 
   const settingsByCategory = siteSettings.reduce((acc, setting) => {
+    const hiddenKeys = ['homepage_config', 'homepage_hero'];
+    if (hiddenKeys.includes(setting.key) || setting.category === 'payment' || setting.type === 'json') {
+      return acc;
+    }
+
     if (!acc[setting.category]) {
       acc[setting.category] = [];
     }
@@ -179,6 +184,22 @@ export default function SiteSettingsManager() {
                           placeholder="https://..."
                           className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                         />
+                      ) : setting.type === 'boolean' || getValue(setting) === 'true' || getValue(setting) === 'false' ? (
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleChange(setting.id, getValue(setting) === 'true' ? 'false' : 'true')}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${getValue(setting) === 'true' ? 'bg-[#e67e22]' : 'bg-slate-300 dark:bg-slate-600'
+                              }`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${getValue(setting) === 'true' ? 'translate-x-6' : 'translate-x-1'
+                                }`}
+                            />
+                          </button>
+                          <span className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                            {getValue(setting) === 'true' ? 'Enabled' : 'Disabled'}
+                          </span>
+                        </div>
                       ) : (
                         <input
                           type="text"

@@ -7,6 +7,7 @@ export interface Admin {
   phone?: string;
   avatar_url?: string;
   role: 'admin';
+  addresses?: Address[];
 }
 
 export interface Customer {
@@ -15,6 +16,11 @@ export interface Customer {
   email: string;
   phone?: string;
   address?: string;
+  house_address?: string;
+  street?: string;
+  locality?: string;
+  city?: string;
+  address_type?: string;
   is_blocked?: boolean;
   is_active?: boolean;
   last_activity?: string;
@@ -25,6 +31,20 @@ export interface Customer {
   avatar_url?: string;
   orders_count?: number;
   total_spent?: number;
+  addresses?: Address[];
+}
+
+export interface Address {
+  id: string;
+  customer_id: string;
+  label: string; // Home, Work, etc.
+  house_address: string;
+  street: string;
+  locality: string;
+  city: string;
+  is_default: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface MenuItem {
@@ -86,12 +106,15 @@ export interface Offer {
   code: string;
   discount_type: 'percentage' | 'fixed';
   discount_value: number;
+  max_discount_value?: number;
   description?: string;
   valid_from: string;
   valid_to: string;
   is_active: boolean;
   applicable_to?: 'all' | 'specific';
   specific_users?: string[];
+  item_applicability?: 'all' | 'specific';
+  specific_items?: string[];
   created_at: string;
 }
 

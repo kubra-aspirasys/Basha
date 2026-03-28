@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
+import CloseStoreModal from '@/components/CloseStoreModal';
 import { useOrderStore } from '@/store/order-store';
 import { useMenuStore } from '@/store/menu-store';
 import { useCustomerStore } from '@/store/customer-store';
@@ -9,6 +10,7 @@ import { Pagination } from '@/components/ui/pagination';
 import { Order } from '@/types';
 import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
+import { getImageUrl } from '@/utils/imageUtils';
 
 const statusConfig = {
   pending: {
@@ -58,6 +60,15 @@ export default function Orders() {
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1'));
   const [itemsPerPage, setItemsPerPage] = useState(parseInt(searchParams.get('limit') || '10'));
 
+  const isManualType = (type: string) => ['takeaway', 'swiggy', 'zomato'].includes(type);
+
+  const getVisibleStatuses = (type: string) => {
+    if (isManualType(type)) {
+      return ['confirmed', 'preparing', 'delivered', 'cancelled'];
+    }
+    return ['pending', 'confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'];
+  };
+
   // Filter states from URL
   const [statusFilter, setStatusFilter] = useState<Order['status'] | 'all'>((searchParams.get('status') as Order['status'] | 'all') || 'all');
   const [typeFilter, setTypeFilter] = useState<Order['order_type'] | 'all'>((searchParams.get('type') as Order['order_type'] | 'all') || 'all');
@@ -68,9 +79,14 @@ export default function Orders() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [viewMode, setViewMode] = useState<'view' | 'edit' | null>(null);
   const [editStatus, setEditStatus] = useState<Order['status']>('pending');
+  const [editCustomerName, setEditCustomerName] = useState('');
+  const [editOrderType, setEditOrderType] = useState<Order['order_type']>('takeaway');
+  const [editItems, setEditItems] = useState<Array<{ menu_item_id: string; menu_item_name: string; quantity: number; price: number }>>([]);
+  const [isUpdatingOrder, setIsUpdatingOrder] = useState(false);
   const [editingStatus, setEditingStatus] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [tempStatus, setTempStatus] = useState<Order['status']>('pending');
+  const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
 
   // Manual Order Modal states
   const [showManualOrder, setShowManualOrder] = useState(false);
@@ -191,17 +207,6 @@ export default function Orders() {
 
   const getMenuItemDetails = (menuItemId: string) => {
     return menuItems.find((item) => item.id === menuItemId);
-  };
-
-  const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
-    try {
-      await updateOrderStatus(orderId, newStatus);
-      setViewMode(null);
-      setSelectedOrder(null);
-      toast.success('Order status updated successfully');
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || error.message || 'Failed to update order status');
-    }
   };
 
   const handleInlineStatusEdit = (order: Order) => {
@@ -342,12 +347,25 @@ export default function Orders() {
 
   const manualOrderSubtotal = manualItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
+  const isManualFormValid = () => {
+    if (manualItems.length === 0) return false;
+    if (manualOrderType === 'takeaway') return !!manualCustomerPhone.trim();
+    if (['swiggy', 'zomato'].includes(manualOrderType)) return !!manualPlatformOrderId.trim();
+    return !!manualCustomerName.trim();
+  };
+
   const handleSubmitManualOrder = async () => {
-    if (!manualCustomerName.trim() || manualItems.length === 0) return;
+    if (!isManualFormValid()) return;
     setCreatingOrder(true);
     try {
+      const finalCustomerName = manualCustomerName.trim() || (
+        manualOrderType === 'takeaway' ? 'Walk in Customer' :
+        manualOrderType === 'swiggy' ? 'Swiggy Customer' :
+        manualOrderType === 'zomato' ? 'Zomato Customer' : 'Customer'
+      );
+
       const result = await createManualOrder({
-        customer_name: manualCustomerName.trim(),
+        customer_name: finalCustomerName,
         customer_phone: manualCustomerPhone.trim() || 'N/A',
         delivery_address: (['swiggy', 'zomato'].includes(manualOrderType) && manualPlatformOrderId.trim())
           ? `Platform Order ID: ${manualPlatformOrderId.trim()}`
@@ -387,7 +405,77 @@ export default function Orders() {
   const handleEdit = (order: Order) => {
     setSelectedOrder(order);
     setEditStatus(order.status);
+    setEditCustomerName(order.customer_name);
+    setEditOrderType(order.order_type);
+    
+    // Convert current order items into editable format
+    const editableItems = (order.items || []).map(item => {
+      const price = typeof item.price === 'string' ? parseFloat(item.price) : item.price;
+      return {
+        menu_item_id: item.menu_item_id,
+        menu_item_name: item.menu_item_name,
+        quantity: item.quantity,
+        price: price
+      };
+    });
+    setEditItems(editableItems);
+    
     setViewMode('edit');
+    fetchAllMenuItems(); // Ensure menu items are loaded so we can edit items
+  };
+
+  const handleUpdateOrder = async () => {
+    if (!selectedOrder) return;
+    if (!editCustomerName.trim() || editItems.length === 0) {
+        toast.error('Customer name and at least one item are required');
+        return;
+    }
+    
+    setIsUpdatingOrder(true);
+    try {
+      const payload = {
+        customer_name: editCustomerName.trim(),
+        order_type: editOrderType,
+        status: editStatus,
+        items: editItems
+      };
+      
+      const { useOrderStore } = await import('@/store/order-store'); // or direct call depending on how it's destructured
+      await useOrderStore.getState().updateOrder(selectedOrder.id, payload);
+      
+      toast.success('Order updated successfully');
+      fetchOrders();
+      setViewMode(null);
+      setSelectedOrder(null);
+    } catch (error: any) {
+      // Error handled by store
+    } finally {
+      setIsUpdatingOrder(false);
+    }
+  };
+
+  const handleEditUpdateItemQty = (menuItemId: string, delta: number) => {
+    setEditItems(prev => prev.map(i => {
+      if (i.menu_item_id === menuItemId) {
+        const newQty = i.quantity + delta;
+        return newQty > 0 ? { ...i, quantity: newQty } : i;
+      }
+      return i;
+    }));
+  };
+
+  const handleEditRemoveMenuItem = (menuItemId: string) => {
+    setEditItems(prev => prev.filter(i => i.menu_item_id !== menuItemId));
+  };
+  
+  const handleEditAddMenuItem = (item: typeof menuItems[0]) => {
+    setEditItems(prev => {
+      const existing = prev.find(i => i.menu_item_id === item.id);
+      if (existing) {
+        return prev.map(i => i.menu_item_id === item.id ? { ...i, quantity: i.quantity + 1 } : i);
+      }
+      return [...prev, { menu_item_id: item.id, menu_item_name: item.name, quantity: 1, price: parseFloat(String(item.discounted_price || item.price)) }];
+    });
   };
 
   const closeModal = () => {
@@ -422,8 +510,12 @@ export default function Orders() {
                 checked={storeActive}
                 onCheckedChange={async (checked) => {
                   try {
-                    await setStoreStatus(checked);
-                    toast.success(checked ? 'Store is now open for orders' : 'Store is now closed');
+                    if (checked) {
+                      await setStoreStatus(true, '');
+                      toast.success('Store is now open for orders');
+                    } else {
+                      setIsCloseModalOpen(true);
+                    }
                   } catch {
                     toast.error('Failed to change store status');
                   }
@@ -432,6 +524,20 @@ export default function Orders() {
               />
             </div>
           </div>
+          <CloseStoreModal
+            isOpen={isCloseModalOpen}
+            onClose={() => setIsCloseModalOpen(false)}
+            onConfirm={async (reason) => {
+              try {
+                await setStoreStatus(false, reason);
+                toast.success('Store is now closed');
+              } catch {
+                toast.error('Failed to change store status');
+              } finally {
+                setIsCloseModalOpen(false);
+              }
+            }}
+          />
 
           <button
             onClick={handleOpenManualOrder}
@@ -665,13 +771,11 @@ export default function Orders() {
                                 onChange={(e) => setTempStatus(e.target.value as Order['status'])}
                                 className="appearance-none px-4 py-2.5 pr-10 text-sm border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
                               >
-                                <option value="pending">Pending</option>
-                                <option value="confirmed">Confirmed</option>
-                                <option value="preparing">Preparing</option>
-                                <option value="ready_for_pickup">Ready for Pickup</option>
-                                <option value="out_for_delivery">Out for Delivery</option>
-                                <option value="delivered">Delivered</option>
-                                <option value="cancelled">Cancelled</option>
+                                {getVisibleStatuses(order.order_type).map(status => (
+                                  <option key={status} value={status}>
+                                    {statusConfig[status as keyof typeof statusConfig]?.label || status}
+                                  </option>
+                                ))}
                               </select>
                               <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
                                 <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -790,13 +894,11 @@ export default function Orders() {
                             onChange={(e) => setTempStatus(e.target.value as Order['status'])}
                             className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
                           >
-                            <option value="pending">Pending</option>
-                            <option value="confirmed">Confirmed</option>
-                            <option value="preparing">Preparing</option>
-                            <option value="ready_for_pickup">Ready for Pickup</option>
-                            <option value="out_for_delivery">Out for Delivery</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
+                            {getVisibleStatuses(order.order_type).map(status => (
+                              <option key={status} value={status}>
+                                {statusConfig[status as keyof typeof statusConfig]?.label || status}
+                              </option>
+                            ))}
                           </select>
                           <div className="flex gap-2">
                             <button
@@ -907,15 +1009,25 @@ export default function Orders() {
                     <User className="w-4 h-4" /> Customer Details
                   </h3>
                   <div className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xl shadow-sm">
-                        {selectedOrder.customer_name.charAt(0).toUpperCase()}
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-blue-100 to-blue-50 dark:from-blue-900/30 dark:to-blue-800/20 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xl shadow-sm">
+                          {(viewMode === 'edit' ? editCustomerName : selectedOrder.customer_name).charAt(0).toUpperCase()}
+                        </div>
+                        <div className="flex-1">
+                          {viewMode === 'edit' ? (
+                            <input
+                              type="text"
+                              value={editCustomerName}
+                              onChange={(e) => setEditCustomerName(e.target.value)}
+                              className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white mb-1"
+                              placeholder="Customer Name"
+                            />
+                          ) : (
+                            <p className="font-semibold text-slate-900 dark:text-white text-lg">{selectedOrder.customer_name}</p>
+                          )}
+                          <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">ID: {selectedOrder.customer_id ? selectedOrder.customer_id.substring(0, 8) : 'N/A'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white text-lg">{selectedOrder.customer_name}</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 font-mono">ID: {selectedOrder.customer_id ? selectedOrder.customer_id.substring(0, 8) : 'N/A'}</p>
-                      </div>
-                    </div>
 
                     {(() => {
                       const customer = customers.find(c => c.id === selectedOrder.customer_id);
@@ -950,11 +1062,25 @@ export default function Orders() {
                   </h3>
                   <div className="space-y-4">
                     <div>
-                      <OrderTypeBadge orderType={selectedOrder.order_type} />
+                      {viewMode === 'edit' ? (
+                        <select
+                          value={editOrderType}
+                          onChange={(e) => setEditOrderType(e.target.value as Order['order_type'])}
+                          className="w-full px-3 py-1.5 border border-slate-300 dark:border-slate-600 rounded bg-white dark:bg-slate-700 text-slate-900 dark:text-white mb-1"
+                        >
+                          <option value="pickup">Pickup</option>
+                          <option value="delivery">Online</option>
+                          <option value="swiggy">Swiggy</option>
+                          <option value="zomato">Zomato</option>
+                          <option value="takeaway">Walk in</option>
+                        </select>
+                      ) : (
+                        <OrderTypeBadge orderType={selectedOrder.order_type} />
+                      )}
                     </div>
                     <div className="flex items-start gap-3">
                       <div className="p-1.5 bg-white dark:bg-slate-700 rounded-lg shadow-sm mt-0.5">
-                        {selectedOrder.order_type === 'delivery' ? (
+                        {(viewMode === 'edit' ? editOrderType : selectedOrder.order_type) === 'delivery' ? (
                           <Truck className="w-3.5 h-3.5 text-slate-400" />
                         ) : (
                           <Store className="w-3.5 h-3.5 text-slate-400" />
@@ -1007,7 +1133,7 @@ export default function Orders() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                      {(selectedOrder.items || []).map((item, idx) => {
+                      {(viewMode === 'edit' ? editItems : (selectedOrder.items || [])).map((item, idx) => {
                         const menuItem = getMenuItemDetails(item.menu_item_id);
                         return (
                           <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
@@ -1023,9 +1149,33 @@ export default function Orders() {
                               </div>
                             </td>
                             <td className="px-6 py-4 text-center">
-                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
-                                {item.quantity} {menuItem?.unit_type || 'units'}
-                              </span>
+                              {viewMode === 'edit' ? (
+                                <div className="flex items-center justify-center gap-1.5">
+                                  <button
+                                    onClick={() => handleEditUpdateItemQty(item.menu_item_id, -1)}
+                                    className="w-6 h-6 flex items-center justify-center rounded bg-slate-200 dark:bg-slate-600 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors"
+                                  >
+                                    <Minus className="w-3 h-3" />
+                                  </button>
+                                  <span className="w-6 text-center text-sm font-bold text-slate-900 dark:text-white">{item.quantity}</span>
+                                  <button
+                                    onClick={() => handleEditUpdateItemQty(item.menu_item_id, 1)}
+                                    className="w-6 h-6 flex items-center justify-center rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 transition-colors"
+                                  >
+                                    <Plus className="w-3 h-3" />
+                                  </button>
+                                  <button
+                                    onClick={() => handleEditRemoveMenuItem(item.menu_item_id)}
+                                    className="w-6 h-6 ml-1 flex items-center justify-center rounded bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 transition-colors"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                </div>
+                              ) : (
+                                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-600">
+                                  {item.quantity} {menuItem?.unit_type || 'units'}
+                                </span>
+                              )}
                             </td>
                             <td className="px-6 py-4 text-right text-slate-600 dark:text-slate-300 tabular-nums">
                               ₹{item.price.toLocaleString()}
@@ -1039,6 +1189,39 @@ export default function Orders() {
                     </tbody>
                   </table>
                 </div>
+                {viewMode === 'edit' && (
+                  <div className="mt-4 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 shadow-sm">
+                    <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Search & Add Items</h4>
+                    <div className="relative mb-3">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="text"
+                        value={menuSearchTerm}
+                        onChange={e => setMenuSearchTerm(e.target.value)}
+                        placeholder="Search to add items..."
+                        className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      />
+                    </div>
+                    {menuSearchTerm && (
+                      <div className="max-h-40 overflow-y-auto pr-1">
+                        {menuItems.filter(item => item.is_available && item.name.toLowerCase().includes(menuSearchTerm.toLowerCase())).slice(0, 10).map(item => (
+                          <div key={item.id} className="flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-700/50 rounded-lg border-b border-slate-100 dark:border-slate-700 last:border-0 border-x-0 border-t-0 border-solid">
+                            <div>
+                              <p className="text-sm font-medium text-slate-900 dark:text-white">{item.name}</p>
+                              <p className="text-xs text-amber-600 dark:text-amber-400">₹{parseFloat(String(item.discounted_price || item.price)).toLocaleString()}</p>
+                            </div>
+                            <button
+                              onClick={() => { handleEditAddMenuItem(item); setMenuSearchTerm(''); }}
+                              className="px-3 py-1 bg-amber-100 text-amber-700 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:hover:bg-amber-900/50 rounded-lg text-xs font-semibold transition-colors"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Footer Section */}
@@ -1048,9 +1231,9 @@ export default function Orders() {
                 <div className="w-full lg:flex-1">
                   {viewMode === 'edit' ? (
                     <div className="bg-blue-50 dark:bg-blue-900/10 rounded-xl p-6 border border-blue-100 dark:border-blue-800">
-                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Update Order Status</h4>
+                      <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">Update Order</h4>
                       <p className="text-sm text-blue-700 dark:text-blue-300 mb-6 opacity-80 max-w-md">
-                        Change the status of this order to keep the customer informed. Notification will be sent automatically.
+                        Review customer details, items, and status. Save changes to update the order. Notification will be sent automatically.
                       </p>
 
                       <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
@@ -1060,37 +1243,16 @@ export default function Orders() {
                             onChange={(e) => setEditStatus(e.target.value as Order['status'])}
                             className="w-full appearance-none pl-4 pr-10 py-3 border border-blue-200 dark:border-blue-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all text-sm font-medium"
                           >
-                            <option value="pending">Pending</option>
-                            <option value="confirmed">Confirmed</option>
-                            <option value="preparing">Preparing</option>
-                            <option value="out_for_delivery">Out for Delivery</option>
-                            <option value="delivered">Delivered</option>
-                            <option value="cancelled">Cancelled</option>
+                            {selectedOrder && getVisibleStatuses(editOrderType).map(status => (
+                              <option key={status} value={status}>
+                                {statusConfig[status as keyof typeof statusConfig]?.label || status}
+                              </option>
+                            ))}
                           </select>
                           <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-slate-500 dark:text-slate-400">
                             <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z" /></svg>
                           </div>
                         </div>
-                        <div className="flex gap-3 w-full sm:w-auto">
-                          <button
-                            onClick={() => handleStatusChange(selectedOrder.id, editStatus)}
-                            className="flex-1 sm:flex-none bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
-                          >
-                            Update Status
-                          </button>
-                          <button
-                            onClick={closeModal}
-                            className="sm:hidden flex-1 px-4 py-3 bg-white border border-blue-200 text-blue-900 hover:bg-blue-50 rounded-xl transition-colors font-medium"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex justify-start sm:justify-end">
-                        <button onClick={closeModal} className="hidden sm:block text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 underline">
-                          Cancel changes
-                        </button>
                       </div>
                     </div>
                   ) : (
@@ -1107,44 +1269,101 @@ export default function Orders() {
                   <h4 className="font-bold text-slate-900 dark:text-white mb-5 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700 pb-3">
                     <FileText className="w-5 h-5 text-slate-400" /> Bill Summary
                   </h4>
-                  <div className="space-y-3">
-                    <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                      <span>Subtotal</span>
-                      <span className="font-medium">₹{(selectedOrder.subtotal || 0).toLocaleString()}</span>
-                    </div>
-                    {selectedOrder.delivery_charges > 0 && (
-                      <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                        <span>Delivery Charges</span>
-                        <span className="font-medium">₹{selectedOrder.delivery_charges.toLocaleString()}</span>
+                  {(() => {
+                    const subtotal = viewMode === 'edit' 
+                      ? editItems.reduce((acc, item) => acc + item.price * item.quantity, 0)
+                      : (selectedOrder.subtotal || 0);
+                    const deliveryCharges = viewMode === 'edit'
+                      ? (editOrderType === 'delivery' ? 50 : 0)
+                      : (selectedOrder.delivery_charges || 0);
+                    const serviceCharges = viewMode === 'edit'
+                      ? 0
+                      : (selectedOrder.service_charges || 0);
+                    const gstAmount = viewMode === 'edit'
+                      ? (subtotal + deliveryCharges + serviceCharges) * 0.18
+                      : (selectedOrder.gst_amount || 0);
+
+                    const oldTaxable = parseFloat(String(selectedOrder.subtotal || 0)) + parseFloat(String(selectedOrder.delivery_charges || 0)) + parseFloat(String(selectedOrder.service_charges || 0));
+                    const oldGst = parseFloat(String(selectedOrder.gst_amount || 0));
+                    const oldExpectedTotal = oldTaxable + oldGst;
+                    const existingDiscount = oldExpectedTotal > parseFloat(String(selectedOrder.total_amount || 0)) ? oldExpectedTotal - parseFloat(String(selectedOrder.total_amount || 0)) : 0;
+
+                    let totalAmount = viewMode === 'edit'
+                      ? (subtotal + deliveryCharges + serviceCharges + gstAmount - existingDiscount)
+                      : selectedOrder.total_amount;
+                      
+                    if (totalAmount < 0) totalAmount = 0;
+
+                    return (
+                      <div className="space-y-3">
+                        <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                          <span>Subtotal</span>
+                          <span className="font-medium">₹{subtotal.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                        </div>
+                        {deliveryCharges > 0 && (
+                          <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                            <span>Delivery Charges</span>
+                            <span className="font-medium">₹{deliveryCharges.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          </div>
+                        )}
+                        {gstAmount > 0 && (
+                          <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                            <span>GST (18%)</span>
+                            <span className="font-medium">₹{gstAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          </div>
+                        )}
+                        {serviceCharges > 0 && (
+                          <div className="flex justify-between text-slate-600 dark:text-slate-400">
+                            <span>Service Charges</span>
+                            <span className="font-medium">₹{serviceCharges.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          </div>
+                        )}
+                        {existingDiscount > 0 && viewMode === 'edit' && (
+                          <div className="flex justify-between text-emerald-600 dark:text-emerald-400">
+                            <span>Discount</span>
+                            <span className="font-medium">-₹{existingDiscount.toLocaleString(undefined, { maximumFractionDigits: 2 })}</span>
+                          </div>
+                        )}
+                        <div className="border-t-2 border-slate-200 dark:border-slate-700 my-2 pt-2"></div>
+                        <div className="flex justify-between items-center">
+                          <span className="text-lg font-bold text-slate-900 dark:text-white">Total Amount</span>
+                          <span className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+                            ₹{totalAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+                        <div className="mt-2 text-right">
+                          <span className="text-xs text-slate-400">Including all taxes</span>
+                        </div>
                       </div>
-                    )}
-                    {selectedOrder.gst_amount > 0 && (
-                      <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                        <span>GST (18%)</span>
-                        <span className="font-medium">₹{selectedOrder.gst_amount.toLocaleString()}</span>
-                      </div>
-                    )}
-                    {selectedOrder.service_charges > 0 && (
-                      <div className="flex justify-between text-slate-600 dark:text-slate-400">
-                        <span>Service Charges</span>
-                        <span className="font-medium">₹{selectedOrder.service_charges.toLocaleString()}</span>
-                      </div>
-                    )}
-                    <div className="border-t-2 border-slate-200 dark:border-slate-700 my-2 pt-2"></div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-bold text-slate-900 dark:text-white">Total Amount</span>
-                      <span className="text-2xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                        ₹{selectedOrder.total_amount.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="mt-2 text-right">
-                      <span className="text-xs text-slate-400">Including all taxes</span>
-                    </div>
-                  </div>
+                    );
+                  })()}
                 </div>
 
               </div>
             </div>
+
+            {/* Sticky Action Footer for Edit Mode */}
+            {viewMode === 'edit' && (
+              <div className="px-6 py-4 bg-slate-50 dark:bg-slate-900 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-3 sticky bottom-0 z-10 w-full">
+                <button
+                  onClick={closeModal}
+                  className="px-6 py-2.5 text-slate-700 dark:text-slate-300 font-medium hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={isUpdatingOrder}
+                  onClick={handleUpdateOrder}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2.5 px-8 rounded-lg shadow-md transition-all flex items-center justify-center min-w-[140px]"
+                >
+                  {isUpdatingOrder ? (
+                    <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin mr-2" /> Saving...</>
+                  ) : (
+                    'Save Changes'
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
         , document.body)}
@@ -1212,7 +1431,7 @@ export default function Orders() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Customer Name <span className="text-red-500">*</span>
+                    Customer Name {!['takeaway', 'swiggy', 'zomato'].includes(manualOrderType) && <span className="text-red-500">*</span>}
                   </label>
                   <div className="relative">
                     <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -1226,7 +1445,9 @@ export default function Orders() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">Phone</label>
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Phone {manualOrderType === 'takeaway' && <span className="text-red-500">*</span>}
+                  </label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
@@ -1244,7 +1465,7 @@ export default function Orders() {
               {(['swiggy', 'zomato'] as Order['order_type'][]).includes(manualOrderType) && (
                 <div>
                   <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Platform Order ID
+                    Platform Order ID <span className="text-red-500">*</span>
                     <span className="ml-1.5 text-xs font-normal text-slate-400">(from Swiggy / Zomato app)</span>
                   </label>
                   <div className="relative">
@@ -1293,13 +1514,7 @@ export default function Orders() {
                         {filtered.map(item => {
                           const cartItem = manualItems.find(i => i.menu_item_id === item.id);
                           const qty = cartItem?.quantity ?? 0;
-                          const imgUrl = (() => {
-                            const raw = item.image_url;
-                            if (!raw) return null;
-                            if (raw.startsWith('http')) return raw;
-                            const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
-                            return `${base}${raw}`;
-                          })();
+                          const imgUrl = getImageUrl(item.image_url);
                           return (
                             <div
                               key={item.id}
@@ -1389,13 +1604,7 @@ export default function Orders() {
                   <div className="space-y-2">
                     {manualItems.map(item => {
                       const menuItem = menuItems.find(m => m.id === item.menu_item_id);
-                      const imgUrl = (() => {
-                        const raw = menuItem?.image_url;
-                        if (!raw) return null;
-                        if (raw.startsWith('http')) return raw;
-                        const base = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api$/, '');
-                        return `${base}${raw}`;
-                      })();
+                      const imgUrl = getImageUrl(menuItem?.image_url);
                       return (
                         <div key={item.menu_item_id} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-700/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-600">
                           {/* Thumbnail */}
@@ -1461,7 +1670,7 @@ export default function Orders() {
               </button>
               <button
                 onClick={handleSubmitManualOrder}
-                disabled={!manualCustomerName.trim() || manualItems.length === 0 || creatingOrder}
+                disabled={!isManualFormValid() || creatingOrder}
                 className="px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center gap-2"
               >
                 {creatingOrder ? (
