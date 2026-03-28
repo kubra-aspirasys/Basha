@@ -70,7 +70,7 @@ module.exports = (sequelize, DataTypes) => {
         modelName: 'Offer',
         tableName: 'offers',
         underscored: true,
-        paranoid: true
+        paranoid: false
     });
     return Offer;
 };

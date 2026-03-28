@@ -18,13 +18,17 @@ exports.validateOffer = async (req, res, next) => {
         }
 
         const now = new Date();
+        const startOfDay = new Date(now);
+        startOfDay.setHours(0, 0, 0, 0);
         
         const offer = await Offer.findOne({
             where: {
                 code: code.toUpperCase(),
                 is_active: true,
-                valid_from: { [Op.lte]: now },
-                valid_to: { [Op.gte]: now }
+                [Op.and]: [
+                    { [Op.or]: [{ valid_from: null }, { valid_from: { [Op.lte]: now } }] },
+                    { [Op.or]: [{ valid_to: null }, { valid_to: { [Op.gte]: startOfDay } }] }
+                ]
             }
         });
 
@@ -110,13 +114,15 @@ exports.getPublicOffers = async (req, res, next) => {
     try {
         const { customer_id } = req.query;
         const now = new Date();
-        
+        const startOfDay = new Date(now);
+        startOfDay.setHours(0, 0, 0, 0);
+
         const allOffers = await Offer.findAll({
             where: {
                 is_active: true,
                 [Op.and]: [
                     { [Op.or]: [{ valid_from: null }, { valid_from: { [Op.lte]: now } }] },
-                    { [Op.or]: [{ valid_to: null }, { valid_to: { [Op.gte]: new Date(now.setHours(0,0,0,0)) } }] }
+                    { [Op.or]: [{ valid_to: null }, { valid_to: { [Op.gte]: startOfDay } }] }
                 ]
             },
             attributes: ['id', 'code', 'discount_type', 'discount_value', 'description', 'max_discount_value', 'valid_to', 'applicable_to', 'specific_users', 'item_applicability', 'specific_items'],
@@ -187,27 +193,9 @@ exports.createOffer = async (req, res, next) => {
     try {
         const { code, discount_type, discount_value, max_discount_value, description, valid_from, valid_to, is_active, applicable_to, specific_users, item_applicability, specific_items } = req.body;
 
-        // Check if offer code exists (including soft-deleted records, since DB unique constraint covers all rows)
-        const existingOffer = await Offer.findOne({ where: { code }, paranoid: false });
+        // Check if offer code already exists
+        const existingOffer = await Offer.findOne({ where: { code } });
         if (existingOffer) {
-            if (existingOffer.deleted_at) {
-                // Restore the soft-deleted offer and update it
-                await existingOffer.restore();
-                await existingOffer.update({
-                    discount_type,
-                    discount_value,
-                    max_discount_value,
-                    description,
-                    valid_from,
-                    valid_to,
-                    is_active,
-                    applicable_to: applicable_to || 'all',
-                    specific_users: specific_users || [],
-                    item_applicability: item_applicability || 'all',
-                    specific_items: specific_items || []
-                });
-                return successResponse(res, 'Offer created successfully', existingOffer, 201);
-            }
             return errorResponse(res, 'Offer code already exists', 400);
         }
 

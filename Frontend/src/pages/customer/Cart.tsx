@@ -989,9 +989,18 @@ export default function Cart() {
               </div>
 
               {appliedCoupon && (
-                <div className="flex items-center gap-2 text-green-400 text-xs font-bold mb-4 bg-green-500/5 p-2 rounded-lg border border-green-500/20">
-                  <CheckCircle className="w-4 h-4" />
-                  <span>Coupon "{appliedCoupon.code}" applied: -{formatCurrency(appliedCoupon.discount)}</span>
+                <div className="flex flex-col gap-1 mb-4 bg-green-500/5 p-3 rounded-lg border border-green-500/20">
+                  <div className="flex items-center gap-2 text-green-400 text-xs font-bold">
+                    <CheckCircle className="w-4 h-4" />
+                    <span>Coupon "{appliedCoupon.code}" applied: -{formatCurrency(appliedCoupon.discount)}</span>
+                  </div>
+                  {appliedCoupon.discount_type === 'percentage' && 
+                   appliedCoupon.max_discount_value && 
+                   appliedCoupon.discount >= appliedCoupon.max_discount_value && (
+                    <p className="text-[10px] text-green-400/70 ml-6 italic">
+                      Maximum discount of {formatCurrency(appliedCoupon.max_discount_value)} reached.
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1053,13 +1062,21 @@ export default function Cart() {
                               )}
                             </div>
 
-                            {/* Discount callout */}
-                            <div className="flex items-end gap-1 mb-2">
-                              <span className={`font-black leading-none ${coupon.discount_type === 'percentage' ? 'text-5xl' : 'text-4xl'} ${isBest ? 'text-[#F2A900]' : 'text-white group-hover:text-[#F2A900] transition-colors'}`}>
-                                {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
-                              </span>
-                              <span className="text-[#F2A900]/70 font-bold text-lg mb-1">OFF</span>
-                            </div>
+                             {/* Discount callout */}
+                             <div className="flex items-center gap-2 mb-2">
+                               <div className="flex items-end gap-1">
+                                 <span className={`font-black leading-none ${coupon.discount_type === 'percentage' ? 'text-5xl' : 'text-4xl'} ${isBest ? 'text-[#F2A900]' : 'text-white group-hover:text-[#F2A900] transition-colors'}`}>
+                                   {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}
+                                 </span>
+                                 <span className="text-[#F2A900]/70 font-bold text-lg mb-1">OFF</span>
+                               </div>
+                               
+                               {coupon.discount_type === 'percentage' && coupon.max_discount_value && coupon.max_discount_value > 0 && (
+                                 <div className="px-2 py-0.5 rounded-md bg-[#F2A900]/10 border border-[#F2A900]/20 text-[10px] text-[#F2A900] font-black uppercase tracking-tighter">
+                                   UP TO {formatCurrency(coupon.max_discount_value)}
+                                 </div>
+                               )}
+                             </div>
 
                             {/* Description */}
                             <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
