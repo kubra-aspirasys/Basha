@@ -224,7 +224,6 @@ const createType = async (data) => {
 
 const getAllMenuItems = async () => {
     const items = await MenuItem.findAll({
-        where: { is_available: true },
         include: [
             {
                 model: MenuCategory,

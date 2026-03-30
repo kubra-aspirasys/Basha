@@ -110,13 +110,13 @@ class OrderService {
             }, { transaction });
 
             // Record Used Coupon if applicable
-            if (coupon_id && discountAmount > 0) {
+            if (coupon_id && discount_amount > 0) {
                 const { UsedCoupon, Offer } = require('../models');
                 await UsedCoupon.create({
                     order_id: order.id, // Using the just created order ID
                     offer_id: coupon_id,
                     customer_id: customerId || null,
-                    discount_amount: discountAmount
+                    discount_amount: discount_amount
                 }, { transaction });
 
                 // If this is a specific offer, we optionally remove the user from the specific_users array

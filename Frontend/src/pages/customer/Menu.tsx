@@ -61,7 +61,7 @@ export default function CustomerMenu() {
   // Get unique categories from items, hiding empty ones
   const categories = useMemo(() => {
     const hasItems = (categoryId: string) =>
-      menuItems.some(item => item.category_id === categoryId && item.is_available);
+      menuItems.some(item => item.category_id === categoryId);
 
     // Filter categories that have items in them
     const activeCategoryIds = storeCategories
@@ -78,7 +78,7 @@ export default function CustomerMenu() {
       item.description?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || item.category_id === selectedCategory;
     const matchesType = selectedType === 'all' || item.type_id === selectedType;
-    return matchesSearch && matchesCategory && matchesType && item.is_available;
+    return matchesSearch && matchesCategory && matchesType;
   });
 
   const doAddItem = (item: any, quantity = 1) => {
@@ -145,8 +145,8 @@ export default function CustomerMenu() {
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="mb-12 animate-fade-in">
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 heading-glow">Our Menu</h1>
-          <p className="text-xl text-gray-400">Explore our delicious selection of authentic Hyderabadi dishes</p>
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 heading-glow uppercase">Explore Delicious Menu</h1>
+          <p className="text-xl text-gray-400">Explore delicious selection of authentic Hyderabadi dishes</p>
         </div>
 
         {/* Search Bar */}
@@ -313,7 +313,11 @@ export default function CustomerMenu() {
                     </div>
 
                     <div className="flex flex-col items-end">
-                      {getItemQuantity(item.id) === 0 ? (
+                      {!item.is_available ? (
+                        <span className="text-red-500 font-bold text-xs bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20 text-center max-w-[120px]">
+                          Item is currently unavailable
+                        </span>
+                      ) : getItemQuantity(item.id) === 0 ? (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

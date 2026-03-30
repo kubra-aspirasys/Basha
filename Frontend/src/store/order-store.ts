@@ -12,6 +12,7 @@ export interface CreateOrderPayload {
   delivery_address: string;
   customer_phone?: string;
   order_type: Order['order_type'];
+  payment_method?: Order['payment_method'];
   status?: Order['status'];
   totals: {
     subtotal: number;
@@ -127,10 +128,12 @@ export const useOrderStore = create<OrderState>((set) => ({
       // So I will just send the necessary fields.
 
       const requestData = {
+        customer_id: payload.customer_id,
         customer_name: payload.customer_name,
         customer_phone: payload.customer_phone,
         delivery_address: payload.delivery_address,
         order_type: payload.order_type,
+        payment_method: payload.payment_method,
         coupon_id: payload.coupon_id,
         discount_amount: payload.discount_amount,
         items: payload.items.map(item => ({
@@ -162,8 +165,9 @@ export const useOrderStore = create<OrderState>((set) => ({
       return null;
     } catch (error: any) {
       console.error('Failed to create order:', error);
-      set({ error: error.response?.data?.message || 'Failed to create order' });
-      return null;
+      const errorMessage = error.response?.data?.message || 'Failed to create order. Please try again.';
+      set({ error: errorMessage });
+      throw new Error(errorMessage);
     }
   },
 

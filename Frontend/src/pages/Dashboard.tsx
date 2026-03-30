@@ -152,6 +152,17 @@ export default function Dashboard() {
   }
 
   if (error || !stats) {
+    if (error?.toLowerCase().includes('token') || error?.toLowerCase().includes('authorized') || error?.toLowerCase().includes('expired')) {
+      return (
+        <div className="flex bg-slate-50 dark:bg-slate-950 items-center justify-center min-h-[500px]">
+          <div className="text-center">
+            <RefreshCw className="w-10 h-10 text-primary-500 mx-auto mb-4 animate-spin" />
+            <p className="text-slate-900 dark:text-white font-medium mb-2">Session expired</p>
+            <p className="text-slate-500 dark:text-slate-400 mb-4">Redirecting you to login page...</p>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="flex bg-slate-50 dark:bg-slate-950 items-center justify-center min-h-[500px]">
         <div className="text-center">
@@ -189,19 +200,26 @@ export default function Dashboard() {
         </div>
 
         <div className="flex flex-col-reverse sm:flex-row items-end sm:items-center gap-4">
-          <div className="flex items-center gap-3">
-            <select
-              title="Dashboard Filter"
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="bg-white dark:bg-slate-800 border items-center gap-2 border-slate-200 dark:border-slate-700 rounded-lg px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-primary-500 shadow-sm transition-all"
-            >
-              <option value="today">Today</option>
-              <option value="yesterday">Yesterday</option>
-              <option value="last_week">Last Week</option>
-              <option value="last_month">Last Month</option>
-              <option value="all">Lifetime / All Time</option>
-            </select>
+          <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+            {[
+              { label: 'All', value: 'all' },
+              { label: 'Today', value: 'today' },
+              { label: 'Yesterday', value: 'yesterday' },
+              { label: 'Week', value: 'last_week' },
+              { label: 'Month', value: 'last_month' },
+            ].map((option) => (
+              <button
+                key={option.value}
+                onClick={() => setFilter(option.value)}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
+                  filter === option.value
+                    ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50'
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
           </div>
           <div
             className={`flex items-center gap-3 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full border-2 transition-all duration-300 shadow-sm backdrop-blur-sm ${storeActive

@@ -125,7 +125,7 @@ export default function Home() {
   // Get unique categories from store (keeps manual order), filtered to only those with available items
   const categories = useMemo(() => {
     const hasItems = (categoryId: string) =>
-      menuItems.some(item => item.category_id === categoryId && item.is_available);
+      menuItems.some(item => item.category_id === categoryId);
 
     const activeCategoryIds = storeCategories
       .filter(c => hasItems(c.id))
@@ -136,8 +136,8 @@ export default function Home() {
 
   // Get filtered items by category for new tabbed menu
   const filteredMenuItems = selectedCategory === 'all'
-    ? menuItems.filter(item => item.is_available)
-    : menuItems.filter(item => item.category_id === selectedCategory && item.is_available);
+    ? menuItems
+    : menuItems.filter(item => item.category_id === selectedCategory);
 
   const handleItemClick = (item: MenuItem) => {
     setSelectedItem(item);
@@ -443,7 +443,11 @@ export default function Home() {
                       </div>
 
                       <div className="flex flex-col items-end">
-                        {getItemQuantity(item.id) === 0 ? (
+                        {!item.is_available ? (
+                          <span className="text-red-500 font-bold text-[10px] sm:text-xs bg-red-500/10 px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg border border-red-500/20 text-center max-w-[100px] sm:max-w-[120px]">
+                            Item is currently unavailable
+                          </span>
+                        ) : getItemQuantity(item.id) === 0 ? (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();

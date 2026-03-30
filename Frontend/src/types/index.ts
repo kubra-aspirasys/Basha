@@ -84,6 +84,7 @@ export interface Order {
   service_charges: number;
   status: 'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled';
   order_type: 'pickup' | 'delivery' | 'swiggy' | 'zomato' | 'takeaway';
+  payment_method?: 'cod' | 'online';
   delivery_address: string;
   items: OrderItem[];
   created_at: string;

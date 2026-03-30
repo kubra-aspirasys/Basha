@@ -166,10 +166,20 @@ export default function MenuItemDetailModal({ item, isOpen, onClose, onAddToCart
             <Button
               onClick={handleAddToCart}
               disabled={!item.is_available}
-              className="w-full bg-[#F2A900] hover:bg-[#D99700] text-black font-bold py-6 text-lg uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed"
+              className={`w-full font-bold py-6 text-lg uppercase tracking-wider transition-all duration-300 ${
+                item.is_available 
+                  ? 'bg-[#F2A900] hover:bg-[#D99700] text-black shadow-lg shadow-[#F2A900]/20' 
+                  : 'bg-red-500/20 text-red-500 border border-red-500/30 cursor-not-allowed opacity-100 hover:bg-red-500/20'
+              }`}
             >
-              <ShoppingCart className="w-5 h-5 mr-2" />
-              Add to Cart - {formatCurrency(finalPrice * quantity)}
+              {item.is_available ? (
+                <>
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  Add to Cart - {formatCurrency(finalPrice * quantity)}
+                </>
+              ) : (
+                'Item is currently unavailable'
+              )}
             </Button>
           </div>
         </div>
