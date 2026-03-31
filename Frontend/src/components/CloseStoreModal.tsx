@@ -9,11 +9,17 @@ interface CloseStoreModalProps {
 }
 
 const DEFAULT_REASONS = [
-  "Sold out for the day",
-  "Maintenance / Cleaning",
-  "Staff Shortage",
-  "Heavy Rain / Weather Issues",
-  "Emergency / Personal Reasons",
+  "Paused for a bit to manage incoming orders. Back soon!",
+  "Experiencing a technical issue. We'll be back shortly!",
+  "Experiencing a gas supply disruption. We'll be back soon!",
+  "Closed for a routine hygiene check. Back shortly!",
+  "Closed due to weather conditions. Stay safe!",
+  "Closed for the holiday. We'll be back soon!",
+  "We've sold out for today. See you tomorrow!",
+  "Closed for the day. See you tomorrow!",
+  "Briefly closed for maintenance. We'll be back soon!",
+  "Temporarily closed. We'll reopen shortly!",
+  "Temporarily unavailable. We'll be back soon!",
 ];
 
 export default function CloseStoreModal({ isOpen, onClose, onConfirm }: CloseStoreModalProps) {
@@ -36,7 +42,7 @@ export default function CloseStoreModal({ isOpen, onClose, onConfirm }: CloseSto
         {/* Header */}
         <div className="px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
           <h2 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <AlertCircle className="w-5 h-5 text-red-500" /> Close Store
+            <AlertCircle className="w-5 h-5 text-red-500" /> Pause Order Acceptance
           </h2>
           <button
             onClick={onClose}
@@ -48,13 +54,13 @@ export default function CloseStoreModal({ isOpen, onClose, onConfirm }: CloseSto
 
         {/* Content */}
         <div className="p-6 space-y-4">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
-            You are about to stop accepting orders. Please provide a reason so customers know why the store is closed.
+          <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
+            Customers will see your store as unavailable with the message you select below. You can reopen anytime.
           </p>
 
           <div className="space-y-2">
             <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Reason for closing:
+              Select Message:
             </label>
             <select
               value={isCustom ? 'custom' : selectedReason}

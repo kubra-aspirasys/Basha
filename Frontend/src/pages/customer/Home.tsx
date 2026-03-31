@@ -372,7 +372,7 @@ export default function Home() {
                 {config.menu.badge}
               </span>
               <h2 className="text-5xl font-display font-extrabold text-white mb-4 tracking-wide uppercase">
-                {config.menu.title}
+                Explore Delicious Menu
               </h2>
               <p className="text-gray-400 text-lg max-w-2xl mx-auto">
                 {config.menu.description}
@@ -400,9 +400,9 @@ export default function Home() {
               {filteredMenuItems.length > 0 ? filteredMenuItems.map((item, index) => (
                 <div
                   key={item.id}
-                  onClick={() => handleItemClick(item)}
-                  className="group relative bg-[#1a1a1a] rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-500 animate-fade-in cursor-pointer border border-[#F2A900]/10 hover:border-[#F2A900]/30 
-                  flex flex-row sm:flex-col"
+                  onClick={() => item.is_available && handleItemClick(item)}
+                  className={`group relative bg-[#1a1a1a] rounded-xl overflow-hidden hover:shadow-2xl transition-all duration-500 animate-fade-in border border-[#F2A900]/10 hover:border-[#F2A900]/30 
+                  flex flex-row sm:flex-col ${item.is_available ? 'cursor-pointer' : 'opacity-60 grayscale-[0.2] cursor-not-allowed'}`}
                   style={{ animationDelay: `${(index % 12) * 50}ms` }}
                 >
                   <div className="relative w-28 h-28 flex-shrink-0 sm:w-full sm:h-56 overflow-hidden">

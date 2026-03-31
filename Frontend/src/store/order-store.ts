@@ -87,6 +87,12 @@ export const useOrderStore = create<OrderState>((set) => ({
   },
 
   fetchOrders: async (params?: any) => {
+    // If not authenticated, don't even try to fetch orders to avoid 401 session expired messages
+    if (!useAuthStore.getState().isAuthenticated) {
+      set({ orders: [], loading: false });
+      return;
+    }
+
     set({ loading: true, error: null });
     try {
       // Determine if we should call admin or customer endpoint

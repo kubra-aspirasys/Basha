@@ -257,8 +257,10 @@ export default function CustomerMenu() {
             {filteredItems.map((item, index) => (
               <div
                 key={item.id}
-                onClick={() => setSelectedItem(item)}
-                className="group bg-[#1a1a1a] rounded-lg overflow-hidden border border-[#F2A900]/12 hover:border-[#F2A900]/35 transition-all duration-300 hover:shadow-2xl gold-ring animate-fade-in"
+                onClick={() => item.is_available && setSelectedItem(item)}
+                className={`group bg-[#1a1a1a] rounded-lg overflow-hidden border transition-all duration-300 animate-fade-in ${item.is_available 
+                  ? 'border-[#F2A900]/12 hover:border-[#F2A900]/35 hover:shadow-2xl gold-ring cursor-pointer' 
+                  : 'border-[#F2A900]/5 opacity-60 grayscale-[0.2] cursor-not-allowed'}`}
                 style={{ animationDelay: `${(index % 8) * 50}ms` }}
               >
                 {/* Image */}

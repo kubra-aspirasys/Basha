@@ -15,13 +15,18 @@ export default function Orders() {
     const [orderToCancel, setOrderToCancel] = useState<{ id: string, order_number: string } | null>(null);
 
     useEffect(() => {
-        fetchOrders();
+        if (isAuthenticated) {
+            fetchOrders();
+        }
+        
         // 30s Polling for status updates
         const interval = setInterval(() => {
-            fetchOrders();
+            if (isAuthenticated) {
+                fetchOrders();
+            }
         }, 30000);
         return () => clearInterval(interval);
-    }, [fetchOrders]);
+    }, [fetchOrders, isAuthenticated]);
 
     // Orders are already filtered by the API based on the authenticated customer
     // No need to filter again on the client side

@@ -350,15 +350,11 @@ export default function CustomerLayout() {
       {/* Main Content */}
       <main className="flex-1">
         {!storeActive && (
-          <div className="bg-red-500/10 border-b border-red-500/30 w-full pt-20 pb-2">
+          <div className="bg-red-500/10 border-b border-red-500/30 w-full pt-20 pb-3">
             <div className="container mx-auto px-4 text-center">
-              <p className="text-red-400 text-sm font-semibold tracking-wide uppercase">
-                <span className="font-bold">Store is Currently Closed</span>
-                {closeReason && <span className="hidden sm:inline"> - {closeReason}</span>}
+              <p className="text-red-400 text-sm font-bold tracking-widest uppercase animate-pulse">
+                {closeReason || "Store is Temporarily Unavailable"}
               </p>
-              {closeReason && (
-                <p className="text-red-300 text-xs mt-1 sm:hidden">{closeReason}</p>
-              )}
             </div>
           </div>
         )}

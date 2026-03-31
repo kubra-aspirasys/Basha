@@ -1186,15 +1186,10 @@ export default function Cart() {
 
           <div className="pt-6">
             {!storeActive ? (
-              <div className="p-4 bg-red-900/40 border border-red-500/50 rounded-xl text-center space-y-2">
-                <p className="text-red-400 font-bold">Store is Currently Closed</p>
-                {closeReason ? (
-                  <div className="bg-red-950/50 p-2 rounded border border-red-500/30">
-                    <p className="text-red-300 text-sm font-medium">{closeReason}</p>
-                  </div>
-                ) : (
-                  <p className="text-red-300 text-sm">We are unable to accept new orders at this time. Please try again later.</p>
-                )}
+              <div className="p-6 bg-red-900/20 border border-red-500/30 rounded-2xl text-center shadow-[0_0_20px_rgba(239,68,68,0.1)] animate-pulse">
+                <p className="text-red-400 text-sm font-bold uppercase tracking-widest leading-relaxed">
+                  {closeReason || "Store is Temporarily Unavailable"}
+                </p>
               </div>
             ) : (
               <button
