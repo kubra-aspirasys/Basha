@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useCustomerStore } from '@/store/customer-store';
 import { useOrderStore } from '@/store/order-store';
 import { Search, Ban, Check, Eye, MessageSquare, Download, Star, TrendingUp, Clock, DollarSign, Users as UsersIcon, Send, Mail, Smartphone, Upload, FileText, Eye as PreviewIcon, X } from 'lucide-react';
@@ -751,17 +752,41 @@ function SendMessageModal({ customers }: { customers: Customer[] }) {
 export default function Users() {
   const { customers, fetchCustomers, fetchStats, updateCustomerStatus, exportCustomers, totalPages, totalCount, stats } = useCustomerStore();
   const { orders, fetchOrders } = useOrderStore(); // Still keep this if needed for order history deep dive or replace with API
-  const [searchTerm, setSearchTerm] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [sortBy, setSortBy] = useState<'name' | 'email' | 'created_at' | 'orders' | 'spending'>('name');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>('all');
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // URL state persistence
+  const pageParam = parseInt(searchParams.get('page') || '1');
+  const limitParam = parseInt(searchParams.get('limit') || '10');
+  const searchParam = searchParams.get('search') || '';
+  const statusParam = searchParams.get('status') || 'all';
+  const sortParam = (searchParams.get('sort') || 'name') as any;
+  const orderParam = (searchParams.get('order') || 'asc') as any;
+
+  const [searchTerm, setSearchTerm] = useState(searchParam);
+  const [currentPage, setCurrentPage] = useState(pageParam);
+  const [itemsPerPage, setItemsPerPage] = useState(limitParam);
+  const [sortBy, setSortBy] = useState<'name' | 'email' | 'created_at' | 'orders' | 'spending'>(sortParam);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(orderParam);
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>(statusParam as any);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
+  // Sync state to URL
   const debouncedSearch = useDebounce(searchTerm, 500);
+
+  useEffect(() => {
+    const params: any = {};
+    if (currentPage > 1) params.page = currentPage.toString();
+    if (itemsPerPage !== 10) params.limit = itemsPerPage.toString();
+    if (debouncedSearch) params.search = debouncedSearch;
+    if (statusFilter !== 'all') params.status = statusFilter;
+    if (sortBy !== 'name') params.sort = sortBy;
+    if (sortOrder !== 'asc') params.order = sortOrder;
+
+    setSearchParams(params, { replace: true });
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, sortBy, sortOrder, setSearchParams]);
 
   useEffect(() => {
     fetchStats();

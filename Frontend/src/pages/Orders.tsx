@@ -60,12 +60,9 @@ export default function Orders() {
   const [currentPage, setCurrentPage] = useState(parseInt(searchParams.get('page') || '1'));
   const [itemsPerPage, setItemsPerPage] = useState(parseInt(searchParams.get('limit') || '10'));
 
-  const isManualType = (type: string) => ['takeaway', 'swiggy', 'zomato'].includes(type);
 
-  const getVisibleStatuses = (type: string) => {
-    if (isManualType(type)) {
-      return ['confirmed', 'preparing', 'delivered', 'cancelled'];
-    }
+
+  const getVisibleStatuses = () => {
     return ['pending', 'confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'];
   };
 
@@ -771,7 +768,7 @@ export default function Orders() {
                                 onChange={(e) => setTempStatus(e.target.value as Order['status'])}
                                 className="appearance-none px-4 py-2.5 pr-10 text-sm border border-slate-200 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-all duration-200 shadow-sm hover:shadow-md font-medium"
                               >
-                                {getVisibleStatuses(order.order_type).map(status => (
+                                {getVisibleStatuses().map(status => (
                                   <option key={status} value={status}>
                                     {statusConfig[status as keyof typeof statusConfig]?.label || status}
                                   </option>
@@ -894,7 +891,7 @@ export default function Orders() {
                             onChange={(e) => setTempStatus(e.target.value as Order['status'])}
                             className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500"
                           >
-                            {getVisibleStatuses(order.order_type).map(status => (
+                            {getVisibleStatuses().map(status => (
                               <option key={status} value={status}>
                                 {statusConfig[status as keyof typeof statusConfig]?.label || status}
                               </option>
@@ -1243,7 +1240,7 @@ export default function Orders() {
                             onChange={(e) => setEditStatus(e.target.value as Order['status'])}
                             className="w-full appearance-none pl-4 pr-10 py-3 border border-blue-200 dark:border-blue-700 rounded-xl bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-sm transition-all text-sm font-medium"
                           >
-                            {selectedOrder && getVisibleStatuses(editOrderType).map(status => (
+                            {selectedOrder && getVisibleStatuses().map(status => (
                               <option key={status} value={status}>
                                 {statusConfig[status as keyof typeof statusConfig]?.label || status}
                               </option>

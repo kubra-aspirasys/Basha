@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMenuStore } from '@/store/menu-store';
 import { useOfferStore } from '@/store/offer-store';
 import { Plus, Pencil, Trash2, Search, Upload, Link as LinkIcon, X, Star, Tag, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
@@ -33,8 +33,19 @@ export default function Menu() {
     loading,
   } = useMenuStore();
   const { offers, fetchOffers } = useOfferStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [itemsPerPage, setItemsPerPage] = useState(100);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // URL state persistence
+  const pageParam = parseInt(searchParams.get('page') || '1');
+  const limitParam = parseInt(searchParams.get('limit') || '10');
+  const searchParam = searchParams.get('search') || '';
+  const categoryParam = searchParams.get('category') || 'all';
+  const typeParam = searchParams.get('type') || 'all';
+  const availabilityParam = searchParams.get('available') || 'all';
+  const featuredParam = searchParams.get('featured') || 'all';
+
+  const [searchTerm, setSearchTerm] = useState(searchParam);
+  const [itemsPerPage, setItemsPerPage] = useState(limitParam);
   const [isOpen, setIsOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<string | null>(null);
   const [imageMode, setImageMode] = useState<'url' | 'upload'>('url');
@@ -43,11 +54,26 @@ export default function Menu() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
 
   // Filter states
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
-  const [availabilityFilter, setAvailabilityFilter] = useState<string>('all');
-  const [featuredFilter, setFeaturedFilter] = useState<string>('all');
-  const [page, setPage] = useState(1);
+  const [categoryFilter, setCategoryFilter] = useState<string>(categoryParam);
+  const [typeFilter, setTypeFilter] = useState<string>(typeParam);
+  const [availabilityFilter, setAvailabilityFilter] = useState<string>(availabilityParam);
+  const [featuredFilter, setFeaturedFilter] = useState<string>(featuredParam);
+  const [page, setPage] = useState(pageParam);
+
+  // Sync state to URL
+  useEffect(() => {
+    const params: any = {};
+    if (page > 1) params.page = page.toString();
+    if (itemsPerPage !== 10) params.limit = itemsPerPage.toString();
+    if (searchTerm) params.search = searchTerm;
+    if (categoryFilter !== 'all') params.category = categoryFilter;
+    if (typeFilter !== 'all') params.type = typeFilter;
+    if (availabilityFilter !== 'all') params.available = availabilityFilter;
+    if (featuredFilter !== 'all') params.featured = featuredFilter;
+
+    setSearchParams(params, { replace: true });
+  }, [page, itemsPerPage, searchTerm, categoryFilter, typeFilter, availabilityFilter, featuredFilter, setSearchParams]);
+
   const [sortBy, setSortBy] = useState<string>('display_order');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
   const [showFilters, setShowFilters] = useState(false);
@@ -1022,7 +1048,7 @@ export default function Menu() {
                       {imageMode === 'url' ? (
                         <div className="w-full space-y-4">
                           <input
-                            type="url"
+                            type="text"
                             placeholder="Enter image URL..."
                             value={formData.image_url}
                             onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}

@@ -315,7 +315,7 @@ export default function CustomerMenu() {
                     <div className="flex flex-col items-end">
                       {!item.is_available ? (
                         <span className="text-red-500 font-bold text-xs bg-red-500/10 px-3 py-2 rounded-lg border border-red-500/20 text-center max-w-[120px]">
-                          Item is currently unavailable
+                          Currently Unavailable
                         </span>
                       ) : getItemQuantity(item.id) === 0 ? (
                         <button

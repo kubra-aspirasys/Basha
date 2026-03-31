@@ -1,5 +1,5 @@
-
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useInquiryStore } from '@/store/inquiry-store';
 import {
   Search, Eye, Mail, Phone, Clock,
@@ -251,13 +251,37 @@ export default function Inquiries() {
     inquiries, isLoading, total, totalPages, fetchInquiries, deleteInquiry, error
   } = useInquiryStore();
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // URL state persistence
+  const pageParam = parseInt(searchParams.get('page') || '1');
+  const limitParam = parseInt(searchParams.get('limit') || '10');
+  const searchParam = searchParams.get('search') || '';
+  const statusParam = searchParams.get('status') || 'all';
+  const eventParam = searchParams.get('event') || 'all';
+  const subjectParam = searchParams.get('subject') || 'all';
+
+  const [searchTerm, setSearchTerm] = useState(searchParam);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const [statusFilter, setStatusFilter] = useState<'all' | Inquiry['status']>('all');
-  const [eventTypeFilter, setEventTypeFilter] = useState<string>('all');
-  const [subjectFilter, setSubjectFilter] = useState<string>('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [statusFilter, setStatusFilter] = useState<'all' | Inquiry['status']>(statusParam as any);
+  const [eventTypeFilter, setEventTypeFilter] = useState<string>(eventParam);
+  const [subjectFilter, setSubjectFilter] = useState<string>(subjectParam);
+  const [currentPage, setCurrentPage] = useState(pageParam);
+  const [itemsPerPage, setItemsPerPage] = useState(limitParam);
+
+  // Sync state to URL
+  useEffect(() => {
+    const params: any = {};
+    if (currentPage > 1) params.page = currentPage.toString();
+    if (itemsPerPage !== 10) params.limit = itemsPerPage.toString();
+    if (debouncedSearchTerm) params.search = debouncedSearchTerm;
+    if (statusFilter !== 'all') params.status = statusFilter;
+    if (eventTypeFilter !== 'all') params.event = eventTypeFilter;
+    if (subjectFilter !== 'all') params.subject = subjectFilter;
+
+    setSearchParams(params, { replace: true });
+  }, [debouncedSearchTerm, statusFilter, eventTypeFilter, subjectFilter, currentPage, itemsPerPage, setSearchParams]);
+
   const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean, id: string, name: string }>({
     isOpen: false,
     id: '',

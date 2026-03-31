@@ -2,15 +2,16 @@ const { Order, OrderItem, MenuItem, Payment, Notification, sequelize } = require
 const { Op } = require('sequelize');
 const { sanitizeObject, sanitizeString } = require('../utils/sanitizer');
 
-// Define allowed status transitions (Strict Workflow)
+// Status Workflow (Now free use as per user request)
+const ALL_STATUSES = ['pending', 'confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'];
 const ALLOWED_TRANSITIONS = {
-    'pending': ['confirmed', 'cancelled'],
-    'confirmed': ['preparing', 'cancelled'],
-    'preparing': ['ready_for_pickup', 'cancelled'],
-    'ready_for_pickup': ['out_for_delivery', 'delivered', 'cancelled'], // Delivery -> Out, Pickup -> Delivered
-    'out_for_delivery': ['delivered', 'cancelled'],
-    'delivered': [], // Terminal status
-    'cancelled': []  // Terminal status
+    'pending': ALL_STATUSES,
+    'confirmed': ALL_STATUSES,
+    'preparing': ALL_STATUSES,
+    'ready_for_pickup': ALL_STATUSES,
+    'out_for_delivery': ALL_STATUSES,
+    'delivered': ALL_STATUSES,
+    'cancelled': ALL_STATUSES
 };
 
 class OrderService {
@@ -265,19 +266,11 @@ class OrderService {
             return order;
         }
 
-        // Check if transition is allowed
-        const allowedNextStatuses = [...(ALLOWED_TRANSITIONS[currentStatus] || [])];
+        // Allow free transition between any status
+        const allowedNextStatuses = ALL_STATUSES.filter(s => s !== currentStatus);
 
-        // Specific rules for Manual Orders (Walkin, Swiggy, Zomato)
-        if (['takeaway', 'swiggy', 'zomato'].includes(order.order_type)) {
-            // Manual orders can jump from preparing to delivered
-            if (currentStatus === 'preparing' && !allowedNextStatuses.includes('delivered')) {
-                allowedNextStatuses.push('delivered');
-            }
-        }
-
-        if (!allowedNextStatuses.includes(newStatus)) {
-            const error = new Error(`Invalid status transition from '${currentStatus}' to '${newStatus}'. Allowed: ${allowedNextStatuses.join(', ')}`);
+        if (!ALL_STATUSES.includes(newStatus)) {
+            const error = new Error(`Invalid status: '${newStatus}'`);
             error.statusCode = 400;
             throw error;
         }
