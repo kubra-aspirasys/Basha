@@ -1,9 +1,9 @@
 const axios = require('axios');
 
 const BASE_URL = 'http://localhost:5000/api';
-const ADMIN_EMAIL = 'admin@bashabiryani.com';
+const ADMIN_EMAIL = 'admin@bashafood.in';
 const ADMIN_PASS = 'admin123';
-const CUSTOMER_EMAIL = 'customer@bashabiryani.com';
+const CUSTOMER_EMAIL = 'customer@bashafood.in';
 const CUSTOMER_PASS = 'customer123';
 
 let adminToken = '';

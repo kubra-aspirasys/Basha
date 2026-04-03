@@ -11,7 +11,7 @@ module.exports = {
         await queryInterface.bulkInsert('users', [{
             id: uuidv4(),
             name: 'Admin User',
-            email: 'admin@bashabiryani.com',
+            email: 'admin@bashafood.in',
             password_hash: adminPassword,
             phone: '9876543200',
             role: 'admin',
@@ -23,7 +23,7 @@ module.exports = {
         await queryInterface.bulkInsert('customers', [{
             id: uuidv4(),
             name: 'Demo Customer',
-            email: 'customer@bashabiryani.com',
+            email: 'customer@bashafood.in',
             password_hash: customerPassword,
             phone: '9876543210',
             address: '123 Main Street, Hyderabad',
@@ -35,7 +35,7 @@ module.exports = {
     },
 
     down: async (queryInterface, Sequelize) => {
-        await queryInterface.bulkDelete('users', { email: 'admin@bashabiryani.com' }, {});
-        await queryInterface.bulkDelete('customers', { email: 'customer@bashabiryani.com' }, {});
+        await queryInterface.bulkDelete('users', { email: 'admin@bashafood.in' }, {});
+        await queryInterface.bulkDelete('customers', { email: 'customer@bashafood.in' }, {});
     }
 };

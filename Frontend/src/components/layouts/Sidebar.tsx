@@ -40,12 +40,12 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
               <div className="relative">
                 <div className="absolute inset-0 gradient-primary rounded-xl blur-md opacity-40 group-hover:opacity-60 transition-opacity" />
                 <div className="relative flex items-center justify-center w-12 h-12 bg-white rounded-xl premium-shadow">
-                  <img src="/logo-min.webp" alt="Basha Biryani Logo" className="w-10 h-10 object-contain" />
+                  <img src="/logo-min.webp" alt="Basha Food Logo" className="w-10 h-10 object-contain" />
                 </div>
               </div>
               <div>
                 <h2 className="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
-                  Basha Biryani
+                  Basha Food
                 </h2>
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400 tracking-wide">
                   Admin Panel

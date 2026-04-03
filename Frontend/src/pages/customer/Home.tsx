@@ -73,7 +73,7 @@ export default function Home() {
       enabled: true,
       video_url: "/Videos/hero.mp4",
       tagline: "Spiced to Perfection, Served with Tradition!",
-      logo_url: "https://bashafood.in/Images/KING%20OF%20ALL%20FOOD.webp",
+      logo_url: "/assets/KING OF ALL FOOD.webp",
       description: "Experience the rich taste of traditional Hyderabad cuisine with our signature BBQ kababs, wraps, and desserts.",
       button_text: "Order Now"
     },
@@ -220,8 +220,16 @@ export default function Home() {
               {config.hero.tagline}
             </p>
 
-            <div className="bannerTextImg w-[200px] sm:w-[180px] md:w-[220px] lg:w-[250px] mb-6 animate-slide-up mx-auto md:mx-0">
-              <img src={config.hero.logo_url} alt="Banner Text" />
+            <h1 className="sr-only">KING OF ALL FOOD - Original Basha Biryani & BBQ</h1>
+            <div className="bannerTextImg w-full max-w-[200px] sm:max-w-[300px] md:max-w-[350px] lg:max-w-[350px] mb-8 animate-slide-up mx-auto md:mx-0">
+              <img 
+                src="/assets/KING OF ALL FOOD.webp" 
+                alt="KING OF ALL FOOD" 
+                className="w-full h-auto drop-shadow-[0_15px_35px_rgba(242,169,0,0.35)]"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = '/logo-min.webp';
+                }}
+              />
             </div>
 
             <p className="text-lg text-white max-w-2xl mb-4 animate-slide-up animation-delay-300">
@@ -251,7 +259,7 @@ export default function Home() {
                 <div className="relative z-10 w-full max-w-[600px] aspect-square">
                   <img
                     src={config.about.image_url}
-                    alt="Basha Biryani Special"
+                    alt="Basha Food Special"
                     className="rounded-lg shadow-2xl w-full h-[100%]"
                   />
                 </div>

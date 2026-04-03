@@ -48,7 +48,7 @@ export default function Login() {
 
         toast({
           title: 'Login successful',
-          description: `Welcome back to Basha Biryani${actualRole === 'admin' ? ' Admin Panel' : ''}`,
+          description: `Welcome back to Basha Food${actualRole === 'admin' ? ' Admin Panel' : ''}`,
         });
 
         // Redirect based on ACTUAL role from server response
@@ -179,9 +179,9 @@ export default function Login() {
                 <div className={`p-4 rounded-2xl border transition-all duration-300 ${activeRole === 'customer' ? 'bg-blue-50 border-blue-100 dark:bg-blue-900/10 dark:border-blue-900/30' : 'bg-amber-50 border-amber-100 dark:bg-amber-900/10 dark:border-amber-900/30'}`}>
                   <p className={`text-xs text-center font-medium ${activeRole === 'customer' ? 'text-blue-600 dark:text-blue-400' : 'text-amber-600 dark:text-amber-400'}`}>
                     {activeRole === 'customer' ? (
-                      <><strong>Demo Customer:</strong> customer@bashabiryani.com / customer123</>
+                      <><strong>Demo Customer:</strong> customer@bashafood.in / customer123</>
                     ) : (
-                      <><strong>Demo Admin:</strong> admin@bashabiryani.com / admin123</>
+                      <><strong>Demo Admin:</strong> admin@bashafood.in / admin123</>
                     )}
                   </p>
                 </div>

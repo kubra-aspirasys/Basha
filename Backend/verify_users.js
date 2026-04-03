@@ -7,7 +7,7 @@ const PREFIX = '/api/customers';
 const ORDER_PREFIX = '/api/orders';
 
 // Admin Credentials
-const ADMIN_EMAIL = 'admin@bashabiryani.com';
+const ADMIN_EMAIL = 'admin@bashafood.in';
 const ADMIN_PASSWORD = 'admin123';
 
 let token = '';

@@ -3,7 +3,7 @@ import { Outlet } from 'react-router-dom';
 
 export default function AuthLayout() {
   useEffect(() => {
-    document.title = "Basha Biryani";
+    document.title = "Basha Food";
   }, []);
   return (
     <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-slate-50 to-gold-50/30 dark:from-slate-950 dark:via-slate-900 dark:to-slate-900 flex items-center justify-center p-4" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
@@ -13,7 +13,7 @@ export default function AuthLayout() {
       </div>
       <div className="w-full max-w-md animate-fade-in">
         <div className="text-center mb-8">
-          <img src="/logo-min.webp" alt="Basha Biryani Logo" className="h-24 mx-auto" />
+          <img src="/logo-min.webp" alt="Basha Food Logo" className="h-24 mx-auto" />
         </div>
         <div className="animate-slide-up">
           <Outlet />

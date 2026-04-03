@@ -7,7 +7,7 @@ async function fixPasswords() {
         const customerPassword = await bcrypt.hash('customer123', 10);
 
         const [admin, adminCreated] = await db.User.findOrCreate({
-            where: { email: 'admin@bashabiryani.com' },
+            where: { email: 'admin@bashafood.in' },
             defaults: {
                 name: 'Admin User',
                 password_hash: adminPassword,
@@ -24,7 +24,7 @@ async function fixPasswords() {
         }
 
         const [customer, customerCreated] = await db.Customer.findOrCreate({
-            where: { email: 'customer@bashabiryani.com' },
+            where: { email: 'customer@bashafood.in' },
             defaults: {
                 name: 'Demo Customer',
                 password_hash: customerPassword,

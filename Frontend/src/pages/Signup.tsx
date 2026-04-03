@@ -76,7 +76,7 @@ export default function Signup() {
       if (success) {
         toast({
           title: 'Account created successfully!',
-          description: 'Welcome to Basha Biryani',
+          description: 'Welcome to Basha Food',
         });
         navigate('/');
       } else {
@@ -104,8 +104,8 @@ export default function Signup() {
           {/* Content */}
           <div className="relative z-10">
             <div className="flex flex-col gap-4 mb-6">
-              <img src="/logo-min.webp" alt="Basha Biryani" className="h-20 w-auto object-contain" />
-              <span className="text-2xl font-bold tracking-tight text-white">Basha Biryani</span>
+              <img src="/logo-min.webp" alt="Basha Food" className="h-20 w-auto object-contain" />
+              <span className="text-2xl font-bold tracking-tight text-white">Basha Food</span>
             </div>
             <h1 className="text-4xl font-bold text-white leading-tight mb-4">
               Experience the <span className="text-amber-200">Authentic Taste</span> of Tradition.

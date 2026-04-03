@@ -24,7 +24,7 @@ export default function CustomerLayout() {
 
   // Redirect admin to admin panel if they try to access customer routes
   useEffect(() => {
-    document.title = "Basha Biryani";
+    document.title = "Basha Food";
     if (isAuthenticated && user?.role === 'admin') {
       navigate('/admin/dashboard', { replace: true });
     }
@@ -153,7 +153,7 @@ export default function CustomerLayout() {
           <div className="flex items-center justify-between h-20 gap-4">
             {/* Logo */}
             <Link to="/" className="flex items-center group flex-shrink-0">
-              <img src="/logo-min.webp" alt="Basha Biryani" className="h-16 w-auto group-hover:scale-110 transition-transform" />
+              <img src="/logo-min.webp" alt="Basha Food" className="h-16 w-auto group-hover:scale-110 transition-transform" />
             </Link>
 
             {/* Centered Search Bar - Desktop */}
@@ -369,7 +369,7 @@ export default function CustomerLayout() {
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {/* About */}
             <div>
-              <h3 className="text-[#F2A900] text-xl font-bold mb-4">Basha Biryani</h3>
+              <h3 className="text-[#F2A900] text-xl font-bold mb-4">Basha Food</h3>
               <p className="text-gray-400 text-sm leading-relaxed mb-4">
                 Authentic Hyderabad flavors crafted with traditional spices and recipes passed down through generations.
               </p>
@@ -441,7 +441,7 @@ export default function CustomerLayout() {
         <div className="border-t border-[#2a2a2a]">
           <div className="container mx-auto px-4 py-6">
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-gray-400">
-              <p>© 2026 Basha Biryani. Crafted with spice.</p>
+              <p>© 2026 Basha Food. Crafted with spice.</p>
               <div className="flex gap-6">
                 <a href="#" className="hover:text-[#F2A900] transition-colors">Privacy Policy</a>
                 <a href="#" className="hover:text-[#F2A900] transition-colors">Terms of Service</a>

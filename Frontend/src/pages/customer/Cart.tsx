@@ -529,7 +529,12 @@ export default function Cart() {
               <h1 className="text-3xl sm:text-4xl font-display font-extrabold text-white uppercase tracking-wider">Your Cart</h1>
             </div>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => {
+                navigate('/');
+                setTimeout(() => {
+                  document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
+                }, 100);
+              }}
               className="w-full sm:w-auto px-4 py-2 bg-[#0f0f0f] border border-[#F2A900]/30 text-[#F2A900] hover:bg-[#F2A900]/10 hover:border-[#F2A900] rounded-lg transition-all font-semibold text-sm sm:text-base text-center"
             >
               Continue Shopping
@@ -549,10 +554,7 @@ export default function Cart() {
                 onClick={() => {
                   navigate('/');
                   setTimeout(() => {
-                    const menuSection = document.getElementById('menu');
-                    if (menuSection) {
-                      menuSection.scrollIntoView({ behavior: 'smooth' });
-                    }
+                    document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
                   }, 100);
                 }}
                 className="px-6 py-3 bg-[#F2A900] hover:bg-[#D99700] text-black font-semibold rounded-lg transition-colors inline-flex items-center gap-2 text-sm sm:text-base"

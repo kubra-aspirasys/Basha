@@ -1,7 +1,7 @@
 {
   "name": "basha-biryani-backend",
   "version": "1.0.0",
-  "description": "Backend for Basha Biryani Application",
+  "description": "Backend for Basha Foods Application",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",

@@ -1,9 +1,24 @@
-const CACHE_NAME = 'basha-biryani-prod-v4'; // Incremented v4
+const CACHE_NAME = 'basha-biryani-prod-v7'; // Incremented v7
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/Favicon.webp'
+  '/favicon.png',
+  '/favicon-48.png',
+  '/apple-touch-icon.png',
+  '/assets/logo.webp',
+  '/logo-min.webp',
+  '/icons/icon-16x16.png',
+  '/icons/icon-32x32.png',
+  '/icons/icon-48x48.png',
+  '/icons/icon-72x72.png',
+  '/icons/icon-96x96.png',
+  '/icons/icon-128x128.png',
+  '/icons/icon-144x144.png',
+  '/icons/icon-152x152.png',
+  '/icons/icon-192x192.png',
+  '/icons/icon-384x384.png',
+  '/icons/icon-512x512.png'
 ];
 
 // Install event - skip waiting to ensure new SW takes over immediately

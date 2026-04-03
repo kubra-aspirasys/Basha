@@ -1,6 +1,6 @@
-# Basha Biryani Backend
+# Basha Foods Backend
 
-This is the backend foundation for the Basha Biryani application, built with Node.js, Express, MySQL, and Sequelize.
+This is the backend foundation for the Basha Foods application, built with Node.js, Express, MySQL, and Sequelize.
 
 ## Prerequisites
 

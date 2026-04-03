@@ -80,7 +80,12 @@ export default function Orders() {
                         <h3 className="text-xl font-bold text-white mb-2">No Past Orders</h3>
                         <p className="text-gray-400 mb-8">You haven't placed any orders yet. Time to order something delicious!</p>
                         <button
-                            onClick={() => navigate('/')}
+                            onClick={() => {
+                                navigate('/');
+                                setTimeout(() => {
+                                    document.getElementById('menu-section')?.scrollIntoView({ behavior: 'smooth' });
+                                }, 100);
+                            }}
                             className="px-8 py-3 bg-[#F2A900] hover:bg-[#D99700] text-black font-bold uppercase tracking-wider rounded-lg transition-all hover:scale-105 shadow-lg shadow-[#F2A900]/20"
                         >
                             Browse Menu

@@ -42,8 +42,8 @@ const allowedOrigins = [
     'https://basha.aspirasys.in',
     'http://basha.aspirasys.in',
     'https://www.basha.aspirasys.in',
-    'http://www.bashafoods.in',
-    'https://www.bashafoods.in',
+    'http://www.bashafood.in',
+    'https://www.bashafood.in',
     process.env.CLIENT_URL
 ].filter(Boolean);
 
@@ -64,7 +64,7 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // Test Route
 app.get('/', (req, res) => {
-    res.json({ message: 'Welcome to Basha Biryani Backend API', status: 'running' });
+    res.json({ message: 'Welcome to Basha Foods Backend API', status: 'running' });
 });
 
 // Diagnostics Route
@@ -114,7 +114,7 @@ db.sequelize.authenticate()
     .then(async () => {
         console.log('Database connection has been established successfully.');
         // Ensure new models are created and altered
-        await db.sequelize.sync({ alter: true });
+        await db.sequelize.sync();
         console.log('Database synced successfully.');
         app.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running on port ${PORT}`);

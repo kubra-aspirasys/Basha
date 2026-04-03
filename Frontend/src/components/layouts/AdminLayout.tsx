@@ -10,7 +10,7 @@ export default function AdminLayout() {
   const { fetchOrders } = useOrderStore();
 
   useEffect(() => {
-    document.title = "Basha Biryani - Admin Panel";
+    document.title = "Basha Food - Admin Panel";
     // Initial fetch
     fetchOrders();
     // Poll for new orders every 30 seconds

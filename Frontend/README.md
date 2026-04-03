@@ -1,6 +1,6 @@
-# Basha Biryani - Restaurant Management System
+# Basha Foods - Restaurant Management System
 
-A comprehensive restaurant management system for Basha Biryani with separate admin and customer interfaces.
+A comprehensive restaurant management system for Basha Foods with separate admin and customer interfaces.
 
 ## Project Structure
 

@@ -8,7 +8,7 @@ module.exports = {
                 enabled: true,
                 video_url: "/Videos/hero.mp4",
                 tagline: "Spiced to Perfection, Served with Tradition!",
-                logo_url: "https://bashafood.in/Images/KING%20OF%20ALL%20FOOD.webp",
+                logo_url: "/Images/KING OF ALL FOOD.webp",
                 description: "Experience the rich taste of traditional Hyderabad cuisine with our signature BBQ kababs, wraps, and desserts.",
                 button_text: "Order Now"
             },
@@ -128,7 +128,7 @@ module.exports = {
             {
                 id: uuidv4(),
                 key: 'contact_email',
-                value: 'info@bashabiryani.com',
+                value: 'info@bashafood.in',
                 type: 'text',
                 category: 'contact',
                 description: 'Primary contact email address',
