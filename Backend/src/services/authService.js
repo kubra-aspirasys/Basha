@@ -10,7 +10,7 @@ class AuthService {
      * Get user profile by token data
      */
     async getMe(userId, role) {
-        const user = role === 'admin' 
+        const user = (role === 'superadmin' || role === 'admin' || role === 'staff')
             ? await User.findByPk(userId) 
             : await Customer.findByPk(userId, { include: [{ model: CustomerAddress, as: 'addresses' }] });
 
@@ -30,7 +30,7 @@ class AuthService {
      * Update user profile with safety checks
      */
     async updateProfile(userId, role, updateData) {
-        const Model = role === 'admin' ? User : Customer;
+        const Model = (role === 'superadmin' || role === 'admin' || role === 'staff') ? User : Customer;
         const user = await Model.findByPk(userId);
 
         if (!user) {
@@ -62,10 +62,13 @@ class AuthService {
         let user;
         let role = requestedRole;
 
-        if (role === 'admin') {
+        if (role === 'superadmin' || role === 'admin' || role === 'staff') {
             user = await User.findOne({
                 where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
             });
+            if (user) {
+                role = user.role; // Use actual role from DB (admin or staff)
+            }
             // Fallback check: maybe they are on the wrong tab
             if (!user) {
                 user = await Customer.findOne({
@@ -84,7 +87,7 @@ class AuthService {
                 user = await User.findOne({
                     where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
                 });
-                if (user) role = 'admin';
+                if (user) role = user.role; // Use actual role from DB
             }
         } else {
             // General fallback search
@@ -92,7 +95,7 @@ class AuthService {
                 where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] }
             });
             if (user) {
-                role = 'admin';
+                role = user.role; // Use actual role from DB (admin or staff)
             } else {
                 user = await Customer.findOne({
                     where: { [Op.or]: [{ email: emailOrPhone }, { phone: emailOrPhone }] },

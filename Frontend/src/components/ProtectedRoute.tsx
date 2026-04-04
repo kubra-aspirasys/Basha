@@ -4,10 +4,10 @@ import { UserRole } from '@/types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
-  requiredRole?: UserRole;
+  allowedRoles?: UserRole[];
 }
 
-export default function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
   const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
@@ -16,9 +16,9 @@ export default function ProtectedRoute({ children, requiredRole }: ProtectedRout
 
   const role = user?.role;
 
-  if (requiredRole && role !== requiredRole) {
-    // If admin tries to access customer route or vice versa
-    return <Navigate to={role === 'admin' ? '/admin/dashboard' : '/'} replace />;
+  if (allowedRoles && role && !allowedRoles.includes(role)) {
+    // Redirect based on actual role
+    return <Navigate to={role === 'customer' ? '/' : '/admin/dashboard'} replace />;
   }
 
   return <>{children}</>;

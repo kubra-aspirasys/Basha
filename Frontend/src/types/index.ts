@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'customer';
+export type UserRole = 'superadmin' | 'admin' | 'customer' | 'staff';
 
 export interface Admin {
   id: string;
@@ -6,7 +6,7 @@ export interface Admin {
   name: string;
   phone?: string;
   avatar_url?: string;
-  role: 'admin';
+  role: 'superadmin' | 'admin' | 'staff';
   addresses?: Address[];
 }
 
@@ -25,7 +25,7 @@ export interface Customer {
   is_active?: boolean;
   last_activity?: string;
   created_at?: string;
-  role?: 'customer';
+  role?: UserRole;
   password?: string;
 
   avatar_url?: string;

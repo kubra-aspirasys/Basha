@@ -12,8 +12,12 @@ const createCustomerSchema = Joi.object({
         'string.pattern.base': 'Please enter a valid phone number'
     }),
     address: Joi.string().allow(null, ''),
-    is_blocked: Joi.boolean().default(false)
-});
+    role: Joi.string().valid('admin', 'staff', 'customer').default('customer'),
+    password: Joi.string().min(6).allow(null, ''),
+    is_blocked: Joi.boolean().default(false),
+    is_active: Joi.boolean().default(true),
+    last_activity: Joi.string().allow(null, '')
+}).unknown(true);
 
 const updateStatusSchema = Joi.object({
     is_blocked: Joi.boolean().required().messages({

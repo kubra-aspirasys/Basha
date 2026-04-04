@@ -60,6 +60,10 @@ export default function Menu() {
   const [featuredFilter, setFeaturedFilter] = useState<string>(featuredParam);
   const [page, setPage] = useState(pageParam);
 
+  const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'display_order');
+  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>((searchParams.get('sortOrder') || 'ASC') as 'ASC' | 'DESC');
+  const [showFilters, setShowFilters] = useState(false);
+
   // Sync state to URL
   useEffect(() => {
     const params: any = {};
@@ -70,13 +74,34 @@ export default function Menu() {
     if (typeFilter !== 'all') params.type = typeFilter;
     if (availabilityFilter !== 'all') params.available = availabilityFilter;
     if (featuredFilter !== 'all') params.featured = featuredFilter;
+    if (sortBy !== 'display_order') params.sortBy = sortBy;
+    if (sortOrder !== 'ASC') params.sortOrder = sortOrder;
 
     setSearchParams(params, { replace: true });
-  }, [page, itemsPerPage, searchTerm, categoryFilter, typeFilter, availabilityFilter, featuredFilter, setSearchParams]);
+  }, [page, itemsPerPage, searchTerm, categoryFilter, typeFilter, availabilityFilter, featuredFilter, sortBy, sortOrder, setSearchParams]);
 
-  const [sortBy, setSortBy] = useState<string>('display_order');
-  const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('ASC');
-  const [showFilters, setShowFilters] = useState(false);
+  // Sync URL to state (for back/forward navigation)
+  useEffect(() => {
+    const searchParam = searchParams.get('search') || '';
+    const pageParam = parseInt(searchParams.get('page') || '1');
+    const limitParam = parseInt(searchParams.get('limit') || '10');
+    const categoryParam = searchParams.get('category') || 'all';
+    const typeParam = searchParams.get('type') || 'all';
+    const availabilityParam = searchParams.get('available') || 'all';
+    const featuredParam = searchParams.get('featured') || 'all';
+    const sortByParam = searchParams.get('sortBy') || 'display_order';
+    const sortOrderParam = (searchParams.get('sortOrder') || 'ASC') as 'ASC' | 'DESC';
+
+    if (searchTerm !== searchParam) setSearchTerm(searchParam);
+    if (page !== pageParam) setPage(pageParam);
+    if (itemsPerPage !== limitParam) setItemsPerPage(limitParam);
+    if (categoryFilter !== categoryParam) setCategoryFilter(categoryParam);
+    if (typeFilter !== typeParam) setTypeFilter(typeParam);
+    if (availabilityFilter !== availabilityParam) setAvailabilityFilter(availabilityParam);
+    if (featuredFilter !== featuredParam) setFeaturedFilter(featuredParam);
+    if (sortBy !== sortByParam) setSortBy(sortByParam);
+    if (sortOrder !== sortOrderParam) setSortOrder(sortOrderParam);
+  }, [searchParams]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -421,7 +446,10 @@ export default function Menu() {
                 type="text"
                 placeholder="Search menu items..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1);
+                }}
                 className="w-full pl-10 px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
               />
             </div>
@@ -452,7 +480,10 @@ export default function Menu() {
                 </label>
                 <select
                   value={categoryFilter}
-                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  onChange={(e) => {
+                    setCategoryFilter(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 >
                   <option value="all">All Categories</option>
@@ -469,7 +500,10 @@ export default function Menu() {
                 </label>
                 <select
                   value={typeFilter}
-                  onChange={(e) => setTypeFilter(e.target.value)}
+                  onChange={(e) => {
+                    setTypeFilter(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 >
                   <option value="all">All Types</option>
@@ -486,7 +520,10 @@ export default function Menu() {
                 </label>
                 <select
                   value={availabilityFilter}
-                  onChange={(e) => setAvailabilityFilter(e.target.value)}
+                  onChange={(e) => {
+                    setAvailabilityFilter(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 >
                   <option value="all">All Items</option>
@@ -502,7 +539,10 @@ export default function Menu() {
                 </label>
                 <select
                   value={featuredFilter}
-                  onChange={(e) => setFeaturedFilter(e.target.value)}
+                  onChange={(e) => {
+                    setFeaturedFilter(e.target.value);
+                    setPage(1);
+                  }}
                   className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 >
                   <option value="all">All Items</option>
@@ -530,7 +570,10 @@ export default function Menu() {
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 rounded-full text-sm">
                   Category: {categories.find(c => c.id === categoryFilter)?.name || 'Unknown'}
                   <button
-                    onClick={() => setCategoryFilter('all')}
+                    onClick={() => {
+                      setCategoryFilter('all');
+                      setPage(1);
+                    }}
                     className="ml-1 hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5"
                   >
                     <X className="w-3 h-3" />
@@ -541,7 +584,10 @@ export default function Menu() {
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 rounded-full text-sm">
                   Type: {productTypes.find(t => t.id === typeFilter)?.name || 'Unknown'}
                   <button
-                    onClick={() => setTypeFilter('all')}
+                    onClick={() => {
+                      setTypeFilter('all');
+                      setPage(1);
+                    }}
                     className="ml-1 hover:bg-green-200 dark:hover:bg-green-800 rounded-full p-0.5"
                   >
                     <X className="w-3 h-3" />
@@ -552,7 +598,10 @@ export default function Menu() {
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300 rounded-full text-sm">
                   Availability: {availabilityFilter.charAt(0).toUpperCase() + availabilityFilter.slice(1)}
                   <button
-                    onClick={() => setAvailabilityFilter('all')}
+                    onClick={() => {
+                      setAvailabilityFilter('all');
+                      setPage(1);
+                    }}
                     className="ml-1 hover:bg-yellow-200 dark:hover:bg-yellow-800 rounded-full p-0.5"
                   >
                     <X className="w-3 h-3" />
@@ -563,7 +612,10 @@ export default function Menu() {
                 <span className="inline-flex items-center gap-1 px-3 py-1 bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 rounded-full text-sm">
                   Featured: {featuredFilter.charAt(0).toUpperCase() + featuredFilter.slice(1)}
                   <button
-                    onClick={() => setFeaturedFilter('all')}
+                    onClick={() => {
+                      setFeaturedFilter('all');
+                      setPage(1);
+                    }}
                     className="ml-1 hover:bg-purple-200 dark:hover:bg-purple-800 rounded-full p-0.5"
                   >
                     <X className="w-3 h-3" />

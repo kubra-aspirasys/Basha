@@ -24,6 +24,7 @@ interface CustomerState {
   addCustomer: (customer: Omit<Customer, 'id' | 'created_at'>) => Promise<boolean>;
   sendNotification: (data: any) => Promise<any>;
   exportCustomers: (filters?: any) => Promise<Blob | null>;
+  updateCustomer: (id: string, data: Partial<Customer>) => Promise<boolean>;
 }
 
 export const useCustomerStore = create<CustomerState>((set, get) => ({
@@ -37,7 +38,12 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
   fetchCustomers: async (params = {}) => {
     set({ isLoading: true, error: null });
     try {
-      const query = new URLSearchParams(params).toString();
+      // Filter out undefined/null/empty values to prevent URLSearchParams
+      // from converting them to literal strings like "undefined"
+      const cleanParams: Record<string, string> = Object.fromEntries(
+        Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== '').map(([k, v]) => [k, String(v)])
+      );
+      const query = new URLSearchParams(cleanParams).toString();
       const response = await api.get(`/customers?${query}`);
       const result = response.data.data;
       set({
@@ -107,6 +113,29 @@ export const useCustomerStore = create<CustomerState>((set, get) => ({
       set({
         isLoading: false,
         error: error.response?.data?.message || 'Failed to create customer'
+      });
+      return false;
+    }
+  },
+
+  updateCustomer: async (id, data) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.put(`/customers/${id}`, data);
+      if (response.data.success) {
+        set((state) => ({
+          customers: state.customers.map((c) =>
+            c.id === id ? { ...c, ...data } : c
+          ),
+          isLoading: false
+        }));
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      set({
+        isLoading: false,
+        error: error.response?.data?.message || 'Failed to update customer'
       });
       return false;
     }

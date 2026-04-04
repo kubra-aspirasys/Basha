@@ -16,6 +16,11 @@ const db = require('./models');
 // Initialize App
 const app = express();
 
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.url}`);
+    next();
+});
+
 // 1. ROBUST STATIC MEDIA SERVING (Must be at the top)
 const uploadsPath = path.join(__dirname, '../uploads');
 app.use('/uploads', (req, res, next) => {
@@ -65,6 +70,10 @@ app.use(express.urlencoded({ limit: '50mb', extended: true }));
 // Test Route
 app.get('/', (req, res) => {
     res.json({ message: 'Welcome to Basha Foods Backend API', status: 'running' });
+});
+
+app.post('/api/auth/test-login', (req, res) => {
+    res.json({ message: 'Login endpoint reached' });
 });
 
 // Diagnostics Route

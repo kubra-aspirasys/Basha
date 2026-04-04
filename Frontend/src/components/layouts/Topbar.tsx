@@ -31,7 +31,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     // Scan for new activity and fetch unread count/list
     // Note: generateFromActivity inside store already calls fetchLatestUnread
     const refreshData = async () => {
-      if (user?.role === 'admin') {
+      if (user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'staff') {
         const { generateFromActivity } = useNotificationStore.getState();
         await generateFromActivity(true);
       } else {
@@ -46,7 +46,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
     return () => clearInterval(interval);
   }, [fetchProfile, fetchLatestUnread, user?.role]);
 
-  const admin = user && user.role === 'admin' ? user : null;
+  const admin = user && (user.role === 'superadmin' || user.role === 'admin' || user.role === 'staff') ? user : null;
 
   const handleLogout = () => {
     setShowLogoutConfirm(true);
@@ -140,7 +140,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
   useEffect(() => {
     const hasUnreadOrder = latestUnread.some(n => n.type === 'new_order');
     
-    if (user?.role === 'admin' && hasUnreadOrder && !isSilenced) {
+    if ((user?.role === 'superadmin' || user?.role === 'admin' || user?.role === 'staff') && hasUnreadOrder && !isSilenced) {
       if (!audioRef.current) {
         audioRef.current = new Audio('/notification.mp3');
         audioRef.current.loop = true;
@@ -188,7 +188,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
 
           <div className="flex-1 min-w-0 max-w-2xl hidden sm:block">
             <h1 className="text-sm sm:text-lg lg:text-2xl font-bold bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-100 dark:to-white bg-clip-text text-transparent truncate">
-              Welcome, {admin?.name?.split(' ')[0] || 'Admin'}!
+              Welcome, {admin?.name?.split(' ')[0] || (user?.role === 'superadmin' ? 'Super Admin' : user?.role === 'staff' ? 'Staff' : 'Admin')}!
             </h1>
             <p className="hidden md:block text-sm text-slate-600 dark:text-slate-400 mt-0.5">
               Here's what's happening with your restaurant today
@@ -297,7 +297,7 @@ export default function Topbar({ onMenuClick }: TopbarProps) {
                 {admin?.name}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                Administrator
+                {user?.role === 'superadmin' ? 'Super Admin' : user?.role === 'staff' ? 'Staff' : 'Administrator'}
               </p>
             </div>
           </div>

@@ -17,8 +17,8 @@ router.use(protect);
 // Generate transaction ID (Admin only)
 router.get('/generate-txn-id', authorize('admin'), paymentController.generateTransactionId);
 
-// Get payment statistics (Admin only)
-router.get('/stats', authorize('admin'), paymentController.getPaymentStats);
+// Get payment statistics (Admin/Staff)
+router.get('/stats', authorize('admin', 'staff'), paymentController.getPaymentStats);
 
 // Export payments (Admin only)
 router.get('/export', authorize('admin'), validatePaymentFilters, paymentController.exportPayments);
@@ -26,23 +26,23 @@ router.get('/export', authorize('admin'), validatePaymentFilters, paymentControl
 // Get my payments (Customer only)
 router.get('/my', authorize('customer'), paymentController.getMyPayments);
 
-// Get payments for a specific customer (Admin only)
-router.get('/customer/:customerId', authorize('admin'), paymentController.getCustomerPayments);
+// Get payments for a specific customer (Admin/Staff)
+router.get('/customer/:customerId', authorize('admin', 'staff'), paymentController.getCustomerPayments);
 
-// Get payments for a specific order (Admin only)
-router.get('/order/:orderId', authorize('admin'), paymentController.getOrderPayments);
+// Get payments for a specific order (Admin/Staff)
+router.get('/order/:orderId', authorize('admin', 'staff'), paymentController.getOrderPayments);
 
-// Get payment by transaction ID (Admin only)
-router.get('/transaction/:transactionId', authorize('admin'), paymentController.getPaymentByTransactionId);
+// Get payment by transaction ID (Admin/Staff)
+router.get('/transaction/:transactionId', authorize('admin', 'staff'), paymentController.getPaymentByTransactionId);
 
-// Get all payments (Admin only) - with filter validation
-router.get('/', authorize('admin'), validatePaymentFilters, paymentController.getAllPayments);
+// Get all payments (Admin/Staff) - with filter validation
+router.get('/', authorize('admin', 'staff'), validatePaymentFilters, paymentController.getAllPayments);
 
 // Create new payment (Admin only) - with validation
 router.post('/', authorize('admin'), validateCreatePayment, paymentController.createPayment);
 
-// Get payment by ID (Admin only)
-router.get('/:id', authorize('admin'), paymentController.getPaymentById);
+// Get payment by ID (Admin/Staff)
+router.get('/:id', authorize('admin', 'staff'), paymentController.getPaymentById);
 
 // Update payment status (Admin only) - with validation
 router.put('/:id/status', authorize('admin'), validateUpdateStatus, paymentController.updatePaymentStatus);

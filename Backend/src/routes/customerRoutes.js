@@ -33,8 +33,11 @@ router.get('/', protect, customerController.listCustomers);
 // Get Single Customer
 router.get('/:id', protect, customerController.getCustomerDetails);
 
-// Update Status (Block/Unblock) - Likely Admin only or high-privilege
-router.patch('/:id/status', protect, customerController.updateStatus);
+// Update Customer Details - Admin/Staff
+router.put('/:id', protect, admin, customerController.updateCustomer);
+
+// Update Status (Block/Unblock) - Admin/Staff
+router.patch('/:id/status', protect, admin, customerController.updateStatus);
 
 // Alias for block/unblock specific routes if frontend requests them specifically
 // "PATCH /customers/:id/block", "PATCH /customers/:id/unblock" were requested

@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useDebounce } from '@/hooks/use-debounce';
 import { useCustomerStore } from '@/store/customer-store';
 import { useOrderStore } from '@/store/order-store';
-import { Search, Ban, Check, Eye, MessageSquare, Download, Star, TrendingUp, Clock, DollarSign, Users as UsersIcon, Send, Mail, Smartphone, Upload, FileText, Eye as PreviewIcon, X } from 'lucide-react';
+import { Search, Ban, Check, Eye, MessageSquare, Download, Star, TrendingUp, Clock, DollarSign, Users as UsersIcon, Send, Mail, Smartphone, Upload, FileText, Eye as PreviewIcon, X, Plus, Edit, EyeOff, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,35 +14,67 @@ import { Pagination } from '@/components/ui/pagination';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Customer, Order } from '@/types';
+import { Customer, Order, UserRole } from '@/types';
 import { toast } from 'sonner';
-import { useDebounce } from '@/hooks/use-debounce';
-import { Loader2 } from 'lucide-react';
 
 // const ITEMS_PER_PAGE = 10;
 
-// Add New User Modal Component
-function AddUserModal() {
-  const { addCustomer } = useCustomerStore();
+// User Form Modal Component (Add / Edit)
+function UserFormModal({ customer, trigger }: { customer?: Customer, trigger: React.ReactNode }) {
+  const { addCustomer, updateCustomer } = useCustomerStore();
   const [isOpen, setIsOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    address: '',
-    is_blocked: false,
+  const [showPassword, setShowPassword] = useState(false);
+  const [formData, setFormData] = useState<{
+    name: string;
+    email: string;
+    phone: string;
+    address: string;
+    role: UserRole;
+    is_blocked: boolean;
+    password?: string;
+  }>({
+    name: customer?.name || '',
+    email: customer?.email || '',
+    phone: customer?.phone || '',
+    address: customer?.address || '',
+    role: customer?.role || 'customer',
+    is_blocked: customer?.is_blocked || false,
+    password: '',
   });
+
+  useEffect(() => {
+    if (customer && isOpen) {
+      setFormData({
+        name: customer.name || '',
+        email: customer.email || '',
+        phone: customer.phone || '',
+        address: customer.address || '',
+        role: customer.role || 'customer',
+        is_blocked: customer.is_blocked || false,
+        password: '',
+      });
+    } else if (!customer && !isOpen) {
+      setFormData({ name: '', email: '', phone: '', address: '', role: 'customer', is_blocked: false, password: '' });
+    }
+  }, [customer, isOpen]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.name && formData.email) {
-      const success = await addCustomer({
-        ...formData,
-        is_active: true,
-        last_activity: new Date().toISOString()
-      });
+      let success = false;
+      if (customer) {
+        success = await updateCustomer(customer.id, formData);
+        if (success) toast.success('User updated successfully');
+      } else {
+        success = await addCustomer({
+          ...formData,
+          is_active: true,
+          last_activity: new Date().toISOString()
+        } as any);
+        if (success) toast.success('User created successfully');
+      }
+      
       if (success) {
-        setFormData({ name: '', email: '', phone: '', address: '', is_blocked: false });
         setIsOpen(false);
       }
     }
@@ -53,102 +86,178 @@ function AddUserModal() {
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      {/* <DialogTrigger asChild>
-        <Button className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white">
-          <Plus className="w-4 h-4" />
-          Add New User
-        </Button>
-      </DialogTrigger> */}
-      <DialogContent className="max-w-md mx-4 sm:mx-0">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <UsersIcon className="w-5 h-5 text-gold-500" />
-            Add New Customer
+      <DialogTrigger asChild>
+        {trigger}
+      </DialogTrigger>
+      <DialogContent className="max-w-md mx-4 sm:mx-0 max-h-[90vh] flex flex-col p-0 overflow-hidden border-none shadow-2xl">
+        <DialogHeader className="px-6 pt-6 pb-2">
+          <DialogTitle className="flex items-center gap-2 text-2xl font-extrabold text-slate-900 dark:text-white">
+            <div className="p-2 rounded-lg bg-gold-500/10 text-gold-600 dark:text-gold-400">
+              <UsersIcon className="w-6 h-6" />
+            </div>
+            {customer ? 'Edit User' : 'Add New User'}
           </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Full Name *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-              placeholder="Enter customer name"
-            />
+        
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+          <div className="flex-1 overflow-y-auto px-6 space-y-5 py-4 custom-scrollbar">
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
+                  Full Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="w-full h-11 px-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all font-medium"
+                  placeholder="Ex: John Doe"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
+                  Email Address *
+                </label>
+                <input
+                  type="email"
+                  required
+                  autoComplete="off"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className="w-full h-11 px-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all font-medium"
+                  placeholder="john@example.com"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
+                  Phone Number
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => handleInputChange('phone', e.target.value)}
+                  className="w-full h-11 px-4 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all font-medium"
+                  placeholder="+91 98765 43210"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
+                Delivery Address
+              </label>
+              <textarea
+                value={formData.address}
+                onChange={(e) => handleInputChange('address', e.target.value)}
+                rows={2}
+                className="w-full px-4 py-2 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all font-medium resize-none"
+                placeholder="House, Street, Locality..."
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
+                {customer ? 'New Password' : 'Password *'}
+              </label>
+              <div className="relative">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  required={!customer}
+                  autoComplete="new-password"
+                  value={formData.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  className="w-full h-11 px-4 pr-12 border border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500/20 focus:border-gold-500 transition-all font-medium"
+                  placeholder={customer ? "Leave blank to keep current" : "Enter password"}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:text-slate-500 transition-colors"
+                  title={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 ml-1">
+                User Role
+              </label>
+              <Select value={formData.role} onValueChange={(value) => handleInputChange('role', value)}>
+                <SelectTrigger className="h-11 rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-gold-500/20">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="customer">🎓 Customer</SelectItem>
+                  <SelectItem value="staff">💼 Staff Member</SelectItem>
+                  <SelectItem value="admin">🛡️ Administrator</SelectItem>
+                  <SelectItem value="superadmin">👑 Super Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Permissions Preview */}
+            <div className="p-4 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl border border-slate-200/50 dark:border-slate-700/50 space-y-3">
+              <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] flex items-center gap-2">
+                <div className="w-1 h-1 rounded-full bg-gold-500" />
+                Access Privileges
+              </h4>
+              <div className="grid grid-cols-2 gap-y-2 gap-x-4">
+                <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                  <div className={`w-1.5 h-1.5 rounded-full ${['superadmin', 'admin', 'staff'].includes(formData.role) ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-slate-300'}`} />
+                  Dashboard
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                  <div className={`w-1.5 h-1.5 rounded-full ${['superadmin', 'admin', 'staff'].includes(formData.role) ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-slate-300'}`} />
+                  Orders
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                  <div className={`w-1.5 h-1.5 rounded-full ${['superadmin', 'admin', 'staff'].includes(formData.role) ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-slate-300'}`} />
+                  Menu
+                </div>
+                <div className="flex items-center gap-2 text-[11px] font-bold text-slate-600 dark:text-slate-400">
+                  <div className={`w-1.5 h-1.5 rounded-full ${['superadmin', 'admin'].includes(formData.role) ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : 'bg-slate-300'}`} />
+                  Users
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-1">
+              <Checkbox
+                id="is_blocked"
+                checked={formData.is_blocked}
+                onCheckedChange={(checked) => handleInputChange('is_blocked', checked as boolean)}
+                className="w-5 h-5 rounded-lg border-slate-300 data-[state=checked]:bg-red-500 data-[state=checked]:border-red-500"
+              />
+              <label htmlFor="is_blocked" className="text-sm font-bold text-slate-600 dark:text-slate-400 cursor-pointer select-none">
+                Suspend this user account
+              </label>
+            </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Email Address *
-            </label>
-            <input
-              type="email"
-              required
-              value={formData.email}
-              onChange={(e) => handleInputChange('email', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-              placeholder="Enter email address"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Phone Number
-            </label>
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => handleInputChange('phone', e.target.value)}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-              placeholder="Enter phone number"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-              Address
-            </label>
-            <textarea
-              value={formData.address}
-              onChange={(e) => handleInputChange('address', e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-              placeholder="Enter delivery address"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              id="is_blocked"
-              checked={formData.is_blocked}
-              onChange={(e) => handleInputChange('is_blocked', e.target.checked)}
-              className="w-4 h-4 text-gold-600 bg-slate-100 border-slate-300 rounded focus:ring-gold-500 dark:focus:ring-gold-600 dark:ring-offset-slate-800 focus:ring-2 dark:bg-slate-700 dark:border-slate-600"
-            />
-            <label htmlFor="is_blocked" className="text-sm text-slate-700 dark:text-slate-300">
-              Block this customer
-            </label>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 pt-4">
-            <Button
-              type="submit"
-              className="flex-1 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white"
-            >
-              Add Customer
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setIsOpen(false)}
-              className="px-6"
-            >
-              Cancel
-            </Button>
+          <div className="p-6 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
+            <div className="flex gap-3">
+              <Button
+                type="submit"
+                className="flex-1 h-12 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white font-black text-sm uppercase tracking-widest rounded-xl shadow-lg shadow-gold-500/20 active:scale-[0.98] transition-all"
+              >
+                {customer ? 'Save Changes' : 'Create User'}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setIsOpen(false)}
+                className="px-6 h-12 font-bold text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 uppercase tracking-wider text-xs"
+              >
+                Cancel
+              </Button>
+            </div>
           </div>
         </form>
       </DialogContent>
@@ -769,6 +878,7 @@ export default function Users() {
   const [sortBy, setSortBy] = useState<'name' | 'email' | 'created_at' | 'orders' | 'spending'>(sortParam);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(orderParam);
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'blocked'>(statusParam as any);
+  const [roleFilter, setRoleFilter] = useState<'all' | 'customer' | 'admin' | 'staff' | 'superadmin'>(searchParams.get('role') as any || 'all');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
@@ -782,11 +892,12 @@ export default function Users() {
     if (itemsPerPage !== 10) params.limit = itemsPerPage.toString();
     if (debouncedSearch) params.search = debouncedSearch;
     if (statusFilter !== 'all') params.status = statusFilter;
+    if (roleFilter !== 'all') params.role = roleFilter;
     if (sortBy !== 'name') params.sort = sortBy;
     if (sortOrder !== 'asc') params.order = sortOrder;
 
     setSearchParams(params, { replace: true });
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, sortBy, sortOrder, setSearchParams]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, roleFilter, sortBy, sortOrder, setSearchParams]);
 
   useEffect(() => {
     fetchStats();
@@ -801,13 +912,14 @@ export default function Users() {
         limit: itemsPerPage,
         search: debouncedSearch,
         status: statusFilter === 'all' ? undefined : statusFilter,
+        role: roleFilter === 'all' ? undefined : roleFilter,
         sort: sortBy,
         order: sortOrder
       });
       setIsLoading(false);
     };
     fetchData();
-  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, sortBy, sortOrder]);
+  }, [currentPage, itemsPerPage, debouncedSearch, statusFilter, roleFilter, sortBy, sortOrder]);
 
   const handleToggleBlock = (id: string, currentStatus: boolean) => {
     updateCustomerStatus(id, !currentStatus);
@@ -845,9 +957,9 @@ export default function Users() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Customer Management</h1>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white">User Management</h1>
         <p className="text-slate-600 dark:text-slate-400 mt-1">
-          Manage customer accounts, view order history, and analyze customer behavior
+          Manage all system users including customers, staff and administrators
         </p>
       </div>
 
@@ -929,9 +1041,17 @@ export default function Users() {
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
         <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Customer Management</h3>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">User Management</h3>
             <div className="flex flex-col sm:flex-row gap-2">
-              <AddUserModal />
+              <UserFormModal 
+                trigger={
+                  <Button className="flex items-center gap-2 bg-gradient-to-r from-gold-500 to-gold-600 hover:from-gold-600 hover:to-gold-700 text-white">
+                    <Plus className="w-4 h-4" />
+                    <span className="hidden sm:inline">Add New User</span>
+                    <span className="sm:hidden">Add User</span>
+                  </Button>
+                } 
+              />
               <Button
                 variant="outline"
                 size="sm"
@@ -951,7 +1071,7 @@ export default function Users() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
               <input
                 type="text"
-                placeholder="Search customers..."
+                placeholder="Search users..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
@@ -961,7 +1081,20 @@ export default function Users() {
               />
             </div>
 
-            <Select value={statusFilter} onValueChange={(value: 'all' | 'active' | 'blocked') => setStatusFilter(value)}>
+            <Select value={roleFilter} onValueChange={(value: any) => { setRoleFilter(value); setCurrentPage(1); }}>
+              <SelectTrigger>
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">👥 All Roles</SelectItem>
+                <SelectItem value="customer">🎓 Customers</SelectItem>
+                <SelectItem value="staff">💼 Staff Members</SelectItem>
+                <SelectItem value="admin">🛡️ Administrators</SelectItem>
+                <SelectItem value="superadmin">👑 Super Admins</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={statusFilter} onValueChange={(value: 'all' | 'active' | 'blocked') => { setStatusFilter(value); setCurrentPage(1); }}>
               <SelectTrigger>
                 <SelectValue placeholder="Filter by status" />
               </SelectTrigger>
@@ -1003,7 +1136,7 @@ export default function Users() {
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Customer
+                  User
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Contact
@@ -1013,6 +1146,9 @@ export default function Users() {
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Total Spent
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                  Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Status
@@ -1074,6 +1210,16 @@ export default function Users() {
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
+                        <Badge className={`
+                          ${customer.role === 'superadmin' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200' :
+                            customer.role === 'admin' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400' :
+                              customer.role === 'staff' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                                'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400'
+                          }`}>
+                          {(customer.role === 'superadmin' ? 'Super Admin' : (customer.role || 'customer')).toUpperCase()}
+                        </Badge>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         {customer.is_blocked ? (
                           <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
                             Blocked
@@ -1105,6 +1251,20 @@ export default function Users() {
                               <CustomerDetailModal customer={selectedCustomer} orders={orders} />
                             )}
                           </Dialog>
+
+                          <UserFormModal 
+                            customer={customer}
+                            trigger={
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex items-center gap-1"
+                              >
+                                <Edit className="w-4 h-4" />
+                                Edit
+                              </Button>
+                            }
+                          />
 
                           <Button
                             variant="outline"
@@ -1157,16 +1317,19 @@ export default function Users() {
                       <div className="text-sm text-slate-500">{customer.email}</div>
                       <div className="text-sm text-slate-500">{customer.phone || 'No phone'}</div>
                     </div>
-                    <div className="text-right">
-                      {customer.is_blocked ? (
-                        <Badge className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400">
-                          Blocked
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400">
-                          Active
-                        </Badge>
-                      )}
+                    <div className="text-right space-y-1">
+                      <Badge className={`block w-full
+                        ${customer.role === 'superadmin' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-200' :
+                          customer.role === 'admin' ? 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900/30 dark:text-indigo-400' :
+                            customer.role === 'staff' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400' :
+                              'bg-slate-100 text-slate-800 dark:bg-slate-900/30 dark:text-slate-400'
+                        }`}>
+                        {(customer.role === 'superadmin' ? 'Super Admin' : (customer.role || 'customer')).toUpperCase()}
+                      </Badge>
+                      <Badge className={`block w-full
+                        ${customer.is_blocked ? 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400' : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'}`}>
+                        {customer.is_blocked ? 'Blocked' : 'Active'}
+                      </Badge>
                     </div>
                   </div>
 
@@ -1210,6 +1373,20 @@ export default function Users() {
                         <CustomerDetailModal customer={selectedCustomer} orders={orders} />
                       )}
                     </Dialog>
+
+                    <UserFormModal 
+                      customer={customer}
+                      trigger={
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 flex items-center gap-1"
+                        >
+                          <Edit className="w-4 h-4" />
+                          Edit
+                        </Button>
+                      }
+                    />
 
                     <Button
                       variant="outline"

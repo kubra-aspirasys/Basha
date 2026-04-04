@@ -22,14 +22,37 @@ const protect = (req, res, next) => {
 };
 
 /**
- * Admin middleware shorthand
+ * Admin middleware - allows superadmin, admin and staff roles (operational panel)
  */
 const admin = (req, res, next) => {
-    if (req.user && req.user.role === 'admin') {
+    if (req.user && (req.user.role === 'superadmin' || req.user.role === 'admin' || req.user.role === 'staff')) {
+        next();
+    } else {
+        return errorResponse(res, 'Access denied: Admin/Staff only', 403);
+    }
+};
+
+/**
+ * Strict admin only middleware - only admins or superadmins, not staff
+ */
+const adminOnly = (req, res, next) => {
+    if (req.user && (req.user.role === 'superadmin' || req.user.role === 'admin')) {
         next();
     } else {
         return errorResponse(res, 'Access denied: Admin only', 403);
     }
 };
 
-module.exports = { protect, admin };
+/**
+ * Super Admin only middleware
+ */
+const superAdminOnly = (req, res, next) => {
+    if (req.user && req.user.role === 'superadmin') {
+        next();
+    } else {
+        return errorResponse(res, 'Access denied: Super Admin only', 403);
+    }
+};
+
+module.exports = { protect, admin, adminOnly, superAdminOnly };
+

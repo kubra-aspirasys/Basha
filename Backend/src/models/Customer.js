@@ -26,6 +26,10 @@ module.exports = (sequelize, DataTypes) => {
         is_blocked: DataTypes.BOOLEAN,
         is_active: DataTypes.BOOLEAN,
         last_activity: DataTypes.DATE,
+        role: {
+          type: DataTypes.STRING, // Use STRING since it's always 'customer' for this table
+          defaultValue: 'customer'
+        },
         avatar_url: DataTypes.TEXT('long'),
         reset_password_token: DataTypes.STRING,
         reset_password_expires: DataTypes.DATE

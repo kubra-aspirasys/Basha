@@ -4,9 +4,9 @@ const contactInquiryController = require('../controllers/contactInquiryControlle
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 
-// All routes are protected and limited to Admin
+// All routes are protected and limited to Admin/Staff
 router.use(protect);
-router.use(authorize('admin'));
+router.use(authorize('admin', 'staff'));
 
 // Admin Inquiries Management
 router.get('/', contactInquiryController.getAllInquiries);

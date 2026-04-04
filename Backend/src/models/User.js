@@ -19,9 +19,14 @@ module.exports = (sequelize, DataTypes) => {
         phone: DataTypes.STRING,
         avatar_url: DataTypes.TEXT('long'),
         role: {
-            type: DataTypes.ENUM('admin'),
+            type: DataTypes.ENUM('superadmin', 'admin', 'staff'),
             defaultValue: 'admin'
         },
+        is_blocked: {
+            type: DataTypes.BOOLEAN,
+            defaultValue: false
+        },
+        last_activity: DataTypes.DATE,
         reset_password_token: DataTypes.STRING,
         reset_password_expires: DataTypes.DATE
     }, {

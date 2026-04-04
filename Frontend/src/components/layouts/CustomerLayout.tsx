@@ -63,6 +63,15 @@ export default function CustomerLayout() {
     setMobileMenuOpen(false);
   };
 
+  const handleHomeClick = (e: React.MouseEvent) => {
+    if (location.pathname === '/') {
+      e.preventDefault();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      setMobileMenuOpen(false);
+    }
+  };
+
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 50);
@@ -152,7 +161,7 @@ export default function CustomerLayout() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-20 gap-4">
             {/* Logo */}
-            <Link to="/" className="flex items-center group flex-shrink-0">
+            <Link to="/" onClick={handleHomeClick} className="flex items-center group flex-shrink-0">
               <img src="/logo-min.webp" alt="Basha Food" className="h-16 w-auto group-hover:scale-110 transition-transform" />
             </Link>
 
@@ -163,7 +172,7 @@ export default function CustomerLayout() {
 
             {/* Desktop Navigation */}
             <nav className="hidden lg:flex items-center space-x-6">
-              <Link to="/" className="text-white hover:text-[#F2A900] transition-colors font-semibold text-sm uppercase tracking-[0.2em]">
+              <Link to="/" onClick={handleHomeClick} className="text-white hover:text-[#F2A900] transition-colors font-semibold text-sm uppercase tracking-[0.2em]">
                 Home
               </Link>
               <button onClick={handleMenuClick} className="text-white hover:text-[#F2A900] transition-colors font-semibold text-sm uppercase tracking-[0.2em]">
@@ -290,7 +299,7 @@ export default function CustomerLayout() {
         {mobileMenuOpen && (
           <div className="lg:hidden bg-[#1a1a1a] border-t border-[#2a2a2a]">
             <nav className="container mx-auto px-4 py-4 flex flex-col space-y-3">
-              <Link to="/" className="py-2 text-white hover:text-[#F2A900] uppercase text-sm" onClick={() => setMobileMenuOpen(false)}>
+              <Link to="/" className="py-2 text-white hover:text-[#F2A900] uppercase text-sm" onClick={handleHomeClick}>
                 Home
               </Link>
               <button onClick={handleMenuClick} className="py-2 text-left text-white hover:text-[#F2A900] uppercase text-sm">
@@ -393,7 +402,7 @@ export default function CustomerLayout() {
             <div>
               <h4 className="text-white font-bold mb-4 text-lg">Quick Links</h4>
               <div className="space-y-2">
-                <Link to="/" className="block text-gray-400 hover:text-[#F2A900] transition-colors text-sm">Home</Link>
+                <Link to="/" onClick={handleHomeClick} className="block text-gray-400 hover:text-[#F2A900] transition-colors text-sm">Home</Link>
                 <Link to="/menu" className="block text-gray-400 hover:text-[#F2A900] transition-colors text-sm">Menu</Link>
                 <Link to="/orders" className="block text-gray-400 hover:text-[#F2A900] transition-colors text-sm">My Orders</Link>
                 <Link to="/contact" className="block text-gray-400 hover:text-[#F2A900] transition-colors text-sm">Contact</Link>

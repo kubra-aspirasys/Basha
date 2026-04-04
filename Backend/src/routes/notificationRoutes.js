@@ -4,9 +4,9 @@ const notificationController = require('../controllers/notificationController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
 
-// All routes are protected and admin-only
+// All routes are protected and admin/staff only
 router.use(protect);
-router.use(authorize('admin'));
+router.use(authorize('admin', 'staff'));
 
 // Stats
 router.get('/stats', notificationController.getStats);

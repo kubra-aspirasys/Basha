@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { CircleAlert as AlertCircle, User, Shield, Eye, EyeOff } from 'lucide-react';
+import { CircleAlert as AlertCircle, User, Shield, Eye, EyeOff, Briefcase } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { UserRole } from '@/types';
 
@@ -30,7 +30,7 @@ export default function Login() {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated && user) {
-      navigate(user.role === 'admin' ? '/admin/dashboard' : '/');
+      navigate(user.role === 'admin' || user.role === 'staff' ? '/admin/dashboard' : '/');
     }
   }, [isAuthenticated, user, navigate]);
 
@@ -48,11 +48,11 @@ export default function Login() {
 
         toast({
           title: 'Login successful',
-          description: `Welcome back to Basha Food${actualRole === 'admin' ? ' Admin Panel' : ''}`,
+          description: `Welcome back to Basha Food${actualRole === 'superadmin' ? ' Super Panel' : actualRole === 'admin' ? ' Admin Panel' : actualRole === 'staff' ? ' Staff Panel' : ''}`,
         });
 
         // Redirect based on ACTUAL role from server response
-        navigate(actualRole === 'admin' ? '/admin/dashboard' : '/');
+        navigate(['superadmin', 'admin', 'staff'].includes(actualRole) ? '/admin/dashboard' : '/');
       } else {
         setError('Invalid email or password');
       }
@@ -146,7 +146,7 @@ export default function Login() {
               <button
                 type="button"
                 className="text-sm font-bold text-amber-600 hover:text-amber-700 dark:text-amber-500 transition-colors"
-                onClick={() => navigate(`/${activeRole === 'admin' ? 'admin/' : ''}forgot-password`)}
+                onClick={() => navigate(`/${(activeRole === 'admin' || activeRole === 'staff') ? 'admin/' : ''}forgot-password`)}
               >
                 Forgot password?
               </button>

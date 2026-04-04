@@ -30,151 +30,239 @@ class CustomerService {
     }
 
     /**
-     * Create new customer
+     * Create new customer or admin user
      */
     async createCustomer(data) {
-        // Check for existing email
-        const existingEmail = await Customer.findOne({ where: { email: data.email } });
-        if (existingEmail) {
+        const { User, Customer, Offer } = require('../models');
+        const role = data.role || 'customer';
+        const TargetModel = role === 'customer' ? Customer : User;
+
+        // Check for existing email in BOTH tables to be safe
+        const existingInUser = await User.findOne({ where: { email: data.email } });
+        const existingInCust = await Customer.findOne({ where: { email: data.email } });
+        if (existingInUser || existingInCust) {
             throw new Error('Email already registered');
         }
 
         // Check for existing phone if provided
         if (data.phone) {
-            const existingPhone = await Customer.findOne({ where: { phone: data.phone } });
-            if (existingPhone) {
+            const phoneInUser = await User.findOne({ where: { phone: data.phone } });
+            const phoneInCust = await Customer.findOne({ where: { phone: data.phone } });
+            if (phoneInUser || phoneInCust) {
                 throw new Error('Phone number already registered');
             }
         }
 
-        const customer = await Customer.create({
+        const createData = {
             ...data,
+            house_address: data.address,
             is_active: true,
             is_blocked: data.is_blocked || false,
-            // Use current time for last_activity if needed, or let it default
             last_activity: new Date()
-        });
+        };
 
-        try {
-            const { Offer } = require('../models');
-            let offer = await Offer.findOne({ where: { code: 'WELCOME30' } });
-            if (!offer) {
-                offer = await Offer.create({
-                    code: 'WELCOME30',
-                    discount_type: 'percentage',
-                    discount_value: 30,
-                    valid_from: new Date(),
-                    valid_to: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
-                    is_active: true,
-                    applicable_to: 'specific',
-                    specific_users: [customer.id]
-                });
-            } else if (offer.applicable_to === 'specific') {
-                const specificUsers = offer.specific_users || [];
-                if (!specificUsers.includes(customer.id)) {
-                    await offer.update({ specific_users: [...specificUsers, customer.id] });
-                }
-            }
-        } catch (err) {
-            console.error('Failed to assign WELCOME30 offer:', err);
+        // Sanitize for User model (Admin/Staff)
+        if (role !== 'customer') {
+            const adminData = {
+                name: data.name,
+                email: data.email,
+                phone: data.phone,
+                role: data.role,
+                is_blocked: data.is_blocked || false,
+                last_activity: new Date()
+            };
+            
+            // Password handling
+            const bcrypt = require('bcryptjs');
+            const passwordToHash = data.password || 'admin123';
+            adminData.password_hash = await bcrypt.hash(passwordToHash, 10);
+            
+            const newUser = await User.create(adminData);
+            return newUser;
         }
 
-        return customer;
+        // For CUSTOMERS
+        if (data.password) {
+            const bcrypt = require('bcryptjs');
+            createData.password_hash = await bcrypt.hash(data.password, 10);
+        }
+
+        const newUser = await Customer.create(createData);
+
+        // Only assign welcome offer to customers
+        if (role === 'customer') {
+          try {
+              let offer = await Offer.findOne({ where: { code: 'WELCOME30' } });
+              if (!offer) {
+                  offer = await Offer.create({
+                      code: 'WELCOME30',
+                      discount_type: 'percentage',
+                      discount_value: 30,
+                      valid_from: new Date(),
+                      valid_to: new Date(new Date().setFullYear(new Date().getFullYear() + 1)),
+                      is_active: true,
+                      applicable_to: 'specific',
+                      specific_users: [newUser.id]
+                  });
+              } else if (offer.applicable_to === 'specific') {
+                  const specificUsers = offer.specific_users || [];
+                  if (!specificUsers.includes(newUser.id)) {
+                      await offer.update({ specific_users: [...specificUsers, newUser.id] });
+                  }
+              }
+          } catch (err) {
+              console.error('Failed to assign WELCOME30 offer:', err);
+          }
+        }
+
+        return newUser;
     }
 
     /**
-     * List customers with pagination, filtering, searching, sorting
+     * List customers and admin users with pagination, filtering, searching, sorting
      */
     async listCustomers(query) {
+        const { User, Customer } = require('../models');
         const {
             page = 1,
             limit = 10,
             search,
             status,
+            role,
             sort = 'created_at',
             order = 'DESC'
         } = query;
 
-        const offset = (page - 1) * limit;
-        const whereClause = {};
+        const parsedLimit = parseInt(limit) || 10;
+        const parsedPage = parseInt(page) || 1;
+        const offset = (parsedPage - 1) * parsedLimit;
+        
+        const isAllRole = !role || role === 'all';
+        const isAllStatus = !status || status === 'all';
 
-        // Search
-        if (search) {
-            whereClause[Op.or] = [
-                { name: { [Op.like]: `%${search}%` } },
-                { email: { [Op.like]: `%${search}%` } },
-                { phone: { [Op.like]: `%${search}%` } }
-            ];
+        // 1. Fetch matching Users (admins/staff)
+        let users = [];
+        if (isAllRole || role === 'admin' || role === 'staff' || role === 'superadmin') {
+            const userWhere = {};
+            if (search) {
+                userWhere[Op.or] = [
+                    { name: { [Op.like]: `%${search}%` } },
+                    { email: { [Op.like]: `%${search}%` } },
+                    { phone: { [Op.like]: `%${search}%` } }
+                ];
+            }
+            if (!isAllRole) {
+                userWhere.role = role;
+            }
+            
+            users = await User.findAll({ where: userWhere });
         }
 
-        // Status Filter
-        if (status) {
+        // 2. Fetch Customers
+        let customers = [];
+        if (isAllRole || role === 'customer') {
+            const customerWhere = {};
+            if (search) {
+                customerWhere[Op.or] = [
+                    { name: { [Op.like]: `%${search}%` } },
+                    { email: { [Op.like]: `%${search}%` } },
+                    { phone: { [Op.like]: `%${search}%` } }
+                ];
+            }
+
+            if (!isAllStatus) {
+                if (status === 'active') {
+                    customerWhere.is_blocked = false;
+                } else if (status === 'blocked') {
+                    customerWhere.is_blocked = true;
+                }
+            }
+
+            // Using standard sequelize attributes where possible, but mapping virtuals for the merge
+            customers = await Customer.findAll({
+                where: customerWhere,
+                include: [
+                    { 
+                        model: Order, 
+                        as: 'orders',
+                        attributes: ['id', 'total_amount', 'status'],
+                        required: false
+                    }
+                ]
+            });
+        }
+
+        // 3. Merge and Normalize with unified structure
+        const adminUsers = users.map(u => {
+            const data = u.toJSON();
+            return {
+                ...data,
+                role: data.role || 'admin',
+                orders_count: 0,
+                total_spent: 0,
+                is_customer: false
+            };
+        });
+
+        const customerUsers = customers.map(c => {
+            const data = c.toJSON();
+            // Calculate aggregates from the included orders
+            const validOrders = (data.orders || []).filter(o => o.status !== 'cancelled');
+            return {
+                ...data,
+                role: 'customer',
+                orders_count: (data.orders || []).length,
+                total_spent: validOrders.reduce((sum, o) => sum + parseFloat(o.total_amount || 0), 0),
+                is_customer: true
+            };
+        });
+
+        let allUsersNormalized = [...adminUsers, ...customerUsers];
+
+        // 4. Apply general status filter to merged list for non-customer users 
+        // (Customer table handled by where clause, but for consistency we check here too)
+        if (!isAllStatus) {
             if (status === 'active') {
-                whereClause.is_blocked = false;
-                whereClause.is_active = true;
+                allUsersNormalized = allUsersNormalized.filter(u => u.is_blocked === false || u.is_blocked === null || u.is_blocked === undefined);
             } else if (status === 'blocked') {
-                whereClause.is_blocked = true;
-            } else if (status === 'new') {
-                const thirtyDaysAgo = new Date();
-                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-                whereClause.created_at = { [Op.gte]: thirtyDaysAgo };
+                allUsersNormalized = allUsersNormalized.filter(u => u.is_blocked === true);
             }
         }
 
-        // Sorting Logic
-        let orderClause;
+        // 5. Sort
+        allUsersNormalized.sort((a, b) => {
+            let valA, valB;
 
-        // Subqueries for complex sorting
-        const totalSpentLiteral = sequelize.literal(`(
-            SELECT COALESCE(SUM(total_amount), 0)
-            FROM orders AS o
-            WHERE o.customer_id = Customer.id AND o.status != 'cancelled'
-        )`);
+            if (sort === 'orders' || sort === 'orders_count') {
+                valA = a.orders_count || 0;
+                valB = b.orders_count || 0;
+            } else if (sort === 'spending' || sort === 'total_spent') {
+                valA = a.total_spent || 0;
+                valB = b.total_spent || 0;
+            } else if (sort === 'created_at' || sort === 'createdAt') {
+                valA = new Date(a.created_at || a.createdAt || 0).getTime();
+                valB = new Date(b.created_at || b.createdAt || 0).getTime();
+            } else {
+                valA = (a[sort] || '').toString().toLowerCase();
+                valB = (b[sort] || '').toString().toLowerCase();
+            }
 
-        const ordersCountLiteral = sequelize.literal(`(
-            SELECT COUNT(*)
-            FROM orders AS o
-            WHERE o.customer_id = Customer.id
-        )`);
-
-        if (sort === 'total_spent' || sort === 'spending') {
-            orderClause = [[totalSpentLiteral, order.toUpperCase()]];
-        } else if (sort === 'orders_count' || sort === 'orders') {
-            orderClause = [[ordersCountLiteral, order.toUpperCase()]];
-        } else if (['name', 'email', 'created_at', 'is_blocked', 'is_active'].includes(sort)) {
-            orderClause = [[sort, order.toUpperCase()]];
-        } else {
-            orderClause = [['created_at', 'DESC']];
-        }
-
-        const { count, rows } = await Customer.findAndCountAll({
-            where: whereClause,
-            attributes: {
-                include: [
-                    [ordersCountLiteral, 'orders_count'],
-                    [totalSpentLiteral, 'total_spent']
-                ]
-            },
-            limit: parseInt(limit),
-            offset: parseInt(offset),
-            order: orderClause,
-            subQuery: false // Important for limit/offset with includes/literals in some sequelize versions, though here we don't have many-to-many includes
+            if (order.toUpperCase() === 'DESC') {
+                return valA < valB ? 1 : -1;
+            } else {
+                return valA > valB ? 1 : -1;
+            }
         });
 
-        // Normalize data
-        const enrichedRows = rows.map(customer => {
-            const plain = customer.toJSON();
-            // Ensure numbers are numbers (MySQL subqueries might return strings)
-            plain.orders_count = parseInt(plain.orders_count || 0);
-            plain.total_spent = parseFloat(plain.total_spent || 0);
-            return plain;
-        });
+        // 6. Paginate
+        const total = allUsersNormalized.length;
+        const pagedData = allUsersNormalized.slice(offset, offset + parsedLimit);
 
         return {
-            total: count,
-            pages: Math.ceil(count / limit),
-            currentPage: parseInt(page),
-            data: enrichedRows
+            total,
+            pages: Math.ceil(total / parsedLimit),
+            currentPage: parsedPage,
+            data: pagedData
         };
     }
 
@@ -207,19 +295,65 @@ class CustomerService {
     }
 
     /**
-     * Update Customer Status (Block/Unblock)
+     * Update Customer or User Status (Block/Unblock)
      */
     async updateStatus(id, isBlocked, reason, actorId) {
-        const customer = await Customer.findByPk(id);
-        if (!customer) throw new Error('Customer not found');
+        const { User, Customer } = require('../models');
+        
+        let userInstance = await Customer.findByPk(id);
+        if (!userInstance) {
+            userInstance = await User.findByPk(id);
+        }
 
-        customer.is_blocked = isBlocked;
-        // Optionally log to audit table or user_status_history if models existed
-        // Since strict requirements say "Work with existing", and no Audit model was found in file list, 
-        // we will just update the customer record.
+        if (!userInstance) throw new Error('User not found');
 
-        await customer.save();
-        return customer;
+        userInstance.is_blocked = isBlocked;
+        await userInstance.save();
+        return userInstance;
+    }
+
+    /**
+     * Update Customer or Admin Details
+     */
+    async updateCustomer(id, data) {
+        const { User, Customer } = require('../models');
+        
+        let userInstance = await Customer.findByPk(id);
+        let Model = Customer;
+        
+        if (!userInstance) {
+            userInstance = await User.findByPk(id);
+            Model = User;
+        }
+
+        if (!userInstance) throw new Error('User not found');
+
+        // Safe fields that can be updated
+        const allowedFields = ['name', 'email', 'phone', 'address', 'is_blocked', 'is_active', 'role'];
+        const filteredData = {};
+
+        allowedFields.forEach(field => {
+            if (data[field] !== undefined) {
+                filteredData[field] = data[field];
+            }
+        });
+
+        // Check for duplicate email if changing
+        if (filteredData.email && filteredData.email !== userInstance.email) {
+            const inUser = await User.findOne({ where: { email: filteredData.email } });
+            const inCust = await Customer.findOne({ where: { email: filteredData.email } });
+            if (inUser || inCust) throw new Error('Email already registered');
+        }
+
+        // Check for duplicate phone if changing
+        if (filteredData.phone && filteredData.phone !== userInstance.phone) {
+            const inUser = await User.findOne({ where: { phone: filteredData.phone } });
+            const inCust = await Customer.findOne({ where: { phone: filteredData.phone } });
+            if (inUser || inCust) throw new Error('Phone number already registered');
+        }
+
+        await userInstance.update(filteredData);
+        return userInstance;
     }
 
     /**

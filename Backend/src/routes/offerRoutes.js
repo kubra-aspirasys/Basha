@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, admin } = require('../middleware/authMiddleware');
+const { protect, adminOnly } = require('../middleware/authMiddleware');
 const {
     getAllOffers,
     createOffer,
@@ -22,7 +22,7 @@ router.post('/validate', validateOffer);
 router.get('/available', getPublicOffers);
 
 router.use(protect);
-router.use(admin);
+router.use(adminOnly);
 
 router.get('/', getAllOffers);
 router.post('/', createOffer);

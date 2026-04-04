@@ -1,17 +1,26 @@
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, UtensilsCrossed, ShoppingBag, FileText, CreditCard, MessageSquare, Bell, CircleUser as UserCircle, ChevronRight, X, Tag } from 'lucide-react';
+import { useAuthStore } from '@/store/auth-store';
+import { UserRole } from '@/types';
 
-const navItems = [
-  { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries' },
-  { to: '/admin/notifications', icon: Bell, label: 'Notifications' },
-  { to: '/admin/users', icon: Users, label: 'Users' },
-  { to: '/admin/menu', icon: UtensilsCrossed, label: 'Menu' },
-  { to: '/admin/orders', icon: ShoppingBag, label: 'Orders' },
-  { to: '/admin/payments', icon: CreditCard, label: 'Payments' },
-  { to: '/admin/offers', icon: Tag, label: 'Offers' },
-  { to: '/admin/cms', icon: FileText, label: 'CMS' },
-  { to: '/admin/profile', icon: UserCircle, label: 'Profile' },
+interface NavItem {
+  to: string;
+  icon: any;
+  label: string;
+  allowedRoles: UserRole[];
+}
+
+const navItems: NavItem[] = [
+  { to: '/admin/dashboard', icon: LayoutDashboard, label: 'Dashboard', allowedRoles: ['superadmin', 'admin', 'staff'] },
+  { to: '/admin/inquiries', icon: MessageSquare, label: 'Inquiries', allowedRoles: ['superadmin', 'admin', 'staff'] },
+  { to: '/admin/notifications', icon: Bell, label: 'Notifications', allowedRoles: ['superadmin', 'admin', 'staff'] },
+  { to: '/admin/users', icon: Users, label: 'Users', allowedRoles: ['superadmin', 'admin'] },
+  { to: '/admin/menu', icon: UtensilsCrossed, label: 'Menu', allowedRoles: ['superadmin', 'admin', 'staff'] },
+  { to: '/admin/orders', icon: ShoppingBag, label: 'Orders', allowedRoles: ['superadmin', 'admin', 'staff'] },
+  { to: '/admin/payments', icon: CreditCard, label: 'Payments', allowedRoles: ['superadmin', 'admin', 'staff'] },
+  { to: '/admin/offers', icon: Tag, label: 'Offers', allowedRoles: ['superadmin', 'admin'] },
+  { to: '/admin/cms', icon: FileText, label: 'CMS', allowedRoles: ['superadmin', 'admin'] },
+  { to: '/admin/profile', icon: UserCircle, label: 'Profile', allowedRoles: ['superadmin', 'admin', 'staff'] },
 ];
 
 interface SidebarProps {
@@ -20,6 +29,11 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
+  const { user } = useAuthStore();
+  const userRole = user?.role || 'customer';
+
+  const filteredNavItems = navItems.filter(item => item.allowedRoles.includes(userRole));
+
   return (
     <>
       {isOpen && (
@@ -48,7 +62,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
                   Basha Food
                 </h2>
                 <p className="text-xs font-medium text-slate-500 dark:text-slate-400 tracking-wide">
-                  Admin Panel
+                  {userRole === 'superadmin' ? 'Super Panel' : userRole === 'staff' ? 'Staff Panel' : 'Admin Panel'}
                 </p>
               </div>
             </div>
@@ -62,7 +76,7 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
 
           <nav className="flex-1 p-3 sm:p-4 overflow-y-auto">
             <ul className="space-y-1.5">
-              {navItems.map((item, index) => (
+              {filteredNavItems.map((item, index) => (
                 <li key={item.to} className="animate-slide-up" style={{ animationDelay: `${index * 30}ms` }}>
                   <NavLink
                     to={item.to}
@@ -111,3 +125,4 @@ export default function Sidebar({ isOpen = true, onClose }: SidebarProps) {
     </>
   );
 }
+
