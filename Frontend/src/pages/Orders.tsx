@@ -5,7 +5,7 @@ import CloseStoreModal from '@/components/CloseStoreModal';
 import { useOrderStore } from '@/store/order-store';
 import { useMenuStore } from '@/store/menu-store';
 import { useCustomerStore } from '@/store/customer-store';
-import { Search, Eye, Pencil, Trash2, X, Check, Clock, CheckCircle, Truck, Package, AlertCircle, MapPin, Store, Phone, Mail, User, Calendar, FileText, Activity, Plus, Minus, ShoppingBag, UtensilsCrossed } from 'lucide-react';
+import { Search, Eye, Pencil, Trash2, X, Check, Clock, CheckCircle, Truck, Package, AlertCircle, MapPin, Store, Phone, Mail, User, Users, Calendar, FileText, Activity, Plus, Minus, ShoppingBag, UtensilsCrossed } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
 import { Order } from '@/types';
 import { toast } from 'sonner';
@@ -84,6 +84,10 @@ export default function Orders() {
   const [showFilters, setShowFilters] = useState(false);
   const [tempStatus, setTempStatus] = useState<Order['status']>('pending');
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
+  
+  // Dining specific states
+  const [manualTableNumber, setManualTableNumber] = useState('');
+  const [manualPersonsCount, setManualPersonsCount] = useState('');
 
   // Manual Order Modal states
   const [showManualOrder, setShowManualOrder] = useState(false);
@@ -293,6 +297,11 @@ export default function Orders() {
       bg: 'bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300 border border-teal-200 dark:border-teal-800',
       icon: <Package className="w-3 h-3" />,
       label: 'Walk in'
+    },
+    dining: {
+      bg: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800',
+      icon: <UtensilsCrossed className="w-3 h-3" />,
+      label: 'Dining'
     }
   };
 
@@ -313,6 +322,8 @@ export default function Orders() {
     setManualCustomerPhone('');
     setManualDeliveryAddress('');
     setManualPlatformOrderId('');
+    setManualTableNumber('');
+    setManualPersonsCount('');
     setManualItems([]);
     setMenuSearchTerm('');
     fetchAllMenuItems();
@@ -346,8 +357,10 @@ export default function Orders() {
 
   const isManualFormValid = () => {
     if (manualItems.length === 0) return false;
-    if (manualOrderType === 'takeaway') return !!manualCustomerPhone.trim();
+    if (manualOrderType === 'dining') return !!manualTableNumber.trim();
+    if (manualOrderType === 'takeaway') return !!manualCustomerPhone.trim() || !!manualCustomerName.trim();
     if (['swiggy', 'zomato'].includes(manualOrderType)) return !!manualPlatformOrderId.trim();
+    if (manualOrderType === 'delivery') return !!manualDeliveryAddress.trim() && !!manualCustomerName.trim();
     return !!manualCustomerName.trim();
   };
 
@@ -357,6 +370,7 @@ export default function Orders() {
     try {
       const finalCustomerName = manualCustomerName.trim() || (
         manualOrderType === 'takeaway' ? 'Walk in Customer' :
+        manualOrderType === 'dining' ? 'Dining Customer' :
         manualOrderType === 'swiggy' ? 'Swiggy Customer' :
         manualOrderType === 'zomato' ? 'Zomato Customer' : 'Customer'
       );
@@ -364,9 +378,12 @@ export default function Orders() {
       const result = await createManualOrder({
         customer_name: finalCustomerName,
         customer_phone: manualCustomerPhone.trim() || 'N/A',
-        delivery_address: (['swiggy', 'zomato'].includes(manualOrderType) && manualPlatformOrderId.trim())
-          ? `Platform Order ID: ${manualPlatformOrderId.trim()}`
-          : manualDeliveryAddress.trim() || 'N/A',
+        delivery_address: 
+          manualOrderType === 'dining' 
+            ? `${manualTableNumber}${manualPersonsCount ? ` (${manualPersonsCount} Persons)` : ''}`
+            : (['swiggy', 'zomato'].includes(manualOrderType) && manualPlatformOrderId.trim())
+              ? `Platform Order ID: ${manualPlatformOrderId.trim()}`
+              : manualDeliveryAddress.trim() || 'N/A',
         order_type: manualOrderType,
         items: manualItems,
         totals: {
@@ -617,6 +634,7 @@ export default function Orders() {
                   <option value="swiggy">Swiggy</option>
                   <option value="zomato">Zomato</option>
                   <option value="takeaway">Walk in</option>
+                  <option value="dining">Dining</option>
                 </select>
               </div>
 
@@ -1392,9 +1410,9 @@ export default function Orders() {
               {/* Order Type Selection */}
               <div>
                 <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Order Type</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['swiggy', 'zomato', 'takeaway'] as Order['order_type'][]).map(type => {
-                    const config = orderTypeConfig[type];
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {(['swiggy', 'zomato', 'takeaway', 'dining'] as Order['order_type'][]).map(type => {
+                    const config = orderTypeConfig[type] || orderTypeConfig.delivery;
                     const isSelected = manualOrderType === type;
                     return (
                       <button
@@ -1404,16 +1422,18 @@ export default function Orders() {
                           ? type === 'swiggy' ? 'border-orange-500 bg-orange-50 dark:bg-orange-900/20 shadow-md scale-105'
                             : type === 'zomato' ? 'border-red-500 bg-red-50 dark:bg-red-900/20 shadow-md scale-105'
                               : type === 'takeaway' ? 'border-teal-500 bg-teal-50 dark:bg-teal-900/20 shadow-md scale-105'
-                                : type === 'pickup' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md scale-105'
-                                  : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md scale-105'
+                                : type === 'dining' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-md scale-105'
+                                  : type === 'pickup' ? 'border-green-500 bg-green-50 dark:bg-green-900/20 shadow-md scale-105'
+                                    : 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md scale-105'
                           : 'border-slate-200 dark:border-slate-600 hover:border-slate-300 dark:hover:border-slate-500 bg-white dark:bg-slate-700'
                           }`}
                       >
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center ${type === 'swiggy' ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
                           : type === 'zomato' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
                             : type === 'takeaway' ? 'bg-teal-100 text-teal-600 dark:bg-teal-900/30 dark:text-teal-400'
-                              : type === 'pickup' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                                : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                              : type === 'dining' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                : type === 'pickup' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
+                                  : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                           }`}>
                           {config.icon}
                         </div>
@@ -1473,6 +1493,62 @@ export default function Orders() {
                       onChange={e => setManualPlatformOrderId(e.target.value)}
                       placeholder={`Enter ${manualOrderType === 'swiggy' ? 'Swiggy' : 'Zomato'} order ID`}
                       className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Dining Details — Dining only */}
+              {manualOrderType === 'dining' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Table Number <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded text-[10px] font-bold">T</div>
+                      <input
+                        type="text"
+                        value={manualTableNumber}
+                        onChange={e => setManualTableNumber(e.target.value)}
+                        placeholder="e.g. Table 5"
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                      No. of Persons
+                    </label>
+                    <div className="relative">
+                      <Users className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <input
+                        type="number"
+                        min="1"
+                        value={manualPersonsCount}
+                        onChange={e => setManualPersonsCount(e.target.value)}
+                        placeholder="e.g. 4"
+                        className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 transition-all"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Delivery Address — Online only */}
+              {manualOrderType === 'delivery' && (
+                <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                  <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">
+                    Delivery Address <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-4 w-4 h-4 text-slate-400" />
+                    <textarea
+                      value={manualDeliveryAddress}
+                      onChange={e => setManualDeliveryAddress(e.target.value)}
+                      placeholder="Enter detailed delivery address"
+                      rows={3}
+                      className="w-full pl-10 pr-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-xl bg-white dark:bg-slate-700 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-all resize-none"
                     />
                   </div>
                 </div>

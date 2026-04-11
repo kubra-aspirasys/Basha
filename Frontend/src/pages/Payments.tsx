@@ -7,9 +7,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Pagination } from '@/components/ui/pagination';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Search, Download, X, Plus, RefreshCw, Loader2, Trash2, Eye, Store, Truck } from 'lucide-react';
+import { Search, Download, X, Plus, RefreshCw, Loader2, Trash2, Eye, Store, Truck, FileText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Payment } from '@/types';
+import { Checkbox } from '@/components/ui/checkbox';
+import { generateReceiptPDF, generateBulkReceiptsPDF } from '@/utils/pdfUtils';
 
 const paymentModeColors: Record<string, string> = {
   cash: 'bg-success/10 text-success dark:bg-success/20 dark:text-success',
@@ -344,6 +346,7 @@ export default function Payments() {
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const { toast } = useToast();
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   // Filter states
   const [modeFilter, setModeFilter] = useState<'all' | 'cash' | 'upi' | 'card' | 'netbanking'>('all');
@@ -520,6 +523,23 @@ export default function Payments() {
             <span className="hidden sm:inline">Export CSV</span>
             <span className="sm:hidden">Export</span>
           </Button>
+
+          {selectedIds.length > 0 && (
+            <Button
+              onClick={() => {
+                const selectedPayments = payments.filter(p => selectedIds.includes(p.id));
+                generateBulkReceiptsPDF(selectedPayments);
+                toast({
+                  title: 'Success',
+                  description: `Downloading ${selectedIds.length} receipts...`,
+                });
+              }}
+              className="bg-gold-500 hover:bg-gold-600 w-full sm:w-auto"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Download ({selectedIds.length})
+            </Button>
+          )}
         </div>
       </div>
 
@@ -755,6 +775,15 @@ export default function Payments() {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-12">
+                        <Checkbox 
+                          checked={selectedIds.length === payments.length && payments.length > 0}
+                          onCheckedChange={(checked) => {
+                            if (checked) setSelectedIds(payments.map(p => p.id));
+                            else setSelectedIds([]);
+                          }}
+                        />
+                      </TableHead>
                       <TableHead>Transaction ID</TableHead>
                       <TableHead>Customer</TableHead>
                       <TableHead>Order Type</TableHead>
@@ -767,7 +796,16 @@ export default function Payments() {
                   </TableHeader>
                   <TableBody>
                     {payments.map((payment) => (
-                      <TableRow key={payment.id}>
+                      <TableRow key={payment.id} className={selectedIds.includes(payment.id) ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''}>
+                        <TableCell>
+                          <Checkbox 
+                            checked={selectedIds.includes(payment.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) setSelectedIds([...selectedIds, payment.id]);
+                              else setSelectedIds(selectedIds.filter(id => id !== payment.id));
+                            }}
+                          />
+                        </TableCell>
                         <TableCell className="font-medium font-mono">
                           {payment.transaction_id}
                         </TableCell>
@@ -811,6 +849,15 @@ export default function Payments() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => generateReceiptPDF(payment)}
+                              className="text-primary-600 hover:text-primary-700 hover:bg-primary-50"
+                              title="Download Receipt"
+                            >
+                              <FileText className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => setSelectedPayment(payment)}
                             >
                               <Eye className="w-4 h-4" />
@@ -836,16 +883,29 @@ export default function Payments() {
                 {payments.map((payment) => (
                   <div
                     key={payment.id}
-                    className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+                    className={`bg-white dark:bg-slate-800 border rounded-lg p-4 transition-all duration-200 ${selectedIds.includes(payment.id)
+                      ? 'border-primary-500 ring-1 ring-primary-500 shadow-md'
+                      : 'border-slate-200 dark:border-slate-700 hover:shadow-md'
+                      }`}
                   >
                     <div className="space-y-3">
                       {/* Header with Transaction ID and Amount */}
                       <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-semibold text-slate-900 dark:text-white font-mono text-sm">
-                            {payment.transaction_id}
-                          </h3>
-                          <p className="text-sm text-slate-600 dark:text-slate-400">{payment.customer_name}</p>
+                        <div className="flex items-start gap-3">
+                          <Checkbox
+                            checked={selectedIds.includes(payment.id)}
+                            onCheckedChange={(checked) => {
+                              if (checked) setSelectedIds([...selectedIds, payment.id]);
+                              else setSelectedIds(selectedIds.filter(id => id !== payment.id));
+                            }}
+                            className="mt-1"
+                          />
+                          <div>
+                            <h3 className="font-semibold text-slate-900 dark:text-white font-mono text-sm">
+                              {payment.transaction_id}
+                            </h3>
+                            <p className="text-sm text-slate-600 dark:text-slate-400">{payment.customer_name}</p>
+                          </div>
                         </div>
                         <div className="text-right">
                           <p className="text-lg font-bold text-slate-900 dark:text-white">₹{payment.amount.toLocaleString()}</p>
@@ -868,6 +928,14 @@ export default function Payments() {
                           {new Date(payment.created_at || payment.createdAt || Date.now()).toLocaleString()}
                         </span>
                         <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => generateReceiptPDF(payment)}
+                            className="text-primary-600 hover:text-primary-700 hover:bg-primary-50"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"

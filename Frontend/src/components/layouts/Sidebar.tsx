@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, UtensilsCrossed, ShoppingBag, FileText, CreditCard, MessageSquare, Bell, CircleUser as UserCircle, ChevronRight, X, Tag } from 'lucide-react';
+import { LayoutDashboard, Users, UtensilsCrossed, ShoppingBag, FileText, CreditCard, MessageSquare, Bell, CircleUser as UserCircle, ChevronRight, X, Tag, Layers } from 'lucide-react';
 import { useAuthStore } from '@/store/auth-store';
 import { UserRole } from '@/types';
 
@@ -20,6 +20,7 @@ const navItems: NavItem[] = [
   { to: '/admin/payments', icon: CreditCard, label: 'Payments', allowedRoles: ['superadmin', 'admin', 'staff'] },
   { to: '/admin/offers', icon: Tag, label: 'Offers', allowedRoles: ['superadmin', 'admin'] },
   { to: '/admin/cms', icon: FileText, label: 'CMS', allowedRoles: ['superadmin', 'admin'] },
+  { to: '/admin/api-collection', icon: Layers, label: 'API Collection', allowedRoles: ['superadmin'] },
   { to: '/admin/profile', icon: UserCircle, label: 'Profile', allowedRoles: ['superadmin', 'admin', 'staff'] },
 ];
 

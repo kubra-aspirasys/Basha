@@ -10,7 +10,7 @@ const {
 const { Op } = require('sequelize');
 
 class DashboardService {
-    async getStats(filter = 'all') {
+    async getStats(filter = 'all', customStartDate, customEndDate) {
         const todayForCalc = new Date();
         const startOfDay = new Date(new Date().setHours(0, 0, 0, 0));
         const sevenDaysAgo = new Date();
@@ -35,6 +35,16 @@ class DashboardService {
             startDate = new Date();
             startDate.setMonth(startDate.getMonth() - 1);
             startDate.setHours(0, 0, 0, 0);
+        } else if (filter === 'custom' && customStartDate) {
+            startDate = new Date(customStartDate);
+            startDate.setHours(0, 0, 0, 0);
+            if (customEndDate) {
+                endDate = new Date(customEndDate);
+                endDate.setHours(23, 59, 59, 999);
+            } else {
+                endDate = new Date(customStartDate);
+                endDate.setHours(23, 59, 59, 999);
+            }
         }
 
         const dateCond = {};
@@ -148,7 +158,7 @@ class DashboardService {
         });
 
         // Process Orders by Type
-        const ordersByType = { pickup: 0, delivery: 0, swiggy: 0, zomato: 0, takeaway: 0 };
+        const ordersByType = { pickup: 0, delivery: 0, swiggy: 0, zomato: 0, takeaway: 0, dining: 0 };
         ordersByTypeRaw.forEach(item => {
             if (ordersByType.hasOwnProperty(item.order_type)) ordersByType[item.order_type] = parseInt(item.count, 10);
         });

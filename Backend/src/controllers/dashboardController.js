@@ -5,8 +5,8 @@ const dashboardService = require('../services/dashboardService');
 // @access  Private (Admin)
 const getDashboardStats = async (req, res, next) => {
     try {
-        const { filter } = req.query;
-        const stats = await dashboardService.getStats(filter);
+        const { filter, startDate, endDate } = req.query;
+        const stats = await dashboardService.getStats(filter, startDate, endDate);
 
         res.status(200).json({
             success: true,

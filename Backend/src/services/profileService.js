@@ -5,7 +5,7 @@ const bcrypt = require('bcryptjs');
 class ProfileService {
     async getProfile(userId, role) {
         let user;
-        if (role === 'admin') {
+        if (role === 'superadmin' || role === 'admin' || role === 'staff') {
             user = await User.findByPk(userId);
         } else {
             user = await Customer.findByPk(userId, {
@@ -27,7 +27,7 @@ class ProfileService {
 
     async updateProfile(userId, role, updateData) {
         let user;
-        if (role === 'admin') {
+        if (role === 'superadmin' || role === 'admin' || role === 'staff') {
             user = await User.findByPk(userId);
         } else {
             user = await Customer.findByPk(userId, {
@@ -61,7 +61,7 @@ class ProfileService {
 
     async changePassword(userId, role, currentPassword, newPassword) {
         let user;
-        if (role === 'admin') {
+        if (role === 'superadmin' || role === 'admin' || role === 'staff') {
             user = await User.findByPk(userId);
         } else {
             user = await Customer.findByPk(userId);

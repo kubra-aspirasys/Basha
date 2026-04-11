@@ -16,6 +16,13 @@ import { cn } from '@/lib/utils';
 import { useOrderStore } from '@/store/order-store';
 import { Switch } from '@/components/ui/switch';
 import { toast } from 'sonner';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 import { getImageUrl } from '@/utils/imageUtils';
 
@@ -82,6 +89,8 @@ export default function Dashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState('all');
+  const [startDate, setStartDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [isCloseModalOpen, setIsCloseModalOpen] = useState(false);
   const { storeActive, fetchStoreStatus, setStoreStatus } = useOrderStore();
 
@@ -91,7 +100,13 @@ export default function Dashboard() {
       try {
         if (showLoading) setLoading(true);
         else setIsRefreshing(true);
-        const response = await api.get(`/dashboard/stats?filter=${filter}`);
+        
+        let url = `/dashboard/stats?filter=${filter}`;
+        if (filter === 'custom') {
+          url += `&startDate=${startDate}&endDate=${endDate}`;
+        }
+        
+        const response = await api.get(url);
         if (response.data.success) {
           setStats(response.data.data);
           setError(null);
@@ -116,7 +131,7 @@ export default function Dashboard() {
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [filter, fetchStoreStatus]);
+  }, [filter, startDate, endDate, fetchStoreStatus]);
 
   if (loading) {
     return (
@@ -199,30 +214,46 @@ export default function Dashboard() {
           </p>
         </div>
 
-        <div className="flex flex-col-reverse sm:flex-row items-end sm:items-center gap-4">
-          <div className="flex items-center gap-2 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-            {[
-              { label: 'All', value: 'all' },
-              { label: 'Today', value: 'today' },
-              { label: 'Yesterday', value: 'yesterday' },
-              { label: 'Week', value: 'last_week' },
-              { label: 'Month', value: 'last_month' },
-            ].map((option) => (
-              <button
-                key={option.value}
-                onClick={() => setFilter(option.value)}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 ${
-                  filter === option.value
-                    ? 'bg-white dark:bg-slate-700 text-amber-600 dark:text-amber-400 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-white/50 dark:hover:bg-slate-700/50'
-                }`}
-              >
-                {option.label}
-              </button>
-            ))}
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-3">
+          <div className="flex items-center gap-2">
+            <Select value={filter} onValueChange={setFilter}>
+              <SelectTrigger className="w-[140px] h-10 bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl shadow-sm text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-3.5 h-3.5 text-amber-500" />
+                  <SelectValue placeholder="Period" />
+                </div>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Time</SelectItem>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="yesterday">Yesterday</SelectItem>
+                <SelectItem value="last_week">Last Week</SelectItem>
+                <SelectItem value="last_month">Last Month</SelectItem>
+                <SelectItem value="custom">Custom Range</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {filter === 'custom' && (
+              <div className="flex items-center gap-1.5 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm animate-in slide-in-from-left-2 duration-300">
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="bg-transparent border-none text-[10px] font-bold focus:outline-none dark:text-slate-200 w-24"
+                />
+                <span className="text-slate-300 dark:text-slate-600 font-bold">-</span>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="bg-transparent border-none text-[10px] font-bold focus:outline-none dark:text-slate-200 w-24"
+                />
+              </div>
+            )}
           </div>
+
           <div
-            className={`flex items-center gap-3 px-4 py-2 sm:px-5 sm:py-2.5 rounded-full border-2 transition-all duration-300 shadow-sm backdrop-blur-sm ${storeActive
+            className={`flex items-center gap-3 px-4 py-1.5 sm:px-5 sm:py-2 rounded-full border-2 transition-all duration-300 shadow-sm backdrop-blur-sm ${storeActive
                 ? 'bg-green-50/80 border-green-200 dark:bg-green-900/20 dark:border-green-800/50'
                 : 'bg-red-50/80 border-red-200 dark:bg-red-900/20 dark:border-red-800/50'
               }`}
@@ -405,6 +436,24 @@ export default function Dashboard() {
               <div className="absolute inset-0 bg-blue-600 rounded-xl blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
               <div className="relative w-11 h-11 rounded-xl bg-blue-600 flex items-center justify-center shadow-md">
                 <Truck className="w-5 h-5 text-white" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Dining */}
+        <div className="group relative overflow-hidden rounded-2xl border border-emerald-200 dark:border-emerald-800/50 bg-gradient-to-br from-emerald-50 to-emerald-100/80 dark:from-emerald-900/20 dark:to-emerald-800/10 p-5 hover:shadow-lg transition-all duration-300 hover:-translate-y-0.5">
+          <div className="absolute top-0 right-0 w-24 h-24 bg-emerald-400/10 rounded-full -translate-y-8 translate-x-8 group-hover:scale-110 transition-transform duration-300" />
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-xs font-bold text-emerald-600/70 dark:text-emerald-500/70 uppercase tracking-widest mb-2">Dining</p>
+              <p className="text-4xl font-extrabold text-emerald-700 dark:text-emerald-400 leading-none">{stats.ordersByType.dining || 0}</p>
+              <p className="text-xs text-emerald-600/60 dark:text-emerald-500/60 mt-2">Total Orders</p>
+            </div>
+            <div className="relative flex-shrink-0">
+              <div className="absolute inset-0 bg-emerald-500 rounded-xl blur-md opacity-30 group-hover:opacity-50 transition-opacity" />
+              <div className="relative w-11 h-11 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-md">
+                <UtensilsCrossed className="w-6 h-6" />
               </div>
             </div>
           </div>

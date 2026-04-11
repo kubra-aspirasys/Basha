@@ -143,7 +143,62 @@ class CMSService {
 
     async getHomepageHero() {
         const setting = await this.models.SiteSetting.findOne({ where: { key: 'homepage_config' } });
-        return setting ? JSON.parse(setting.value) : null;
+        if (setting) return JSON.parse(setting.value);
+        
+        // Return default configuration if not found
+        return {
+            hero: {
+                enabled: true,
+                video_url: "/Videos/hero.mp4",
+                tagline: "Spiced to Perfection, Served with Tradition!",
+                logo_url: "/Images/KING OF ALL FOOD.webp",
+                description: "Experience the rich taste of traditional Hyderabad cuisine with our signature BBQ kababs, wraps, and desserts.",
+                button_text: "Order Now"
+            },
+            about: {
+                enabled: true,
+                image_url: "/AboutTikka.png",
+                badge: "About Us",
+                title_line1: "Authentic Hyderabad",
+                title_line2: "Biryani & BBQ",
+                description: "A savory haven for food lovers offering meticulously crafted dishes bursting with authentic Hyderabad flavors. From our signature BBQ kebabs to our aromatic biryanis, every dish tells a story of tradition and taste.",
+                feature1_title: "Fast Service",
+                feature1_desc: "Quick delivery within 30 minutes",
+                feature2_title: "Quality Food",
+                feature2_desc: "Fresh ingredients daily",
+                button_text: "View Menu"
+            },
+            heritage: {
+                enabled: true,
+                title: "Hyderabad Chicken Biryani",
+                video_url: "/Videos/hero.mp4",
+                text_block1: "Hyderabad biryani originated from Golconda, Telangana India.",
+                text_block2: "Originating in the kitchens of the Qutub Shahi Kingdom.",
+                text_block3: "Hyderabad biryani is a city's signature dish.",
+                charminar_image: "/charminar.webp",
+                nizam_image: "/nizam.webp"
+            },
+            menu: {
+                enabled: true,
+                badge: "Our Menu",
+                title: "Explore Our Delicious Menu",
+                description: "Choose from our wide range of authentic Hyderabad dishes"
+            },
+            features: {
+                enabled: true,
+                list: [
+                    { title: 'Fast Delivery', desc: 'Quick takeaway and delivery within 30 minutes' },
+                    { title: 'Easy Ordering', desc: 'Order online or call us at 70109 33658' },
+                    { title: 'Find Us', desc: 'Kaka Chandamiyan Street, Ambur' }
+                ]
+            },
+            cta: {
+                enabled: true,
+                stroke_title: "Biryani @ Basha",
+                tagline: "ORDER........ EAT........ REPEAT",
+                button_text: "Order Now"
+            }
+        };
     }
     async updateHomepageHero(data) {
         const SiteSetting = this.models.SiteSetting;

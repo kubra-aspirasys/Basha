@@ -104,6 +104,7 @@ class OrderService {
                 gst_amount: gstAmount,
                 delivery_charges: deliveryCharges,
                 service_charges: serviceCharges,
+                discount_amount: finalDiscountAmount,
                 total_amount: totalAmount,
                 status: orderData.status || defaultStatus,
                 order_type,

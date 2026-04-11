@@ -24,12 +24,16 @@ module.exports = (sequelize, DataTypes) => {
         gst_amount: DataTypes.DECIMAL(10, 2),
         delivery_charges: DataTypes.DECIMAL(10, 2),
         service_charges: DataTypes.DECIMAL(10, 2),
+        discount_amount: {
+            type: DataTypes.DECIMAL(10, 2),
+            defaultValue: 0
+        },
         status: {
             type: DataTypes.ENUM('pending', 'confirmed', 'preparing', 'ready_for_pickup', 'out_for_delivery', 'delivered', 'cancelled'),
             defaultValue: 'pending'
         },
         order_type: {
-            type: DataTypes.ENUM('pickup', 'delivery', 'swiggy', 'zomato', 'takeaway'),
+            type: DataTypes.ENUM('pickup', 'delivery', 'swiggy', 'zomato', 'takeaway', 'dining'),
             defaultValue: 'delivery'
         },
         payment_method: {

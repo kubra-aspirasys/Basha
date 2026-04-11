@@ -7,11 +7,12 @@ import ProductCategoryManager from '@/components/cms/ProductCategoryManager';
 import ContactDetailsManager from '@/components/cms/ContactDetailsManager';
 import HomepageHeroManager from '@/components/cms/HomepageHeroManager';
 import PaymentMethodsManager from '@/components/cms/PaymentMethodsManager';
-import { Settings, Grid3x3, Home, Phone, CreditCard } from 'lucide-react';
+import { Settings, Grid3x3, Home, Phone, CreditCard, Receipt } from 'lucide-react';
+import GSTSettingsManager from '@/components/cms/GSTSettingsManager';
 
 export default function CMS() {
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'settings' | 'categories' | 'homepage' | 'contact' | 'payments'>('homepage');
+  const [activeTab, setActiveTab] = useState<'settings' | 'categories' | 'homepage' | 'contact' | 'payments' | 'gst'>('homepage');
 
   useEffect(() => {
     if (location.state && (location.state as any).activeTab) {
@@ -22,6 +23,7 @@ export default function CMS() {
   const tabs = [
     { id: 'homepage' as const, label: 'Homepage', icon: Home },
     { id: 'contact' as const, label: 'Contact Details', icon: Phone },
+    { id: 'gst' as const, label: 'GST & Charges', icon: Receipt },
     { id: 'settings' as const, label: 'Site Settings', icon: Settings },
     { id: 'payments' as const, label: 'Payment & Fulfillment', icon: CreditCard },
     { id: 'categories' as const, label: 'Product Categories', icon: Grid3x3 },
@@ -59,7 +61,7 @@ export default function CMS() {
       <div className="animate-fade-in">
         {activeTab === 'homepage' && <HomepageHeroManager />}
         {activeTab === 'contact' && <ContactDetailsManager />}
-        {/* {activeTab === 'gst' && <GSTSettingsManager />} */}
+        {activeTab === 'gst' && <GSTSettingsManager />}
         {/* {activeTab === 'delivery' && <DeliveryChargesManager />} */}
         {activeTab === 'settings' && <SiteSettingsManager />}
         {activeTab === 'payments' && <PaymentMethodsManager />}

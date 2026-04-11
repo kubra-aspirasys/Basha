@@ -1,5 +1,5 @@
 'use strict';
-const { Payment, Order, Customer, sequelize } = require('../models');
+const { Payment, Order, OrderItem, Customer, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const { sanitizeObject } = require('../utils/sanitizer');
 
@@ -139,7 +139,12 @@ class PaymentService {
         const { count, rows } = await Payment.findAndCountAll({
             where: whereClause,
             include: [
-                { model: Order, as: 'order', required: false },
+                { 
+                    model: Order, 
+                    as: 'order', 
+                    required: false,
+                    include: [{ model: OrderItem, as: 'items' }]
+                },
                 { model: Customer, as: 'customer', required: false }
             ],
             order: [['createdAt', 'DESC']],
@@ -164,7 +169,12 @@ class PaymentService {
     async getPaymentById(paymentId) {
         const payment = await Payment.findByPk(paymentId, {
             include: [
-                { model: Order, as: 'order', required: false },
+                { 
+                    model: Order, 
+                    as: 'order', 
+                    required: false,
+                    include: [{ model: OrderItem, as: 'items' }]
+                },
                 { model: Customer, as: 'customer', required: false }
             ]
         });
@@ -183,7 +193,12 @@ class PaymentService {
         const payment = await Payment.findOne({
             where: { transaction_id: transactionId },
             include: [
-                { model: Order, as: 'order', required: false },
+                { 
+                    model: Order, 
+                    as: 'order', 
+                    required: false,
+                    include: [{ model: OrderItem, as: 'items' }]
+                },
                 { model: Customer, as: 'customer', required: false }
             ]
         });

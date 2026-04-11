@@ -97,7 +97,8 @@ export const useOrderStore = create<OrderState>((set) => ({
     try {
       // Determine if we should call admin or customer endpoint
       const role = useAuthStore.getState().user?.role;
-      const endpoint = role === 'admin' ? '/admin/orders' : '/customer/orders';
+      const isAdmin = role && ['admin', 'superadmin', 'staff'].includes(role);
+      const endpoint = isAdmin ? '/admin/orders' : '/customer/orders';
 
       const response = await api.get(endpoint, { params });
 

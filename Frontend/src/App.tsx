@@ -21,12 +21,14 @@ import Profile from '@/pages/Profile';
 import Inquiries from '@/pages/Inquiries';
 import Notifications from '@/pages/Notifications';
 import Offers from '@/pages/Offers';
+import APICollection from '@/pages/APICollection';
 import Home from '@/pages/customer/Home';
 import CustomerMenu from '@/pages/customer/Menu';
 import Cart from '@/pages/customer/Cart';
 import Account from '@/pages/customer/Account';
 import CustomerOrders from '@/pages/customer/Orders';
 import Contact from '@/pages/customer/Contact';
+import CustomerAPIDocumentation from '@/pages/customer/APIDocumentation';
 
 function App() {
   return (
@@ -54,6 +56,7 @@ function App() {
             <Route path="/account" element={<Account />} />
             <Route path="/orders" element={<CustomerOrders />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/api-docs" element={<CustomerAPIDocumentation />} />
             <Route path="/profile" element={<Navigate to="/account" replace />} />
           </Route>
 
@@ -77,11 +80,12 @@ function App() {
             <Route path="inquiries" element={<Inquiries />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="profile" element={<Profile />} />
+            <Route path="api-collection" element={<APICollection />} />
           </Route>
         </Routes>
       </BrowserRouter>
       <Toaster />
-      <SonnerToaster position="top-right" expand={true} richColors />
+      <SonnerToaster position="top-right" expand={true} richColors closeButton />
     </ThemeProvider>
   );
 }

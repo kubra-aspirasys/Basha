@@ -406,6 +406,7 @@ export default function CustomerLayout() {
                 <Link to="/menu" className="block text-gray-400 hover:text-[#F2A900] transition-colors text-sm">Menu</Link>
                 <Link to="/orders" className="block text-gray-400 hover:text-[#F2A900] transition-colors text-sm">My Orders</Link>
                 <Link to="/contact" className="block text-gray-400 hover:text-[#F2A900] transition-colors text-sm">Contact</Link>
+                <Link to="/api-docs" className="block text-gray-400 hover:text-[#F2A900] transition-colors text-sm">API Documentation</Link>
               </div>
             </div>
 

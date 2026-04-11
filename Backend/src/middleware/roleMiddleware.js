@@ -11,7 +11,16 @@ const authorize = (roles = []) => {
     }
 
     return (req, res, next) => {
-        if (!req.user || (roles.length && !roles.includes(req.user.role))) {
+        if (!req.user) {
+            return errorResponse(res, 'Access denied: No user found', 403);
+        }
+
+        // Always allow superadmin access
+        if (req.user.role === 'superadmin') {
+            return next();
+        }
+
+        if (roles.length && !roles.includes(req.user.role)) {
             return errorResponse(res, 'Access denied: Unauthorized role', 403);
         }
         next();

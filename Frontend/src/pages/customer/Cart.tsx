@@ -21,7 +21,7 @@ export default function Cart() {
   const { items, updateQuantity, removeItem, clearCart, fetchCart } = useCartStore();
   const { createOrder, storeActive, closeReason, fetchStoreStatus } = useOrderStore();
   const { user, fetchProfile, updateProfile } = useAuthStore();
-  const { settings } = useSettingsStore();
+  const { settings, fetchSettings } = useSettingsStore();
   const { toast } = useToast();
   const { getPublicOffers } = useOfferStore();
   const { siteSettings, fetchSiteSettings } = useCMSEnhancedStore();
@@ -35,7 +35,8 @@ export default function Cart() {
     }
     fetchSiteSettings();
     fetchStoreStatus();
-  }, [user?.id, fetchCart, fetchProfile, fetchSiteSettings, fetchStoreStatus]);
+    fetchSettings();
+  }, [user?.id, fetchCart, fetchProfile, fetchSiteSettings, fetchStoreStatus, fetchSettings]);
 
   // CMS-controlled toggles with safe fallbacks (default to true if not specified)
   const isDeliveryEnabled = siteSettings.find(s => s.key === 'payment_method_delivery')?.value !== 'false';
@@ -1065,7 +1066,7 @@ export default function Cart() {
                             </div>
 
                              {/* Discount callout */}
-                             <div className="flex items-center gap-2 mb-2">
+                             <div className="flex items-center gap-2 mb-2 flex-wrap">
                                <div className="flex items-end gap-1">
                                  <span className={`font-black leading-none ${coupon.discount_type === 'percentage' ? 'text-5xl' : 'text-4xl'} ${isBest ? 'text-[#F2A900]' : 'text-white group-hover:text-[#F2A900] transition-colors'}`}>
                                    {coupon.discount_type === 'percentage' ? `${coupon.discount_value}%` : `₹${coupon.discount_value}`}

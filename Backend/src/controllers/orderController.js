@@ -6,10 +6,11 @@ const orderService = require('../services/orderService');
 const createOrder = async (req, res, next) => {
     try {
         // Only use req.user.id for customers, admins create orders with null customer_id
-        const customerId = req.user.role === 'admin' ? null : req.user.userId;
+        const isAdmin = ['superadmin', 'admin', 'staff'].includes(req.user.role);
+        const customerId = isAdmin ? null : req.user.userId;
         const orderData = req.body;
 
-        if (req.user.role !== 'admin') {
+        if (!isAdmin) {
             const { SiteSetting } = require('../models');
             const storeSetting = await SiteSetting.findOne({ where: { key: 'is_store_active' } });
             if (storeSetting && storeSetting.value === 'false') {
@@ -75,9 +76,9 @@ const getMyOrders = async (req, res, next) => {
 const getOrderDetails = async (req, res, next) => {
     try {
         const orderId = req.params.id;
-        // If admin, can see any. If customer, only own.
+        // If admin/superadmin/staff, can see any. If customer, only own.
         // Identify role from req.user
-        const isCustomer = !req.user.role || req.user.role !== 'admin';
+        const isCustomer = req.user.role === 'customer';
         const customerId = isCustomer ? req.user.userId : null;
 
         const order = await orderService.getOrderDetails(orderId, customerId);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,7 @@ import { useSettingsStore } from '@/store/settings-store';
 import { Receipt, Building2, Hash, DollarSign } from 'lucide-react';
 
 export default function GSTSettingsManager() {
-  const { settings, updateSettings } = useSettingsStore();
+  const { settings, updateSettings, fetchSettings, loading } = useSettingsStore();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     gstRate: settings.gstRate.toString(),
@@ -17,6 +17,21 @@ export default function GSTSettingsManager() {
     deliveryCharges: settings.deliveryCharges.toString(),
     serviceCharges: settings.serviceCharges.toString(),
   });
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  useEffect(() => {
+    setFormData({
+      gstRate: settings.gstRate.toString(),
+      businessName: settings.businessName,
+      businessAddress: settings.businessAddress,
+      gstNumber: settings.gstNumber,
+      deliveryCharges: settings.deliveryCharges.toString(),
+      serviceCharges: settings.serviceCharges.toString(),
+    });
+  }, [settings]);
 
   const handleSave = () => {
     updateSettings({

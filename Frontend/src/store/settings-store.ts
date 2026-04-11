@@ -42,12 +42,24 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   fetchSettings: async () => {
     set({ loading: true });
     try {
-      await api.get('/cms/site-settings?category=general');
-      // Map SiteSetting model back to BusinessSettings object if needed
-      // For now we assume they are fetched as specialized keys or we just use the default
-      // Better to use fetchSiteSettings from CMSEnhancedStore for UI, but keeping this for compatibility
-      set({ loading: false });
+      const response = await api.get('/cms/site-settings');
+      if (response.data.success) {
+        const dbSettings = response.data.data;
+        const mappedSettings: Partial<BusinessSettings> = {};
+        
+        dbSettings.forEach((s: any) => {
+          if (s.key === 'gst_rate') mappedSettings.gstRate = parseFloat(s.value);
+          if (s.key === 'business_name') mappedSettings.businessName = s.value;
+          if (s.key === 'business_address') mappedSettings.businessAddress = s.value;
+          if (s.key === 'gst_number') mappedSettings.gstNumber = s.value;
+          if (s.key === 'delivery_charges') mappedSettings.deliveryCharges = parseFloat(s.value);
+          if (s.key === 'service_charges') mappedSettings.serviceCharges = parseFloat(s.value);
+        });
+
+        set({ settings: { ...get().settings, ...mappedSettings }, loading: false });
+      }
     } catch (error) {
+      console.error('Fetch settings error:', error);
       set({ loading: false });
     }
   },
@@ -55,8 +67,41 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   updateSettings: async (newSettings) => {
     set((state) => ({
       settings: { ...state.settings, ...newSettings },
+      loading: true
     }));
-    // In a real app, this would also hit the backend to update individual SiteSetting records
+    
+    try {
+      // Fetch all site settings first to find the IDs
+      const response = await api.get('/cms/site-settings');
+      if (response.data.success) {
+        const dbSettings = response.data.data;
+        
+        // Map of store keys to DB keys
+        const keyMap: Record<string, string> = {
+          gstRate: 'gst_rate',
+          businessName: 'business_name',
+          businessAddress: 'business_address',
+          gstNumber: 'gst_number',
+          deliveryCharges: 'delivery_charges',
+          serviceCharges: 'service_charges'
+        };
+
+        // Update each modified setting in the backend
+        for (const [storeKey, newValue] of Object.entries(newSettings)) {
+          const dbKey = keyMap[storeKey as keyof typeof keyMap];
+          if (dbKey) {
+            const dbSetting = dbSettings.find((s: any) => s.key === dbKey);
+            if (dbSetting) {
+              await api.put(`/cms/site-settings/${dbSetting.id}`, { value: newValue.toString() });
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Update settings error:', error);
+    } finally {
+      set({ loading: false });
+    }
   },
 
   calculateGST: (amount) => {

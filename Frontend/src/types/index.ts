@@ -83,7 +83,7 @@ export interface Order {
   delivery_charges: number;
   service_charges: number;
   status: 'pending' | 'confirmed' | 'preparing' | 'ready_for_pickup' | 'out_for_delivery' | 'delivered' | 'cancelled';
-  order_type: 'pickup' | 'delivery' | 'swiggy' | 'zomato' | 'takeaway';
+  order_type: 'pickup' | 'delivery' | 'swiggy' | 'zomato' | 'takeaway' | 'dining';
   payment_method?: 'cod' | 'online';
   delivery_address: string;
   items: OrderItem[];
@@ -144,8 +144,14 @@ export interface Payment {
   updatedAt?: string;
   order?: {
     order_number: string;
-    order_type: 'pickup' | 'delivery';
-    status: string;
+    order_type: 'pickup' | 'delivery' | 'swiggy' | 'zomato' | 'takeaway' | 'dining';
+    status?: string;
+    subtotal?: number;
+    delivery_charges?: number;
+    gst_amount?: number;
+    service_charges?: number;
+    discount_amount?: number;
+    items?: OrderItem[];
   };
 }
 
