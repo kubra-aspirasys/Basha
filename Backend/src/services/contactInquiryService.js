@@ -87,10 +87,25 @@ const deleteInquiry = async (id) => {
     return true;
 };
 
+const bulkDeleteInquiries = async (ids) => {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        throw new Error('No inquiry IDs provided for deletion');
+    }
+    const result = await ContactInquiry.destroy({
+        where: {
+            id: {
+                [Op.in]: ids
+            }
+        }
+    });
+    return result;
+};
+
 module.exports = {
     createInquiry,
     getAllInquiries,
     getInquiryById,
     updateInquiry,
-    deleteInquiry
+    deleteInquiry,
+    bulkDeleteInquiries
 };

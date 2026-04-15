@@ -425,6 +425,21 @@ class OrderService {
         await order.destroy();
         return { message: 'Order deleted successfully' };
     }
+
+    async bulkDeleteOrders(ids) {
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            throw new Error('No order IDs provided for deletion');
+        }
+        
+        const result = await Order.destroy({
+            where: {
+                id: {
+                    [Op.in]: ids
+                }
+            }
+        });
+        return result;
+    }
 }
 
 module.exports = new OrderService();

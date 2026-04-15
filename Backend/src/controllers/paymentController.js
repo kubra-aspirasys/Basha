@@ -185,6 +185,20 @@ const deletePayment = async (req, res, next) => {
     }
 };
 
+const bulkDeletePayments = async (req, res, next) => {
+    try {
+        const { ids } = req.body;
+        const result = await paymentService.bulkDeletePayments(ids);
+        res.json({
+            success: true,
+            message: `${result} payments deleted successfully`,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 // @desc    Get payment statistics
 // @route   GET /api/payments/stats
 // @access  Private (Admin)
@@ -267,6 +281,7 @@ module.exports = {
     updatePaymentStatus,
     updatePayment,
     deletePayment,
+    bulkDeletePayments,
     getPaymentStats,
     generateTransactionId,
     exportPayments

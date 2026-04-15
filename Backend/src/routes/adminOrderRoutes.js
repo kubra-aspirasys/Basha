@@ -6,7 +6,8 @@ const {
     getOrderDetails,
     updateOrderStatus,
     updateOrder,
-    deleteOrder
+    deleteOrder,
+    bulkDeleteOrders
 } = require('../controllers/orderController');
 const { protect } = require('../middleware/authMiddleware');
 const { authorize } = require('../middleware/roleMiddleware');
@@ -18,10 +19,12 @@ router.use(authorize('admin', 'staff'));
 
 router.get('/', getAllOrders);
 router.post('/', createOrderValidator, createOrder);
+router.delete('/bulk', authorize('admin'), bulkDeleteOrders);
 router.get('/:id', mongoIdValidator, getOrderDetails);
 router.put('/:id/status', updateStatusValidator, updateOrderStatus);
 router.put('/:id', mongoIdValidator, updateOrder);
 router.delete('/:id', authorize('admin'), mongoIdValidator, deleteOrder);
 
 module.exports = router;
+
 

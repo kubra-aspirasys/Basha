@@ -37,5 +37,10 @@ export const inquiryService = {
     delete: async (id: string) => {
         const response = await api.delete<{ success: boolean }>(`/inquiries/${id}`);
         return response.data.success;
+    },
+
+    bulkDelete: async (ids: string[]) => {
+        const response = await api.delete<{ success: boolean }>(`/inquiries/bulk`, { data: { ids } });
+        return response.data.success;
     }
 };

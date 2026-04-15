@@ -182,6 +182,20 @@ const deleteMenuItem = async (id) => {
     return { id, message: 'Menu item deleted successfully' };
 };
 
+const bulkDeleteMenuItems = async (ids) => {
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        throw new Error('No item IDs provided for deletion');
+    }
+    const result = await MenuItem.destroy({
+        where: {
+            id: {
+                [Op.in]: ids
+            }
+        }
+    });
+    return { count: result, message: `${result} menu items deleted successfully` };
+};
+
 const getAllCategories = async () => {
     return await MenuCategory.findAll({
         order: [['display_order', 'ASC']],
@@ -254,6 +268,7 @@ module.exports = {
     toggleAvailability,
     toggleFeatured,
     deleteMenuItem,
+    bulkDeleteMenuItems,
     getAllCategories,
     getAllTypes,
     createCategory,

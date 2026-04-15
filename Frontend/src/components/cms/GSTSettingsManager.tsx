@@ -7,7 +7,7 @@ import { useSettingsStore } from '@/store/settings-store';
 import { Receipt, Building2, Hash, DollarSign } from 'lucide-react';
 
 export default function GSTSettingsManager() {
-  const { settings, updateSettings, fetchSettings, loading } = useSettingsStore();
+  const { settings, updateSettings, fetchSettings } = useSettingsStore();
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
     gstRate: settings.gstRate.toString(),

@@ -45,12 +45,13 @@ interface OrderState {
   updateOrder: (id: string, payload: Partial<CreateOrderPayload>) => Promise<void>;
   updateOrderStatus: (id: string, status: Order['status']) => Promise<void>;
   deleteOrder: (id: string) => Promise<void>;
+  deleteOrders: (ids: string[]) => Promise<void>;
   cancelOrder: (id: string) => Promise<void>;
   fetchStoreStatus: () => Promise<void>;
   setStoreStatus: (isActive: boolean, closeReason?: string) => Promise<void>;
 }
 
-export const useOrderStore = create<OrderState>((set) => ({
+export const useOrderStore = create<OrderState>((set, _get) => ({
   orders: [],
   loading: false,
   error: null,
@@ -291,6 +292,21 @@ export const useOrderStore = create<OrderState>((set) => ({
     } catch (error: any) {
       console.error('Failed to delete order', error);
       set({ error: error.response?.data?.message });
+    }
+  },
+
+  deleteOrders: async (ids) => {
+    try {
+      const response = await api.delete('/admin/orders/bulk', { data: { ids } });
+
+      if (response.data.success) {
+        set((state) => ({
+          orders: state.orders.filter((order) => !ids.includes(order.id))
+        }));
+      }
+    } catch (error: any) {
+      console.error('Failed to delete orders', error);
+      set({ error: error.response?.data?.message || 'Failed to delete orders' });
     }
   },
 

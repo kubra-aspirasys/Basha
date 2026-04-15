@@ -28,6 +28,7 @@ export default function Menu() {
     addMenuItem,
     updateMenuItem,
     deleteMenuItem,
+    deleteMenuItems,
     toggleAvailability,
     toggleFeatured,
     loading,
@@ -63,6 +64,35 @@ export default function Menu() {
   const [sortBy, setSortBy] = useState<string>(searchParams.get('sortBy') || 'display_order');
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>((searchParams.get('sortOrder') || 'ASC') as 'ASC' | 'DESC');
   const [showFilters, setShowFilters] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(menuItems.map(item => item.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectItem = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(i => i !== id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} selected items?`)) {
+      try {
+        await deleteMenuItems(selectedIds);
+        setSelectedIds([]);
+      } catch (error) {
+        // Error is handled in store
+      }
+    }
+  };
 
   // Sync state to URL
   useEffect(() => {
@@ -425,16 +455,27 @@ export default function Menu() {
             Manage your restaurant menu items
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setIsOpen(true);
-          }}
-          className="px-4 py-2 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-lg flex items-center gap-2 hover:shadow-lg transition-all w-full sm:w-auto justify-center"
-        >
-          <Plus className="w-4 h-4" />
-          Add Menu Item
-        </button>
+        <div className="flex items-center gap-2">
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="px-4 py-2 bg-red-100 text-red-600 border border-red-200 rounded-lg flex items-center gap-2 hover:bg-red-200 transition-all"
+            >
+              <Trash2 className="w-4 h-4" />
+              Delete ({selectedIds.length})
+            </button>
+          )}
+          <button
+            onClick={() => {
+              resetForm();
+              setIsOpen(true);
+            }}
+            className="px-4 py-2 bg-gradient-to-r from-gold-500 to-gold-600 text-white rounded-lg flex items-center gap-2 hover:shadow-lg transition-all w-full sm:w-auto justify-center"
+          >
+            <Plus className="w-4 h-4" />
+            Add Menu Item
+          </button>
+        </div>
       </div>
 
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -630,6 +671,14 @@ export default function Menu() {
           <table className="w-full">
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
+                <th className="px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={menuItems.length > 0 && selectedIds.length === menuItems.length}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 rounded border-slate-300 text-gold-600 focus:ring-gold-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Image</th>
                 <th
                   className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase cursor-pointer hover:text-gold-500 transition-colors"
@@ -662,9 +711,18 @@ export default function Menu() {
               {menuItems.map((item) => (
                 <tr
                   key={item.id}
-                  className="hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer"
+                  className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 cursor-pointer ${selectedIds.includes(item.id) ? 'bg-gold-50/50 dark:bg-gold-900/10' : ''
+                    }`}
                   onDoubleClick={() => handleDoubleClick(item)}
                 >
+                  <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(item.id)}
+                      onChange={(e) => handleSelectItem(item.id, e.target.checked)}
+                      className="w-4 h-4 rounded border-slate-300 text-gold-600 focus:ring-gold-500"
+                    />
+                  </td>
                   <td className="px-6 py-4">
                     {item.image_url ? (
                       <img src={getImageUrl(item.image_url)} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
@@ -782,9 +840,20 @@ export default function Menu() {
           {menuItems.map((item) => (
             <div
               key={item.id}
-              className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow"
+              className={`bg-white dark:bg-slate-800 border rounded-lg p-4 cursor-pointer hover:shadow-md transition-shadow relative ${selectedIds.includes(item.id)
+                ? 'border-gold-500 dark:border-gold-500 bg-gold-50/30'
+                : 'border-slate-200 dark:border-slate-700'
+                }`}
               onDoubleClick={() => handleDoubleClick(item)}
             >
+              <div className="absolute top-4 right-4 z-10" onClick={(e) => e.stopPropagation()}>
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(item.id)}
+                  onChange={(e) => handleSelectItem(item.id, e.target.checked)}
+                  className="w-5 h-5 rounded border-slate-300 text-gold-600 focus:ring-gold-500"
+                />
+              </div>
               <div className="space-y-4">
                 {/* Header with Image and Basic Info */}
                 <div className="flex items-start gap-4">

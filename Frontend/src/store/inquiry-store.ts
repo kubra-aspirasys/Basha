@@ -14,6 +14,7 @@ interface InquiryState {
   fetchInquiries: (filters?: InquiryFilters) => Promise<void>;
   updateInquiry: (id: string, data: Partial<Inquiry>) => Promise<void>;
   deleteInquiry: (id: string) => Promise<void>;
+  deleteInquiries: (ids: string[]) => Promise<void>;
 }
 
 export const useInquiryStore = create<InquiryState>((set, get) => ({
@@ -60,6 +61,19 @@ export const useInquiryStore = create<InquiryState>((set, get) => ({
     } catch (error) {
       console.error('Failed to delete inquiry:', error);
       toast({ title: 'Error', description: 'Failed to delete inquiry', variant: 'destructive' });
+    }
+  },
+
+  deleteInquiries: async (ids) => {
+    try {
+      await inquiryService.bulkDelete(ids);
+      set((state) => ({
+        inquiries: state.inquiries.filter((i) => !ids.includes(i.id)),
+      }));
+      toast({ title: 'Success', description: 'Inquiries deleted successfully' });
+    } catch (error) {
+      console.error('Failed to delete inquiries:', error);
+      toast({ title: 'Error', description: 'Failed to delete inquiries', variant: 'destructive' });
     }
   },
 }));

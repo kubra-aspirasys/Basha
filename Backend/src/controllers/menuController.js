@@ -117,6 +117,20 @@ const deleteMenuItem = async (req, res, next) => {
     }
 };
 
+const bulkDeleteMenuItems = async (req, res, next) => {
+    try {
+        const { ids } = req.body;
+        const result = await menuService.bulkDeleteMenuItems(ids);
+        res.json({
+            success: true,
+            message: result.message,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 const listCategories = async (req, res, next) => {
     try {
         const categories = await menuService.getAllCategories();
@@ -187,6 +201,7 @@ module.exports = {
     toggleAvailability,
     toggleFeatured,
     deleteMenuItem,
+    bulkDeleteMenuItems,
     listCategories,
     listTypes,
     createCategory,

@@ -10,6 +10,7 @@ router.use(authorize('admin', 'staff'));
 
 // Admin Inquiries Management
 router.get('/', contactInquiryController.getAllInquiries);
+router.delete('/bulk', contactInquiryController.bulkDeleteInquiries);
 router.get('/:id', contactInquiryController.getInquiryById);
 router.patch('/:id', contactInquiryController.updateInquiry);
 router.delete('/:id', contactInquiryController.deleteInquiry);

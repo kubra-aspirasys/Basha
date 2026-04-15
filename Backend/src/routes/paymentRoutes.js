@@ -50,7 +50,8 @@ router.put('/:id/status', authorize('admin'), validateUpdateStatus, paymentContr
 // Update payment details (Admin only) - with validation
 router.put('/:id', authorize('admin'), validateUpdatePayment, paymentController.updatePayment);
 
-// Delete payment (Admin only)
+// Delete payments (Admin only)
+router.delete('/bulk', authorize('admin'), paymentController.bulkDeletePayments);
 router.delete('/:id', authorize('admin'), paymentController.deletePayment);
 
 module.exports = router;

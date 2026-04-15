@@ -337,6 +337,7 @@ export default function Payments() {
     fetchPaymentStats,
     updatePaymentStatus,
     deletePayment,
+    deletePayments,
     exportPayments,
     clearError
   } = usePaymentStore();
@@ -480,6 +481,21 @@ export default function Payments() {
       }
     }
   };
+  
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} payments?`)) {
+      const success = await deletePayments(selectedIds);
+      if (success) {
+        toast({
+          title: 'Payments Deleted',
+          description: `${selectedIds.length} payments have been deleted successfully`,
+        });
+        setSelectedIds([]);
+        loadPayments();
+      }
+    }
+  };
 
   const handleStatusChange = async (paymentId: string, newStatus: Payment['status']) => {
     const result = await updatePaymentStatus(paymentId, newStatus);
@@ -538,6 +554,17 @@ export default function Payments() {
             >
               <FileText className="w-4 h-4 mr-2" />
               Download ({selectedIds.length})
+            </Button>
+          )}
+
+          {selectedIds.length > 0 && (
+            <Button
+              onClick={handleBulkDelete}
+              variant="destructive"
+              className="w-full sm:w-auto"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Delete ({selectedIds.length})
             </Button>
           )}
         </div>

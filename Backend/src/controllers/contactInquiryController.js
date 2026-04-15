@@ -77,10 +77,25 @@ const deleteInquiry = async (req, res, next) => {
     }
 };
 
+const bulkDeleteInquiries = async (req, res, next) => {
+    try {
+        const { ids } = req.body;
+        const result = await contactInquiryService.bulkDeleteInquiries(ids);
+        res.json({
+            success: true,
+            message: `${result} inquiries deleted successfully`,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     submitInquiry,
     getAllInquiries,
     getInquiryById,
     updateInquiry,
-    deleteInquiry
+    deleteInquiry,
+    bulkDeleteInquiries
 };

@@ -76,6 +76,7 @@ interface MenuState {
   addMenuItem: (formData: FormData) => Promise<void>;
   updateMenuItem: (id: string, formData: FormData) => Promise<void>;
   deleteMenuItem: (id: string) => Promise<void>;
+  deleteMenuItems: (ids: string[]) => Promise<void>;
   toggleAvailability: (id: string) => Promise<void>;
   toggleFeatured: (id: string) => Promise<void>;
   createCategory: (name: string) => Promise<any>;
@@ -203,6 +204,20 @@ export const useMenuStore = create<MenuState>((set, get) => ({
     } catch (error: any) {
       console.error('Failed to delete menu item:', error);
       set({ error: error.response?.data?.message || 'Failed to delete menu item' });
+    }
+  },
+
+  deleteMenuItems: async (ids: string[]) => {
+    try {
+      await api.delete('/menu/bulk', { data: { ids } });
+      set(state => ({
+        menuItems: state.menuItems.filter(item => !ids.includes(item.id)),
+        totalItems: state.totalItems - ids.length
+      }));
+    } catch (error: any) {
+      console.error('Failed to delete menu items:', error);
+      set({ error: error.response?.data?.message || 'Failed to delete menu items' });
+      throw error;
     }
   },
 

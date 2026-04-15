@@ -248,7 +248,7 @@ function InquiryDetailModal({ inquiry }: { inquiry: Inquiry }) {
 
 export default function Inquiries() {
   const {
-    inquiries, isLoading, total, totalPages, fetchInquiries, deleteInquiry, error
+    inquiries, isLoading, total, totalPages, fetchInquiries, deleteInquiry, deleteInquiries, error
   } = useInquiryStore();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -268,6 +268,33 @@ export default function Inquiries() {
   const [subjectFilter, setSubjectFilter] = useState<string>(subjectParam);
   const [currentPage, setCurrentPage] = useState(pageParam);
   const [itemsPerPage, setItemsPerPage] = useState(limitParam);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(inquiries.map(i => i.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectItem = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(i => i !== id));
+    }
+  };
+
+  const [bulkDeleteConfirm, setBulkDeleteConfirm] = useState(false);
+
+  const confirmBulkDelete = async () => {
+    if (selectedIds.length > 0) {
+      await deleteInquiries(selectedIds);
+      setSelectedIds([]);
+      setBulkDeleteConfirm(false);
+    }
+  };
 
   // Sync state to URL
   useEffect(() => {
@@ -366,14 +393,27 @@ export default function Inquiries() {
       <div className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
         <div className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Inquiry Management</h3>
+            <div className="flex items-center gap-4">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Inquiry Management</h3>
+              {selectedIds.length > 0 && (
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="flex items-center gap-2"
+                  onClick={() => setBulkDeleteConfirm(true)}
+                >
+                  <Trash2 className="w-4 h-4" />
+                  Delete ({selectedIds.length})
+                </Button>
+              )}
+            </div>
             <Button
               variant="outline"
               size="sm"
               className="flex items-center gap-2"
               onClick={() => performFetch()}
             >
-              <RefreshCw className={`w - 4 h - 4 ${isLoading ? 'animate-spin' : ''} `} />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''} `} />
               Refresh
             </Button>
           </div>
@@ -432,6 +472,14 @@ export default function Inquiries() {
           <table className="w-full">
             <thead className="bg-slate-50 dark:bg-slate-900">
               <tr>
+                <th className="px-6 py-3 text-left">
+                  <input
+                    type="checkbox"
+                    checked={inquiries.length > 0 && selectedIds.length === inquiries.length}
+                    onChange={handleSelectAll}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase tracking-wider">
                   Customer
                 </th>
@@ -467,7 +515,16 @@ export default function Inquiries() {
                 </tr>
               ) : (
                 inquiries.map((inquiry) => (
-                  <tr key={inquiry.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                  <tr key={inquiry.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 ${selectedIds.includes(inquiry.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''
+                    }`}>
+                    <td className="px-6 py-4">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(inquiry.id)}
+                        onChange={(e) => handleSelectItem(inquiry.id, e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <div className="w-8 h-8 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">
@@ -521,7 +578,15 @@ export default function Inquiries() {
         {/* Mobile Card View */}
         <div className="lg:hidden space-y-4 p-4">
           {inquiries.map((inquiry) => (
-            <Card key={inquiry.id} className="p-4">
+            <Card key={inquiry.id} className={`p-4 relative ${selectedIds.includes(inquiry.id) ? 'border-blue-500 bg-blue-50/10' : ''}`}>
+              <div className="absolute top-4 right-4 z-10">
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(inquiry.id)}
+                  onChange={(e) => handleSelectItem(inquiry.id, e.target.checked)}
+                  className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+              </div>
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -596,6 +661,23 @@ export default function Inquiries() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={confirmDelete} className="bg-red-600 hover:bg-red-700">
               Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={bulkDeleteConfirm} onOpenChange={setBulkDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Multiple Inquiries?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{selectedIds.length}</strong> selected inquiries? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmBulkDelete} className="bg-red-600 hover:bg-red-700">
+              Delete All
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

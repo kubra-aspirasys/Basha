@@ -352,6 +352,21 @@ class PaymentService {
         return { message: 'Payment deleted successfully' };
     }
 
+    async bulkDeletePayments(ids) {
+        if (!ids || !Array.isArray(ids) || ids.length === 0) {
+            throw new Error('No payment IDs provided for deletion');
+        }
+
+        const result = await Payment.destroy({
+            where: {
+                id: {
+                    [Op.in]: ids
+                }
+            }
+        });
+        return result;
+    }
+
     /**
      * Get payment statistics
      */

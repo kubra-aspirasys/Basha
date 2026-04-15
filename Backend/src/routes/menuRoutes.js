@@ -42,6 +42,9 @@ router.patch('/:id/availability', authorize('admin', 'staff'), menuController.to
 // PATCH /menu-items/:id/featured - Toggle featured (Admin/Staff)
 router.patch('/:id/featured', authorize('admin', 'staff'), menuController.toggleFeatured);
 
+// DELETE /menu-items/bulk - Bulk delete items (Admin only)
+router.delete('/bulk', authorize('admin'), menuController.bulkDeleteMenuItems);
+
 // DELETE /menu-items/:id - Delete item (Admin only)
 router.delete('/:id', authorize('admin'), menuController.deleteMenuItem);
 

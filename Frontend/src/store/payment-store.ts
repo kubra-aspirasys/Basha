@@ -52,12 +52,13 @@ interface PaymentState {
   updatePaymentStatus: (id: string, status: Payment['status']) => Promise<Payment | null>;
   updatePayment: (id: string, data: Partial<Payment>) => Promise<Payment | null>;
   deletePayment: (id: string) => Promise<boolean>;
+  deletePayments: (ids: string[]) => Promise<boolean>;
   generateTransactionId: () => Promise<string | null>;
   exportPayments: (filters?: PaymentFilters) => Promise<void>;
   clearError: () => void;
 }
 
-export const usePaymentStore = create<PaymentState>((set) => ({
+export const usePaymentStore = create<PaymentState>((set, _get) => ({
   payments: [],
   loading: false,
   error: null,
@@ -239,6 +240,27 @@ export const usePaymentStore = create<PaymentState>((set) => ({
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to delete payment';
+      set({ error: errorMessage, loading: false });
+      return false;
+    }
+  },
+
+  deletePayments: async (ids) => {
+    set({ loading: true, error: null });
+    try {
+      const response = await api.delete('/payments/bulk', { data: { ids } });
+
+      if (response.data.success) {
+        set((state) => ({
+          payments: state.payments.filter((p) => !ids.includes(p.id)),
+          loading: false
+        }));
+        return true;
+      } else {
+        throw new Error(response.data.message || 'Failed to delete payments');
+      }
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete payments';
       set({ error: errorMessage, loading: false });
       return false;
     }

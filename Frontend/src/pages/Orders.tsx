@@ -51,7 +51,7 @@ const statusConfig = {
 };
 
 export default function Orders() {
-  const { orders, updateOrderStatus, deleteOrder, fetchOrders, createManualOrder, loading, storeActive, fetchStoreStatus, setStoreStatus } = useOrderStore();
+  const { orders, updateOrderStatus, deleteOrder, deleteOrders, fetchOrders, createManualOrder, loading, storeActive, fetchStoreStatus, setStoreStatus } = useOrderStore();
   const { menuItems, fetchAllMenuItems } = useMenuStore();
   const { customers } = useCustomerStore();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -99,6 +99,32 @@ export default function Orders() {
   const [menuSearchTerm, setMenuSearchTerm] = useState('');
   const [manualPlatformOrderId, setManualPlatformOrderId] = useState('');
   const [creatingOrder, setCreatingOrder] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.checked) {
+      setSelectedIds(paginatedOrders.map(o => o.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectItem = (id: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, id]);
+    } else {
+      setSelectedIds(prev => prev.filter(i => i !== id));
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedIds.length === 0) return;
+    if (window.confirm(`Are you sure you want to delete ${selectedIds.length} orders?`)) {
+      await deleteOrders(selectedIds);
+      setSelectedIds([]);
+      toast.success(`${selectedIds.length} orders deleted successfully`);
+    }
+  };
 
   // Sync state to URL params
   useEffect(() => {
@@ -561,6 +587,15 @@ export default function Orders() {
             <span className="hidden sm:inline">Add Manual Order</span>
             <span className="sm:hidden">Add</span>
           </button>
+          {selectedIds.length > 0 && (
+            <button
+              onClick={handleBulkDelete}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-md hover:shadow-lg transition-all duration-200 hover:-translate-y-0.5"
+            >
+              <Trash2 className="w-5 h-5" />
+              <span>Delete ({selectedIds.length})</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -745,6 +780,14 @@ export default function Orders() {
               <table className="w-full">
                 <thead className="bg-slate-50 dark:bg-slate-900">
                   <tr>
+                    <th className="px-6 py-3 text-left">
+                      <input
+                        type="checkbox"
+                        checked={paginatedOrders.length > 0 && selectedIds.length === paginatedOrders.length}
+                        onChange={handleSelectAll}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                      />
+                    </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Order #</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Customer</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-400 uppercase">Type</th>
@@ -760,7 +803,15 @@ export default function Orders() {
                 </thead>
                 <tbody className="bg-white dark:bg-slate-800 divide-y divide-slate-200 dark:divide-slate-700">
                   {paginatedOrders.map((order) => (
-                    <tr key={order.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-200 border-b border-slate-200 dark:border-slate-700">
+                    <tr key={order.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-all duration-200 border-b border-slate-200 dark:border-slate-700 ${selectedIds.includes(order.id) ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}>
+                      <td className="px-6 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(order.id)}
+                          onChange={(e) => handleSelectItem(order.id, e.target.checked)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">{order.order_number}</td>
                       <td className="px-6 py-4 text-slate-600 dark:text-slate-400">{order.customer_name}</td>
                       <td className="px-6 py-4">
@@ -862,8 +913,16 @@ export default function Orders() {
               {paginatedOrders.map((order) => (
                 <div
                   key={order.id}
-                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  className={`bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition-shadow relative ${selectedIds.includes(order.id) ? 'ring-2 ring-blue-500 bg-blue-50/10' : ''}`}
                 >
+                  <div className="absolute top-4 right-16">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(order.id)}
+                      onChange={(e) => handleSelectItem(order.id, e.target.checked)}
+                      className="w-5 h-5 rounded border-slate-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    />
+                  </div>
                   <div className="space-y-4">
                     {/* Header with Order Number and Type */}
                     <div className="flex items-start justify-between">

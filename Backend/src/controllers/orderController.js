@@ -170,6 +170,20 @@ const deleteOrder = async (req, res, next) => {
     }
 };
 
+const bulkDeleteOrders = async (req, res, next) => {
+    try {
+        const { ids } = req.body;
+        const result = await orderService.bulkDeleteOrders(ids);
+        res.json({
+            success: true,
+            message: `${result} orders deleted successfully`,
+            data: result
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
 module.exports = {
     createOrder,
     getAllOrders,
@@ -178,5 +192,6 @@ module.exports = {
     updateOrderStatus,
     updateOrder,
     cancelOrder,
-    deleteOrder
+    deleteOrder,
+    bulkDeleteOrders
 };
